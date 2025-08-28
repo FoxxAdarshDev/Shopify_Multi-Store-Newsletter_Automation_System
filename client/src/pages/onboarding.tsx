@@ -114,7 +114,7 @@ export default function Onboarding() {
   const [formData, setFormData] = useState<StoreFormData>({
     name: "",
     shopifyUrl: "",
-    integrationType: "typical"
+    integrationType: "shopify"
   });
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [iconPreview, setIconPreview] = useState<string>("");
