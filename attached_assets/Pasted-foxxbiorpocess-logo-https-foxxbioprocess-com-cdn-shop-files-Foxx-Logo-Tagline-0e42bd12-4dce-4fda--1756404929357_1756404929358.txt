@@ -1,0 +1,44 @@
+foxxbiorpocess logo: https://foxxbioprocess.com/cdn/shop/files/Foxx_Logo_Tagline_0e42bd12-4dce-4fda-abf8-db37715e463d.png?v=1669752062&width=300
+
+I want to create a newsletteer managing dashboard where I want to create a newsletter popup like this see imaege
+so what I want is I have a shopify website where what I want to to create a system see
+see imaeg 2 where first if the user added  the site see imaeg 2   and  3
+so first if the admin select the shopify site where it want to show this newsletter popup see
+imaeg 2 right now only focus on shopify based website 
+leter we can add another option so once it add then seee imaeg 4  then see the js
+
+script have created for this store  so we need to add  this script under head like google analyztics  provide  the js script to add on site once ti added and verified  then ti able to crawl all website data
+so  we dothe same ocne the  scrpt generate dthen see imaeg 5 
+then see the onboard dashboard 
+see imaeg 6 so this is just a refernce dashboard so for me I dont all thi optoons
+so under the dashhboard  wehat you do I have a optons to add the newsletter popup text content and also what type of field I want email, phpno name, address, company and all 
+I have a options to choose
+then I only want to accept the company emaol id not any email id like for example
+
+adarsh@foxxlifesciences.com 
+
+only company id acceeptabel then once also  see imaeg 7 
+so this kind of setup seeting I want add under the dashboard also the preview how does it look allso once the 
+
+email id added so once ti verified by the db that is tis not the exising meial id so I want to show the confirmation to that user and once it subscribed to the newsletter so I dont want to show the enwsletter popup againn to the user in the same browsers where th website open and newsletter it opened
+
+also i want to send the email also once the confirmatio showing so the email should be the the discount code coupon
+so this code  is applicable to that user  to get the 15% discount also integrate the nodeemaoler I have to send the udpated form 
+
+updates@foxxbioprocess.com so I have the email id and password for the nodeemailer malle sure  mail should be going with full auithenticaity and not going on spam
+
+in the entire store discoutn is manageble by the shopify I already created the discutn and added the setging under the shopif but you have given the option to add the dicoiutn name coupon name whichh I want to send
+
+
+also I want to see all the user list also in the separate page the time it subscriebd and also use the 
+
+
+shopify acces token so fetch that this customer is avail the discoitn code or not in the checkout 
+
+so what you do  see image  9 so add this options to 
+
+
+
+ to config to store  to fetch the discount code is aplied  by teh suer ot not 
+
+ 
