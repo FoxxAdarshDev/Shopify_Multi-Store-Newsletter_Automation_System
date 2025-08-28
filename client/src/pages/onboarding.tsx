@@ -129,6 +129,13 @@ export default function Onboarding() {
     queryKey: ["/api/stores"],
   });
 
+  // Show header when stores exist OR for demo purposes
+  const shouldShowHeader = true; // Set to existingStores.length > 0 for production
+  const displayStores = existingStores.length > 0 ? existingStores : [
+    { id: "mock-1", name: "Foxx Bioprocess" },
+    { id: "mock-2", name: "foxxlifesciences" }
+  ];
+
   const createStoreMutation = useMutation({
     mutationFn: (data: StoreFormData) => apiRequest("/api/stores", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: async (store) => {
@@ -224,8 +231,8 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-background">
-      {existingStores.length > 0 && <OnboardingHeader existingStores={existingStores} />}
-      <div className="flex items-center justify-center p-4" style={{minHeight: existingStores.length > 0 ? 'calc(100vh - 80px)' : '100vh'}}>
+      {shouldShowHeader && <OnboardingHeader existingStores={displayStores} />}
+      <div className="flex items-center justify-center p-4" style={{minHeight: shouldShowHeader ? 'calc(100vh - 80px)' : '100vh'}}>
       <div className="w-full max-w-4xl">
         {/* Progress Steps */}
         <div className="flex items-center justify-between mb-8">
