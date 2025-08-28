@@ -1,19 +1,112 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Code, ArrowRight, Copy, Download, Check } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Upload, Code, ArrowRight, Copy, Download, Check, Plus, ChevronDown, User, Shield, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import foxxLogo from "@/assets/foxx-logo.png";
 
 interface StoreFormData {
   name: string;
   shopifyUrl: string;
   shopifyAccessToken?: string;
   integrationType: string;
+}
+
+function OnboardingHeader({ existingStores }: { existingStores: Array<{id: string, name: string}> }) {
+  const { user, logout, isLoggingOut } = useAuth();
+  const [, setLocation] = useLocation();
+
+  if (!user) return null;
+
+  const userInitials = user.email.substring(0, 2).toUpperCase();
+
+  return (
+    <header className="bg-card border-b border-border px-6 py-4" data-testid="onboarding-header">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <img 
+            src={foxxLogo} 
+            alt="Foxx Bioprocess Logo" 
+            className="h-8 w-auto"
+          />
+          
+          <Select defaultValue="add-new">
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select Site" />
+            </SelectTrigger>
+            <SelectContent>
+              <div className="px-2 py-1 text-xs text-muted-foreground">
+                filter by name...
+              </div>
+              {existingStores.map((store) => (
+                <SelectItem key={store.id} value={store.id}>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                    {store.name}
+                  </div>
+                </SelectItem>
+              ))}
+              <SelectItem value="add-new">
+                <div className="flex items-center text-blue-600">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Site
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full" data-testid="button-user-menu">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none" data-testid="user-email">
+                  {user.email}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-xs" data-testid="user-role">
+                    {user.role === 'admin' ? (
+                      <><Shield className="w-3 h-3 mr-1" />Admin</>
+                    ) : (
+                      <><User className="w-3 h-3 mr-1" />Member</>
+                    )}
+                  </Badge>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => logout()}
+              disabled={isLoggingOut}
+              data-testid="logout-button"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              {isLoggingOut ? "Logging out..." : "Log out"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  );
 }
 
 export default function Onboarding() {
@@ -30,6 +123,11 @@ export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check for existing stores
+  const { data: existingStores = [] } = useQuery<Array<{id: string, name: string}>>({    
+    queryKey: ["/api/stores"],
+  });
 
   const createStoreMutation = useMutation({
     mutationFn: (data: StoreFormData) => apiRequest("/api/stores", { method: "POST", body: JSON.stringify(data) }),
@@ -125,7 +223,9 @@ export default function Onboarding() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background">
+      {existingStores.length > 0 && <OnboardingHeader existingStores={existingStores} />}
+      <div className="flex items-center justify-center p-4" style={{minHeight: existingStores.length > 0 ? 'calc(100vh - 80px)' : '100vh'}}>
       <div className="w-full max-w-4xl">
         {/* Progress Steps */}
         <div className="flex items-center justify-between mb-8">
@@ -379,6 +479,7 @@ export default function Onboarding() {
             )}
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
