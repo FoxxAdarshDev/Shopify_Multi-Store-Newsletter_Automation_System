@@ -55,11 +55,19 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Newsletter Dashboard
+          <div className="mb-6">
+            <img 
+              src="/attached_assets/foxx-logo.png" 
+              alt="Foxx Bioprocess" 
+              className="mx-auto h-16 w-auto mb-4"
+              data-testid="foxx-logo"
+            />
+          </div>
+          <h1 className="text-3xl font-bold" style={{ color: '#0071b9' }}>
+            Foxx Internal Tools
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Sign in to your account
+            Newsletter Management Dashboard
           </p>
         </div>
 
@@ -116,6 +124,7 @@ export default function Login() {
                 <Button
                   type="submit"
                   className="w-full"
+                  style={{ backgroundColor: '#0071b9', borderColor: '#0071b9' }}
                   disabled={loginMutation.isPending}
                   data-testid="button-login"
                 >

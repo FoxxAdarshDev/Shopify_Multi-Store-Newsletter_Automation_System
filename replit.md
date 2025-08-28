@@ -8,6 +8,14 @@ A full-stack newsletter management dashboard specifically designed for Shopify s
 
 Preferred communication style: Simple, everyday language.
 
+## Brand Guidelines
+
+**Foxx Bioprocess Internal Tools**
+- Primary Brand Color: #0071b9 (Blue)
+- Secondary Brand Color: #00c68c (Green)
+- Logo: Foxx Bioprocess with tagline
+- Application Title: "Foxx Internal Tools - Newsletter Management Dashboard"
+
 ## System Architecture
 
 ### Frontend Architecture

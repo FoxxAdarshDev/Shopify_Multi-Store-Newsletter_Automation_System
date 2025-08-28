@@ -35,15 +35,15 @@ export default function Dashboard() {
       title: "Active Stores",
       value: stats?.activeStores ?? 0,
       icon: Store,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
+      color: "#0071b9",
+      bgColor: "bg-blue-50",
     },
     {
       title: "Total Subscribers",
       value: stats?.totalSubscribers ?? 0,
       icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
+      color: "#00c68c",
+      bgColor: "bg-green-50",
     },
     {
       title: "Conversion Rate",
@@ -76,7 +76,7 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-muted-foreground">

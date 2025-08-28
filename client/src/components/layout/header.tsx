@@ -20,9 +20,19 @@ export default function Header() {
   return (
     <header className="bg-card border-b border-border px-6 py-4" data-testid="header">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Newsletter Manager</h1>
-          <p className="text-sm text-muted-foreground">Manage your newsletter campaigns</p>
+        <div className="flex items-center space-x-4">
+          <img 
+            src="/attached_assets/foxx-logo.png" 
+            alt="Foxx Bioprocess" 
+            className="h-10 w-auto"
+            data-testid="foxx-logo-header"
+          />
+          <div>
+            <h1 className="text-2xl font-semibold" style={{ color: '#0071b9' }}>
+              Foxx Internal Tools
+            </h1>
+            <p className="text-sm text-muted-foreground">Newsletter Management Dashboard</p>
+          </div>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -30,7 +40,8 @@ export default function Header() {
           
           {hasPermission('manage_stores') && (
             <Button 
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-white hover:opacity-90"
+              style={{ backgroundColor: '#0071b9' }}
               data-testid="button-add-store-header"
               onClick={() => setLocation('/stores')}
             >
