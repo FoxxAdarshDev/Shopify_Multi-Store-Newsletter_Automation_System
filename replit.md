@@ -46,7 +46,7 @@ The schema supports multi-tenant architecture where users can manage multiple Sh
 ## External Dependencies
 
 ### Database & Infrastructure
-- **Neon Database**: Serverless PostgreSQL with connection pooling
+- **Render PostgreSQL**: Production PostgreSQL database with SSL connection
 - **Session Storage**: PostgreSQL-backed session management via connect-pg-simple
 
 ### Third-Party Integrations
