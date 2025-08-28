@@ -53,17 +53,13 @@ export default function Sidebar() {
   return (
     <div className="w-64 bg-card border-r border-border shadow-sm sidebar-transition" data-testid="sidebar">
       <div className="p-6 border-b border-border">
-        <div className="flex items-center space-x-3">
+        <div className="flex justify-center">
           <img 
             src={foxxLogo} 
             alt="Foxx Bioprocess Logo" 
-            className="h-8 w-auto"
+            className="h-10 w-auto"
             data-testid="foxx-logo"
           />
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">Newsletter Manager</h1>
-            <p className="text-xs text-muted-foreground">Foxx Bioprocess</p>
-          </div>
         </div>
       </div>
       
