@@ -9,6 +9,7 @@ import {
   insertStoreSchema, insertPopupConfigSchema, insertSubscriberSchema, insertEmailSettingsSchema,
   loginSchema, resetPasswordSchema, setPasswordSchema, updatePermissionsSchema
 } from "@shared/schema";
+import { encrypt, decrypt } from "./utils/encryption.js";
 import { z } from "zod";
 import { authenticateSession, requireAdmin, requirePermission, optionalAuth, type AuthRequest } from "./middleware/auth";
 
@@ -249,6 +250,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const stats = await storage.getSubscriberStats(store.id);
           return {
             ...store,
+            // Mask the Shopify access token in responses
+            shopifyAccessToken: store.shopifyAccessToken ? 
+              store.shopifyAccessToken.substring(0, 10) + '•'.repeat(40) : undefined,
             subscriberCount: stats.total,
             conversionRate: stats.total > 0 ? ((stats.couponsUsed / stats.total) * 100).toFixed(1) : "0.0",
           };
@@ -266,6 +270,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const data = insertStoreSchema.parse({ ...req.body, userId });
+      
+      // Encrypt the Shopify access token before saving
+      if (data.shopifyAccessToken) {
+        data.shopifyAccessToken = encrypt(data.shopifyAccessToken);
+      }
       
       const store = await storage.createStore(data);
       
@@ -309,12 +318,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const storeId = req.params.id;
       const updates = req.body;
       
+      // Encrypt Shopify access token if provided
+      if (updates.shopifyAccessToken) {
+        updates.shopifyAccessToken = encrypt(updates.shopifyAccessToken);
+      }
+      
       const store = await storage.updateStore(storeId, updates);
       if (!store) {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      res.json(store);
+      // Mask the token in response
+      const response = {
+        ...store,
+        shopifyAccessToken: store.shopifyAccessToken ? 
+          store.shopifyAccessToken.substring(0, 10) + '•'.repeat(40) : undefined
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error("Update store error:", error);
       res.status(400).json({ message: "Failed to update store" });

@@ -20,6 +20,8 @@ export interface ShopifyDiscountCode {
   usage_limit: number | null;
 }
 
+import { decrypt } from "../utils/encryption.js";
+
 export class ShopifyService {
   private makeRequest = async (config: ShopifyConfig, endpoint: string, options: RequestInit = {}) => {
     const url = `https://${config.shopUrl}/admin/api/2023-10/${endpoint}`;
@@ -40,9 +42,18 @@ export class ShopifyService {
     return response.json();
   };
 
+  // Helper to decrypt access token before making API calls
+  private decryptConfig(config: ShopifyConfig): ShopifyConfig {
+    return {
+      ...config,
+      accessToken: decrypt(config.accessToken)
+    };
+  }
+
   async verifyConnection(config: ShopifyConfig): Promise<boolean> {
     try {
-      await this.makeRequest(config, 'shop.json');
+      const decryptedConfig = this.decryptConfig(config);
+      await this.makeRequest(decryptedConfig, 'shop.json');
       return true;
     } catch (error) {
       console.error('Shopify connection verification failed:', error);
@@ -52,7 +63,8 @@ export class ShopifyService {
 
   async getCustomerByEmail(config: ShopifyConfig, email: string): Promise<ShopifyCustomer | null> {
     try {
-      const response = await this.makeRequest(config, `customers/search.json?query=email:${encodeURIComponent(email)}`);
+      const decryptedConfig = this.decryptConfig(config);
+      const response = await this.makeRequest(decryptedConfig, `customers/search.json?query=email:${encodeURIComponent(email)}`);
       
       if (response.customers && response.customers.length > 0) {
         return response.customers[0];
@@ -68,7 +80,8 @@ export class ShopifyService {
   async getDiscountCodeUsage(config: ShopifyConfig, discountCode: string): Promise<ShopifyDiscountCode | null> {
     try {
       // Get all discount codes and find the matching one
-      const response = await this.makeRequest(config, 'discount_codes.json');
+      const decryptedConfig = this.decryptConfig(config);
+      const response = await this.makeRequest(decryptedConfig, 'discount_codes.json');
       
       if (response.discount_codes) {
         const matchingCode = response.discount_codes.find(
@@ -96,7 +109,8 @@ export class ShopifyService {
       }
 
       // Get customer's orders and check if any used the discount code
-      const ordersResponse = await this.makeRequest(config, `customers/${customer.id}/orders.json`);
+      const decryptedConfig = this.decryptConfig(config);
+      const ordersResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}/orders.json`);
       
       if (ordersResponse.orders) {
         return ordersResponse.orders.some((order: any) => 
@@ -132,7 +146,8 @@ export class ShopifyService {
         }
       };
 
-      const response = await this.makeRequest(config, 'discount_codes.json', {
+      const decryptedConfig = this.decryptConfig(config);
+      const response = await this.makeRequest(decryptedConfig, 'discount_codes.json', {
         method: 'POST',
         body: JSON.stringify(discountData),
       });

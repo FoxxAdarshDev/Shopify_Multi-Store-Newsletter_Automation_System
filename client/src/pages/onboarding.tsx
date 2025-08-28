@@ -389,6 +389,7 @@ export default function Onboarding() {
                       <Label htmlFor="shopifyToken">Shopify Access Token (Optional):</Label>
                       <Input
                         id="shopifyToken"
+                        type="password"
                         placeholder="Enter your Shopify access token for advanced features..."
                         value={formData.shopifyAccessToken || ""}
                         onChange={(e) => setFormData({ ...formData, shopifyAccessToken: e.target.value })}
