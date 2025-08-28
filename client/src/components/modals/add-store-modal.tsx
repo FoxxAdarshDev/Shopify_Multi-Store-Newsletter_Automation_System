@@ -82,9 +82,7 @@ export default function AddStoreModal({ open, onOpenChange }: AddStoreModalProps
 
   const integrationTypes = [
     { id: "typical", name: "Typical Site", icon: Code, selected: selectedIntegrationType === "typical" },
-    { id: "wordpress", name: "WordPress", icon: Code, selected: selectedIntegrationType === "wordpress" },
     { id: "shopify", name: "Shopify", icon: Code, selected: selectedIntegrationType === "shopify" },
-    { id: "squarespace", name: "Squarespace", icon: Code, selected: selectedIntegrationType === "squarespace" },
   ];
 
   return (

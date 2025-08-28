@@ -29,7 +29,7 @@ export default function Stores() {
   });
 
   const deleteStoreMutation = useMutation({
-    mutationFn: (storeId: string) => apiRequest("DELETE", `/api/stores/${storeId}`),
+    mutationFn: (storeId: string) => apiRequest("DELETE", `/api/stores/${storeId}`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       toast({

@@ -80,7 +80,7 @@ export default function PopupBuilder() {
 
   useEffect(() => {
     if (popupConfig) {
-      setConfig(popupConfig);
+      setConfig(popupConfig as PopupConfig);
     }
   }, [popupConfig]);
 
@@ -111,6 +111,23 @@ export default function PopupBuilder() {
     const newValidation = { ...config.emailValidation, [field]: value };
     handleConfigUpdate({ emailValidation: newValidation });
   };
+
+  // Show message if no stores exist
+  if (stores.length === 0) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-foreground mb-4">No Stores Configured</h2>
+          <p className="text-muted-foreground mb-6">
+            You need to add a store before you can build newsletter popups.
+          </p>
+          <Button onClick={() => window.location.href = '/stores'}>
+            Add Your First Store
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading || !config) {
     return (
