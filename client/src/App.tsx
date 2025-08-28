@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { StoreProvider } from "@/hooks/useStoreContext";
 import Dashboard from "@/pages/dashboard";
 import Stores from "@/pages/stores";
 import PopupBuilder from "@/pages/popup-builder";
@@ -50,12 +51,13 @@ function AuthenticatedRouter() {
 
   // Regular authenticated layout with sidebar
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto">
-          <Header />
-          <Switch>
+    <StoreProvider>
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <Header />
+            <Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/stores" component={Stores} />
@@ -71,9 +73,10 @@ function AuthenticatedRouter() {
             
             <Route component={NotFound} />
           </Switch>
+          </div>
         </div>
       </div>
-    </div>
+    </StoreProvider>
   );
 }
 

@@ -42,13 +42,13 @@ function OnboardingHeader({ existingStores }: { existingStores: Array<{id: strin
           
           <Select defaultValue="add-new">
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select Site" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <div className="px-2 py-1 text-xs text-muted-foreground">
                 filter by name...
               </div>
-              {existingStores.map((store) => (
+              {existingStores.map((store: {id: string, name: string}) => (
                 <SelectItem key={store.id} value={store.id}>
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
@@ -129,12 +129,9 @@ export default function Onboarding() {
     queryKey: ["/api/stores"],
   });
 
-  // Show header when stores exist OR for demo purposes
-  const shouldShowHeader = true; // Set to existingStores.length > 0 for production
-  const displayStores = existingStores.length > 0 ? existingStores : [
-    { id: "mock-1", name: "Foxx Bioprocess" },
-    { id: "mock-2", name: "foxxlifesciences" }
-  ];
+  // Always show header in onboarding
+  const shouldShowHeader = true;
+  const displayStores = existingStores.length > 0 ? existingStores : [];
 
   const createStoreMutation = useMutation({
     mutationFn: (data: StoreFormData) => apiRequest("/api/stores", { method: "POST", body: JSON.stringify(data) }),
@@ -157,7 +154,8 @@ export default function Onboarding() {
   });
 
   const generateScript = (storeId: string) => {
-    return `<!-- Newsletter Popup Script for ${formData.name} -->
+    if (formData.integrationType === 'shopify') {
+      return `<!-- Newsletter Popup Script for ${formData.name} -->
 <script>
 (function() {
   var script = document.createElement('script');
@@ -165,9 +163,24 @@ export default function Onboarding() {
   script.async = true;
   script.setAttribute('data-store-id', '${storeId}');
   script.setAttribute('data-popup-config', 'auto');
+  script.setAttribute('data-integration-type', 'shopify');
   document.head.appendChild(script);
 })();
 </script>`;
+    } else {
+      return `<!-- Newsletter Popup Script for ${formData.name} -->
+<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = '${window.location.origin}/js/newsletter-popup.js';
+  script.async = true;
+  script.setAttribute('data-store-id', '${storeId}');
+  script.setAttribute('data-popup-config', 'auto');
+  script.setAttribute('data-integration-type', 'website');
+  document.head.appendChild(script);
+})();
+</script>`;
+    }
   };
 
   const handleIconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -389,7 +402,7 @@ export default function Onboarding() {
 
                 <div className="text-center">
                   <p className="text-muted-foreground mb-4">
-                    We'll create a newsletter popup script customized for your {formData.integrationType} site.
+                    We'll create a newsletter popup script customized for your {formData.integrationType === 'shopify' ? 'Shopify' : 'website'}.
                   </p>
                 </div>
 
@@ -409,14 +422,24 @@ export default function Onboarding() {
               <div className="space-y-6">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-semibold mb-2">Install Script</h2>
-                  <p className="text-muted-foreground">Add this script to your website's head section</p>
+                  <p className="text-muted-foreground">
+                    {formData.integrationType === 'shopify' 
+                      ? 'Add this script to your Shopify theme.liquid file in the <head> section'
+                      : 'Add this script to your website\'s head section'
+                    }
+                  </p>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-base font-medium">Step 1: Copy Script</Label>
+                    <Label className="text-base font-medium">
+                      {formData.integrationType === 'shopify' ? 'Copy and paste this script into your theme.liquid' : 'Step 1: Copy Script'}
+                    </Label>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Copy this script and add it to the bottom of your site just before the end of the body tag.
+                      {formData.integrationType === 'shopify' 
+                        ? 'Go to Online Store → Themes → Actions → Edit Code → Layout → theme.liquid. Paste this script in the <head> section.'
+                        : 'Copy this script and add it to the header of your site just before the end of the head tag.'
+                      }
                     </p>
                     <div className="relative">
                       <textarea
@@ -436,9 +459,14 @@ export default function Onboarding() {
                   </div>
 
                   <div>
-                    <Label className="text-base font-medium">Step 2: Verify Installation</Label>
+                    <Label className="text-base font-medium">
+                      {formData.integrationType === 'shopify' ? 'Save your theme changes' : 'Step 2: Verify Installation'}
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      After adding the script to your website, click "Next Step" to verify the installation.
+                      {formData.integrationType === 'shopify' 
+                        ? 'After adding the script to your theme.liquid file, save the changes and click "Next Step" to verify the installation.'
+                        : 'After adding the script to your website, click "Next Step" to verify the installation.'
+                      }
                     </p>
                   </div>
                 </div>
@@ -458,20 +486,25 @@ export default function Onboarding() {
               <div className="space-y-6">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-semibold mb-2">Verify Installation</h2>
-                  <p className="text-muted-foreground">Let's check if the script is properly installed</p>
+                  <p className="text-muted-foreground">
+                    Welcome to {formData.integrationType === 'shopify' ? 'Shopify Integration' : 'Website Integration'}!
+                  </p>
                 </div>
 
                 <div className="text-center space-y-4">
                   <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
                     <Check className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-green-800 mb-2">Installation Verified!</h3>
+                    <h3 className="text-lg font-medium text-green-800 mb-2">
+                      Welcome to {formData.integrationType === 'shopify' ? 'Shopify' : 'Website Integration'}!
+                    </h3>
                     <p className="text-green-700">
-                      Your newsletter popup script has been successfully installed on {formData.name}.
+                      If you've installed it correctly, your website should now prompt visitors to subscribe. 
+                      If you don't see an optin prompt on your site, contact us for help.
                     </p>
                   </div>
 
                   <div className="text-sm text-muted-foreground space-y-2">
-                    <p>✓ Script is properly loaded</p>
+                    <p>✓ Script is ready for deployment</p>
                     <p>✓ Newsletter popup is configured</p>
                     <p>✓ Ready to collect subscribers</p>
                   </div>
@@ -479,7 +512,7 @@ export default function Onboarding() {
 
                 <div className="flex justify-center pt-6">
                   <Button onClick={handleNext} size="lg">
-                    Go to Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+                    Continue To Dashboard <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
               </div>
