@@ -1,14 +1,31 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
   email: text("email").notNull().unique(),
+  password: text("password"),
+  role: text("role").notNull().default("member"), // 'admin' or 'member'
+  isActive: boolean("is_active").default(true).notNull(),
+  isEmailVerified: boolean("is_email_verified").default(false).notNull(),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
+  lastLoginAt: timestamp("last_login_at"),
+  permissions: jsonb("permissions").default({}), // For member permissions control
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const stores = pgTable("stores", {
@@ -117,15 +134,34 @@ export const emailSettingsRelations = relations(emailSettings, ({ one }) => ({
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+export const resetPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+export const setPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+export const updatePermissionsSchema = z.object({
+  permissions: z.record(z.boolean()),
+});
 export const insertStoreSchema = createInsertSchema(stores).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPopupConfigSchema = createInsertSchema(popupConfigs).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertSubscriberSchema = createInsertSchema(subscribers).omit({ id: true, subscribedAt: true });
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types
+export type Session = typeof sessions.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginData = z.infer<typeof loginSchema>;
+export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
+export type SetPasswordData = z.infer<typeof setPasswordSchema>;
+export type UpdatePermissionsData = z.infer<typeof updatePermissionsSchema>;
 export type Store = typeof stores.$inferSelect;
 export type InsertStore = z.infer<typeof insertStoreSchema>;
 export type PopupConfig = typeof popupConfigs.$inferSelect;

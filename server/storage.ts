@@ -1,19 +1,40 @@
 import {
-  users, stores, popupConfigs, subscribers, emailSettings,
-  type User, type InsertUser,
+  users, stores, popupConfigs, subscribers, emailSettings, sessions,
+  type User, type InsertUser, type Session,
   type Store, type InsertStore,
   type PopupConfig, type InsertPopupConfig,
   type Subscriber, type InsertSubscriber,
   type EmailSettings, type InsertEmailSettings
 } from "@shared/schema";
+import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
+import { promisify } from 'util';
+
+const scryptAsync = promisify(scrypt);
 import { db } from "./db";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  
+  // Authentication
+  hashPassword(password: string): Promise<string>;
+  verifyPassword(password: string, hashedPassword: string): Promise<boolean>;
+  generateResetToken(): string;
+  createMemberInvitation(email: string, permissions: Record<string, boolean>): Promise<User>;
+  
+  // Session management
+  createSession(userId: string): Promise<{ sessionId: string; expiresAt: Date }>;
+  getSession(sessionId: string): Promise<{ userId: string; expiresAt: Date } | undefined>;
+  deleteSession(sessionId: string): Promise<boolean>;
+  cleanExpiredSessions(): Promise<void>;
+  
+  // Additional user methods
+  getUsers(): Promise<User[]>;
+  deleteUser(id: string): Promise<boolean>;
 
   // Stores
   getStore(id: string): Promise<Store | undefined>;
@@ -53,14 +74,112 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const userData = { ...insertUser };
+    if (userData.password) {
+      userData.password = await this.hashPassword(userData.password);
+    }
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const updateData = { ...updates, updatedAt: new Date() };
+    if (updateData.password) {
+      updateData.password = await this.hashPassword(updateData.password);
+    }
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser || undefined;
+  }
+
+  // Authentication
+  async hashPassword(password: string): Promise<string> {
+    const salt = randomBytes(32).toString('hex');
+    const derivedKey = await scryptAsync(password, salt, 64) as Buffer;
+    return `${salt}:${derivedKey.toString('hex')}`;
+  }
+
+  async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+    const [salt, key] = hashedPassword.split(':');
+    const derivedKey = await scryptAsync(password, salt, 64) as Buffer;
+    return timingSafeEqual(Buffer.from(key, 'hex'), derivedKey);
+  }
+
+  generateResetToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  async createMemberInvitation(email: string, permissions: Record<string, boolean>): Promise<User> {
+    const resetToken = this.generateResetToken();
+    const resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    
+    return await this.createUser({
+      email,
+      role: 'member',
+      isActive: false,
+      isEmailVerified: false,
+      resetToken,
+      resetTokenExpiry,
+      permissions
+    });
+  }
+
+  // Session management
+  async createSession(userId: string): Promise<{ sessionId: string; expiresAt: Date }> {
+    const sessionId = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    
+    await db.insert(sessions).values({
+      sid: sessionId,
+      sess: { userId, expiresAt: expiresAt.toISOString() },
+      expire: expiresAt
+    });
+    
+    return { sessionId, expiresAt };
+  }
+
+  async getSession(sessionId: string): Promise<{ userId: string; expiresAt: Date } | undefined> {
+    const [session] = await db.select().from(sessions).where(eq(sessions.sid, sessionId));
+    if (!session || new Date() > session.expire) {
+      if (session) {
+        await this.deleteSession(sessionId);
+      }
+      return undefined;
+    }
+    
+    const sessionData = session.sess as { userId: string; expiresAt: string };
+    return {
+      userId: sessionData.userId,
+      expiresAt: new Date(sessionData.expiresAt)
+    };
+  }
+
+  async deleteSession(sessionId: string): Promise<boolean> {
+    const result = await db.delete(sessions).where(eq(sessions.sid, sessionId));
+    return result.rowCount > 0;
+  }
+
+  async cleanExpiredSessions(): Promise<void> {
+    await db.delete(sessions).where(sql`expire < NOW()`);
+  }
+
+  // Additional user methods
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount > 0;
   }
 
   // Stores

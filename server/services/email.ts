@@ -107,6 +107,41 @@ export class EmailService {
     }
   }
 
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+    isNewMember: boolean = false
+  ): Promise<boolean> {
+    try {
+      // Use admin email settings for system emails
+      const adminUser = await storage.getUserByEmail('updates@foxxbioprocess.com');
+      if (!adminUser) {
+        throw new Error('Admin user not found');
+      }
+
+      const config = await this.getEmailConfig(adminUser.id);
+      if (!config) {
+        throw new Error('Email configuration not found');
+      }
+
+      const transporter = await this.createTransporter(config);
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+
+      const mailOptions = {
+        from: `"${config.fromName}" <${config.fromEmail}>`,
+        to: email,
+        subject: isNewMember ? 'Welcome - Set Your Password' : 'Password Reset Request',
+        html: this.generatePasswordResetTemplate(email, resetUrl, isNewMember),
+      };
+
+      await transporter.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      return false;
+    }
+  }
+
   private generateWelcomeEmailTemplate(
     customerName: string,
     discountCode: string,
@@ -181,6 +216,59 @@ export class EmailService {
           <p style="margin-top: 30px;">
             A new subscriber has joined your newsletter mailing list.
           </p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private generatePasswordResetTemplate(
+    email: string,
+    resetUrl: string,
+    isNewMember: boolean
+  ): string {
+    const title = isNewMember ? 'Welcome to Newsletter Dashboard' : 'Password Reset Request';
+    const heading = isNewMember ? 'Set Your Password' : 'Reset Your Password';
+    const message = isNewMember 
+      ? 'You have been invited to access the Newsletter Dashboard. Click the link below to set your password and complete your account setup.'
+      : 'You requested a password reset for your Newsletter Dashboard account. Click the link below to reset your password.';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
+          <h1 style="color: #2563eb; margin-bottom: 30px;">${heading}</h1>
+          
+          <p style="font-size: 16px; margin-bottom: 30px;">
+            Hello,
+          </p>
+          
+          <p style="margin-bottom: 30px;">
+            ${message}
+          </p>
+          
+          <div style="margin: 40px 0;">
+            <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+              ${isNewMember ? 'Set Password' : 'Reset Password'}
+            </a>
+          </div>
+          
+          <p style="font-size: 14px; color: #6c757d; margin-top: 30px;">
+            This link will expire in 24 hours. If you didn't request this, please ignore this email.
+          </p>
+          
+          <div style="border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 30px;">
+            <p style="font-size: 14px; color: #6c757d; margin: 0;">
+              Best regards,<br>
+              Newsletter Dashboard Team
+            </p>
+          </div>
         </div>
       </body>
       </html>
