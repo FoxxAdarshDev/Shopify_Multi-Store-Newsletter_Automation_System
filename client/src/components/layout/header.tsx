@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { SessionCountdown } from "@/components/auth/session-countdown";
 import { useLocation } from "wouter";
 import { Plus, User, LogOut, Settings, Shield } from "lucide-react";
+import foxxLogo from "@assets/foxxbioprocess-logo-cropped_1756410423391.png";
 
 export default function Header() {
   const { user, logout, isLoggingOut, hasPermission } = useAuth();
@@ -22,7 +23,7 @@ export default function Header() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <img 
-            src="/attached_assets/foxx-logo.png" 
+            src={foxxLogo} 
             alt="Foxx Bioprocess" 
             className="h-10 w-auto"
             data-testid="foxx-logo-header"

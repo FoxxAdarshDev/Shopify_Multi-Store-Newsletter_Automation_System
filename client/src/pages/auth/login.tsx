@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginData } from '@shared/schema';
+import foxxLogo from '@assets/foxxbioprocess-logo-cropped_1756410423391.png';
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -57,7 +58,7 @@ export default function Login() {
         <div className="text-center">
           <div className="mb-6">
             <img 
-              src="/attached_assets/foxx-logo.png" 
+              src={foxxLogo} 
               alt="Foxx Bioprocess" 
               className="mx-auto h-16 w-auto mb-4"
               data-testid="foxx-logo"
