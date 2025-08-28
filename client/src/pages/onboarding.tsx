@@ -32,9 +32,11 @@ export default function Onboarding() {
   const queryClient = useQueryClient();
 
   const createStoreMutation = useMutation({
-    mutationFn: (data: StoreFormData) => apiRequest("POST", "/api/stores", data),
-    onSuccess: (store) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+    mutationFn: (data: StoreFormData) => apiRequest("/api/stores", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: async (store) => {
+      // Invalidate and refetch the stores query to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/stores"] });
       // Generate the script for the created store
       const script = generateScript(store.id);
       setGeneratedScript(script);
@@ -75,7 +77,7 @@ export default function Onboarding() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (!formData.name || !formData.shopifyUrl || !formData.integrationType) {
         toast({
@@ -91,7 +93,8 @@ export default function Onboarding() {
     } else if (step === 3) {
       setStep(4);
     } else if (step === 4) {
-      // Verification complete, go to dashboard
+      // Verification complete, ensure stores are loaded then go to dashboard
+      await queryClient.refetchQueries({ queryKey: ["/api/stores"] });
       setLocation('/dashboard');
     }
   };
