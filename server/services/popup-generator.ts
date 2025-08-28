@@ -1,0 +1,387 @@
+import { PopupConfig } from '@shared/schema';
+
+export class PopupGeneratorService {
+  generatePopupScript(storeId: string, config: PopupConfig): string {
+    const scriptContent = `
+(function() {
+  'use strict';
+  
+  // Configuration
+  const STORE_ID = '${storeId}';
+  const API_BASE = window.location.origin;
+  const POPUP_CONFIG = ${JSON.stringify(config)};
+  
+  // Check if popup was already shown and user subscribed
+  const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
+  if (localStorage.getItem(STORAGE_KEY) === 'subscribed') {
+    return;
+  }
+  
+  // Create popup HTML
+  function createPopupHTML() {
+    const fields = POPUP_CONFIG.fields;
+    let formFields = '';
+    
+    if (fields.email) {
+      formFields += '<input type="email" name="email" placeholder="Enter your email address" required style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+    }
+    
+    if (fields.name) {
+      formFields += '<input type="text" name="name" placeholder="Full Name" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+    }
+    
+    if (fields.phone) {
+      formFields += '<input type="tel" name="phone" placeholder="Phone Number" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+    }
+    
+    if (fields.company) {
+      formFields += '<input type="text" name="company" placeholder="Company Name" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+    }
+    
+    if (fields.address) {
+      formFields += '<textarea name="address" placeholder="Address" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-height: 80px; resize: vertical;"></textarea>';
+    }
+    
+    return \`
+      <div id="foxx-newsletter-backdrop" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: foxxFadeIn 0.3s ease-out;
+      ">
+        <div id="foxx-newsletter-popup" style="
+          background: white;
+          border-radius: 12px;
+          padding: 32px;
+          width: 90%;
+          max-width: 480px;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          position: relative;
+          animation: foxxSlideIn 0.3s ease-out;
+        ">
+          <button id="foxx-close-btn" style="
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+          ">×</button>
+          
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h2 style="
+              font-size: 24px;
+              font-weight: bold;
+              color: #2563eb;
+              margin: 0 0 12px 0;
+              line-height: 1.2;
+            ">\${POPUP_CONFIG.title}</h2>
+            <p style="
+              color: #6b7280;
+              margin: 0;
+              font-size: 14px;
+              line-height: 1.5;
+            ">\${POPUP_CONFIG.subtitle}</p>
+          </div>
+
+          <form id="foxx-newsletter-form">
+            \${formFields}
+            
+            <button type="submit" style="
+              width: 100%;
+              background: #2563eb;
+              color: white;
+              border: none;
+              padding: 14px;
+              border-radius: 6px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: background-color 0.2s;
+            " onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+              \${POPUP_CONFIG.buttonText}
+            </button>
+          </form>
+
+          <div style="
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 24px;
+            color: #9ca3af;
+          ">
+            <i style="font-size: 18px;">📘</i>
+            <i style="font-size: 18px;">📷</i>
+            <i style="font-size: 18px;">📌</i>
+            <i style="font-size: 18px;">🎥</i>
+            <i style="font-size: 18px;">🐦</i>
+          </div>
+
+          <div style="margin-top: 16px;">
+            <label style="
+              display: flex;
+              align-items: flex-start;
+              font-size: 12px;
+              color: #6b7280;
+              line-height: 1.4;
+            ">
+              <input type="checkbox" style="margin-right: 8px; margin-top: 2px;" />
+              Stay Connected For: ✓ Exclusive Product Launches ✓ Special Promotions ✓ Bioprocess Insights & Updates
+            </label>
+          </div>
+        </div>
+      </div>
+    \`;
+  }
+  
+  // CSS animations
+  const style = document.createElement('style');
+  style.textContent = \`
+    @keyframes foxxFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes foxxSlideIn {
+      from { 
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  \`;
+  document.head.appendChild(style);
+  
+  // Email validation
+  function validateEmail(email) {
+    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { valid: false, message: 'Please enter a valid email address.' };
+    }
+    
+    const validation = POPUP_CONFIG.emailValidation;
+    if (validation.companyEmailsOnly) {
+      const domain = email.split('@')[1].toLowerCase();
+      
+      // Check blocked domains
+      if (validation.blockedDomains.includes(domain)) {
+        return { valid: false, message: 'Please use your company email address.' };
+      }
+      
+      // Check allowed domains (if specified)
+      if (validation.allowedDomains.length > 0 && !validation.allowedDomains.includes(domain)) {
+        return { valid: false, message: 'Please use an approved company email domain.' };
+      }
+    }
+    
+    return { valid: true };
+  }
+  
+  // Show popup
+  function showPopup() {
+    const popupHTML = createPopupHTML();
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Event listeners
+    document.getElementById('foxx-close-btn').addEventListener('click', closePopup);
+    document.getElementById('foxx-newsletter-backdrop').addEventListener('click', function(e) {
+      if (e.target === this) closePopup();
+    });
+    
+    document.getElementById('foxx-newsletter-form').addEventListener('submit', handleSubmit);
+  }
+  
+  // Close popup
+  function closePopup() {
+    const backdrop = document.getElementById('foxx-newsletter-backdrop');
+    if (backdrop) {
+      backdrop.remove();
+    }
+  }
+  
+  // Handle form submission
+  async function handleSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Validate email
+    const emailValidation = validateEmail(data.email);
+    if (!emailValidation.valid) {
+      alert(emailValidation.message);
+      return;
+    }
+    
+    try {
+      const response = await fetch(API_BASE + '/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          storeId: STORE_ID,
+          ...data
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Success
+        localStorage.setItem(STORAGE_KEY, 'subscribed');
+        
+        // Show success message
+        document.getElementById('foxx-newsletter-popup').innerHTML = \`
+          <div style="text-align: center; padding: 20px;">
+            <div style="
+              width: 64px;
+              height: 64px;
+              background: #10b981;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 auto 20px;
+              color: white;
+              font-size: 32px;
+            ">✓</div>
+            <h3 style="color: #10b981; margin-bottom: 12px;">Thank You!</h3>
+            <p style="color: #6b7280; margin-bottom: 20px;">
+              Please check your email for your exclusive discount code.
+            </p>
+            <button onclick="document.getElementById('foxx-newsletter-backdrop').remove()" style="
+              background: #2563eb;
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 6px;
+              font-weight: 600;
+              cursor: pointer;
+            ">Close</button>
+          </div>
+        \`;
+        
+        // Auto-close after 3 seconds
+        setTimeout(closePopup, 3000);
+      } else {
+        alert(result.message || 'Subscription failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      alert('An error occurred. Please try again later.');
+    }
+  }
+  
+  // Trigger logic
+  function shouldShowPopup() {
+    return !localStorage.getItem(STORAGE_KEY);
+  }
+  
+  function initPopup() {
+    if (!shouldShowPopup()) return;
+    
+    const trigger = POPUP_CONFIG.displayTrigger;
+    
+    switch (trigger) {
+      case 'immediate':
+        setTimeout(showPopup, 500);
+        break;
+      case 'after-5s':
+        setTimeout(showPopup, 5000);
+        break;
+      case 'scroll-50':
+        let hasShown = false;
+        window.addEventListener('scroll', function() {
+          if (hasShown) return;
+          const scrolled = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+          if (scrolled >= 50) {
+            hasShown = true;
+            showPopup();
+          }
+        });
+        break;
+      case 'exit-intent':
+        document.addEventListener('mouseleave', function(e) {
+          if (e.clientY <= 0) {
+            showPopup();
+          }
+        });
+        break;
+      default:
+        setTimeout(showPopup, 500);
+    }
+  }
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPopup);
+  } else {
+    initPopup();
+  }
+})();
+`;
+
+    return scriptContent;
+  }
+
+  generateIntegrationFile(): string {
+    return `
+// Foxx Newsletter Manager Service Worker
+// This file should be placed in the root directory of your website
+
+self.addEventListener('install', function(event) {
+  console.log('Foxx Newsletter Manager service worker installed');
+});
+
+self.addEventListener('activate', function(event) {
+  console.log('Foxx Newsletter Manager service worker activated');
+});
+
+// Handle push notifications (for future use)
+self.addEventListener('push', function(event) {
+  if (event.data) {
+    const data = event.data.json();
+    const options = {
+      body: data.body,
+      icon: '/icon-192x192.png',
+      badge: '/badge-72x72.png',
+      data: data.url
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification(data.title, options)
+    );
+  }
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  
+  if (event.notification.data) {
+    event.waitUntil(
+      clients.openWindow(event.notification.data)
+    );
+  }
+});
+`;
+  }
+}
+
+export const popupGeneratorService = new PopupGeneratorService();

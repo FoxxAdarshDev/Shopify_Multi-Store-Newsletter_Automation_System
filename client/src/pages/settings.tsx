@@ -1,0 +1,429 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Lock, RefreshCw, Store, Settings2, ChevronUp, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+
+interface EmailSettings {
+  id?: string;
+  smtpHost: string;
+  smtpPort: number;
+  fromEmail: string;
+  fromName: string;
+  smtpUsername?: string;
+  smtpPassword?: string;
+  isConfigured: boolean;
+}
+
+interface Store {
+  id: string;
+  name: string;
+  shopifyUrl: string;
+  shopifyAccessToken?: string;
+  isConnected: boolean;
+  isVerified: boolean;
+}
+
+export default function Settings() {
+  const [emailForm, setEmailForm] = useState<EmailSettings>({
+    smtpHost: "smtp.gmail.com",
+    smtpPort: 587,
+    fromEmail: "updates@foxxbioprocess.com",
+    fromName: "Foxx Bioprocess",
+    isConfigured: false,
+  });
+  const [shopifyCollapsed, setShopifyCollapsed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: emailSettings, isLoading: emailLoading } = useQuery<EmailSettings>({
+    queryKey: ["/api/email-settings"],
+    onSuccess: (data) => {
+      if (data) {
+        setEmailForm(data);
+      }
+    },
+  });
+
+  const { data: stores = [] } = useQuery<Store[]>({
+    queryKey: ["/api/stores"],
+  });
+
+  const saveEmailMutation = useMutation({
+    mutationFn: (data: EmailSettings) => apiRequest("POST", "/api/email-settings", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
+      toast({
+        title: "Success",
+        description: "Email settings saved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save email settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const verifyShopifyMutation = useMutation({
+    mutationFn: ({ storeId, data }: { storeId: string; data: { shopifyUrl: string; accessToken: string } }) =>
+      apiRequest("POST", `/api/stores/${storeId}/verify-shopify`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      toast({
+        title: "Success",
+        description: "Shopify connection verified successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to verify Shopify connection",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveEmailMutation.mutate(emailForm);
+  };
+
+  const handleShopifyTest = (storeId: string, shopifyUrl: string, accessToken: string) => {
+    verifyShopifyMutation.mutate({
+      storeId,
+      data: { shopifyUrl, accessToken: accessToken || "" },
+    });
+  };
+
+  if (emailLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <h2 className="text-xl font-semibold text-foreground">Settings</h2>
+        <div className="grid lg:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-32 bg-muted rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6" data-testid="settings-page">
+      <div>
+        <h2 className="text-xl font-semibold text-foreground">Settings</h2>
+        <p className="text-sm text-muted-foreground">
+          Configure your email and Shopify integration settings
+        </p>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Email Configuration */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center mb-4">
+              <Settings2 className="h-5 w-5 mr-2 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Email Configuration</h3>
+            </div>
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="smtpHost">SMTP Host</Label>
+                <Input
+                  id="smtpHost"
+                  value={emailForm.smtpHost}
+                  onChange={(e) => setEmailForm({ ...emailForm, smtpHost: e.target.value })}
+                  placeholder="smtp.gmail.com"
+                  data-testid="input-smtp-host"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtpPort">SMTP Port</Label>
+                <Input
+                  id="smtpPort"
+                  type="number"
+                  value={emailForm.smtpPort}
+                  onChange={(e) => setEmailForm({ ...emailForm, smtpPort: Number(e.target.value) })}
+                  placeholder="587"
+                  data-testid="input-smtp-port"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fromEmail">From Email</Label>
+                <Input
+                  id="fromEmail"
+                  type="email"
+                  value={emailForm.fromEmail}
+                  onChange={(e) => setEmailForm({ ...emailForm, fromEmail: e.target.value })}
+                  placeholder="updates@foxxbioprocess.com"
+                  data-testid="input-from-email"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fromName">From Name</Label>
+                <Input
+                  id="fromName"
+                  value={emailForm.fromName}
+                  onChange={(e) => setEmailForm({ ...emailForm, fromName: e.target.value })}
+                  placeholder="Foxx Bioprocess"
+                  data-testid="input-from-name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtpUsername">SMTP Username</Label>
+                <Input
+                  id="smtpUsername"
+                  value={emailForm.smtpUsername || ""}
+                  onChange={(e) => setEmailForm({ ...emailForm, smtpUsername: e.target.value })}
+                  placeholder="your-email@gmail.com"
+                  data-testid="input-smtp-username"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtpPassword">SMTP Password</Label>
+                <div className="relative">
+                  <Input
+                    id="smtpPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={emailForm.smtpPassword || ""}
+                    onChange={(e) => setEmailForm({ ...emailForm, smtpPassword: e.target.value })}
+                    placeholder="Your app password"
+                    data-testid="input-smtp-password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </Button>
+                </div>
+              </div>
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                <div className="flex items-center">
+                  <Lock className="h-4 w-4 mr-2 text-yellow-800" />
+                  <p className="text-sm text-yellow-800">
+                    SMTP credentials are encrypted and stored securely
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={saveEmailMutation.isPending}
+                data-testid="button-save-email"
+              >
+                {saveEmailMutation.isPending ? "Saving..." : "Save Email Settings"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Shopify Configuration */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <Store className="h-5 w-5 mr-2 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">Shopify Store Configuration</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShopifyCollapsed(!shopifyCollapsed)}
+                className="text-primary hover:text-primary/80"
+              >
+                <ChevronUp className={`h-4 w-4 mr-1 transition-transform ${shopifyCollapsed ? 'rotate-180' : ''}`} />
+                {shopifyCollapsed ? 'Expand' : 'Collapse'}
+              </Button>
+            </div>
+
+            {!shopifyCollapsed && (
+              <div className="space-y-4">
+                {stores.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No stores configured</p>
+                    <p className="text-sm">Add a store to configure Shopify integration</p>
+                  </div>
+                ) : (
+                  stores.map((store) => (
+                    <div key={store.id} className="space-y-4 border rounded-lg p-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Store Name</Label>
+                          <div className="flex items-center p-3 border border-border rounded-md bg-muted">
+                            <Store className="h-4 w-4 mr-3 text-muted-foreground" />
+                            <span className="text-sm text-foreground">{store.name}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Shopify Store URL</Label>
+                          <Input
+                            value={store.shopifyUrl}
+                            readOnly
+                            className="bg-muted text-muted-foreground"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label>Store Access Token</Label>
+                        <div className="flex items-center">
+                          <Input
+                            type="password"
+                            value={store.shopifyAccessToken ? `${store.shopifyAccessToken.substring(0, 10)}${'•'.repeat(40)}` : ''}
+                            readOnly
+                            className="flex-1 bg-muted text-muted-foreground"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="ml-2"
+                            data-testid={`button-edit-token-${store.id}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Private app access token with inventory permissions
+                        </p>
+                      </div>
+
+                      <div className={`flex items-center justify-between p-4 border rounded-md ${
+                        store.isConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-center">
+                          <div className={`w-2 h-2 rounded-full mr-3 ${
+                            store.isConnected ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                          <span className={`text-sm font-medium ${
+                            store.isConnected ? 'text-green-800' : 'text-red-800'
+                          }`}>
+                            {store.isConnected ? 'Connected' : 'Not Connected'}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleShopifyTest(store.id, store.shopifyUrl, store.shopifyAccessToken || '')}
+                          disabled={verifyShopifyMutation.isPending}
+                          className={store.isConnected ? 'text-green-700 hover:text-green-900' : 'text-red-700 hover:text-red-900'}
+                          data-testid={`button-test-connection-${store.id}`}
+                        >
+                          <RefreshCw className={`h-4 w-4 mr-2 ${verifyShopifyMutation.isPending ? 'animate-spin' : ''}`} />
+                          Test Connection
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* General Settings */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">General Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="analytics" defaultChecked data-testid="checkbox-analytics" />
+                <Label htmlFor="analytics" className="text-sm">
+                  Enable popup analytics tracking
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="welcome-email" defaultChecked data-testid="checkbox-welcome-email" />
+                <Label htmlFor="welcome-email" className="text-sm">
+                  Send welcome email after subscription
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="double-optin" data-testid="checkbox-double-optin" />
+                <Label htmlFor="double-optin" className="text-sm">
+                  Enable double opt-in confirmation
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="validate-discount" defaultChecked data-testid="checkbox-validate-discount" />
+                <Label htmlFor="validate-discount" className="text-sm">
+                  Validate discount code usage via Shopify API
+                </Label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notification Settings */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Notification Settings</h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="adminEmail">Admin Notification Email</Label>
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  defaultValue="admin@foxxbioprocess.com"
+                  data-testid="input-admin-email"
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="notify-subscriptions" defaultChecked data-testid="checkbox-notify-subscriptions" />
+                <Label htmlFor="notify-subscriptions" className="text-sm">
+                  Notify on new subscriptions
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="daily-summary" data-testid="checkbox-daily-summary" />
+                <Label htmlFor="daily-summary" className="text-sm">
+                  Daily subscriber summary
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="unsubscribe-alert" defaultChecked data-testid="checkbox-unsubscribe-alert" />
+                <Label htmlFor="unsubscribe-alert" className="text-sm">
+                  Alert on high unsubscribe rate
+                </Label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator />
+
+      <div className="flex justify-end space-x-3 pt-6">
+        <Button
+          variant="outline"
+          data-testid="button-reset-defaults"
+        >
+          Reset to Defaults
+        </Button>
+        <Button
+          data-testid="button-save-settings"
+        >
+          Save Settings
+        </Button>
+      </div>
+    </div>
+  );
+}
