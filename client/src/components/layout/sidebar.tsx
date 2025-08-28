@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import foxxLogo from "@assets/foxx-logo.png";
 import { 
   BarChart3, 
   Store, 
@@ -53,7 +54,12 @@ export default function Sidebar() {
     <div className="w-64 bg-card border-r border-border shadow-sm sidebar-transition" data-testid="sidebar">
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3">
-          <Building2 className="h-8 w-8 text-primary" />
+          <img 
+            src={foxxLogo} 
+            alt="Foxx Bioprocess Logo" 
+            className="h-8 w-auto"
+            data-testid="foxx-logo"
+          />
           <div>
             <h1 className="text-lg font-semibold text-foreground">Newsletter Manager</h1>
             <p className="text-xs text-muted-foreground">Foxx Bioprocess</p>
