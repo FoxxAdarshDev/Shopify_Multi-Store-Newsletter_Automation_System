@@ -1,7 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useStoreContext } from "@/hooks/useStoreContext";
 import foxxLogo from "@assets/foxx-logo.png";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   BarChart3, 
   Store, 
@@ -10,7 +12,10 @@ import {
   Code, 
   Settings,
   Building2,
-  Shield
+  Shield,
+  ChevronDown,
+  Plus,
+  Settings as SettingsIcon
 } from "lucide-react";
 
 interface NavigationItem {
@@ -32,8 +37,9 @@ const navigation: NavigationItem[] = [
 ];
 
 export default function Sidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, hasPermission } = useAuth();
+  const { stores, selectedStoreId, setSelectedStoreId, selectedStore } = useStoreContext();
 
   if (!user) {
     return null;
@@ -53,13 +59,55 @@ export default function Sidebar() {
   return (
     <div className="w-64 bg-card border-r border-border shadow-sm sidebar-transition" data-testid="sidebar">
       <div className="p-6 border-b border-border">
-        <div className="flex justify-center">
+        <div className="flex justify-center mb-4">
           <img 
             src={foxxLogo} 
             alt="Foxx Bioprocess Logo" 
             className="h-10 w-auto"
             data-testid="foxx-logo"
           />
+        </div>
+        
+        {/* Store Selector */}
+        <div className="mt-4">
+          <Select value={selectedStoreId || ''} onValueChange={setSelectedStoreId}>
+            <SelectTrigger className="w-full">
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                <SelectValue placeholder="Select Store">
+                  {selectedStore?.name || 'Select Store'}
+                </SelectValue>
+                <ChevronDown className="h-4 w-4 ml-auto" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <div className="px-2 py-1 text-xs text-muted-foreground border-b">
+                filter by name...
+              </div>
+              {stores.map((store) => (
+                <SelectItem key={store.id} value={store.id}>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                    {store.name}
+                  </div>
+                </SelectItem>
+              ))}
+              <SelectItem value="add-new" onSelect={() => setLocation('/stores')}>
+                <div className="flex items-center text-blue-600">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Site
+                </div>
+              </SelectItem>
+              <div className="border-t pt-1">
+                <SelectItem value="setup" onSelect={() => setLocation('/settings')}>
+                  <div className="flex items-center">
+                    <SettingsIcon className="w-4 h-4 mr-2" />
+                    Setup
+                  </div>
+                </SelectItem>
+              </div>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       

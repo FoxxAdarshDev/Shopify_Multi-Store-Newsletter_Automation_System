@@ -24,54 +24,11 @@ export default function Header() {
   return (
     <header className="bg-card border-b border-border px-6 py-4" data-testid="header">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div>
-            <h1 className="text-2xl font-semibold" style={{ color: '#0071b9' }}>
-              Foxx Internal Tools
-            </h1>
-            <p className="text-sm text-muted-foreground">Newsletter Management Dashboard</p>
-          </div>
-          
-          {stores.length > 0 && (
-            <Select value={selectedStoreId || ''} onValueChange={setSelectedStoreId}>
-              <SelectTrigger className="w-60">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
-                  <SelectValue placeholder="Select Store">
-                    {selectedStore?.name || 'Select Store'}
-                  </SelectValue>
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <div className="px-2 py-1 text-xs text-muted-foreground border-b">
-                  filter by name...
-                </div>
-                {stores.map((store) => (
-                  <SelectItem key={store.id} value={store.id}>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                      {store.name}
-                    </div>
-                  </SelectItem>
-                ))}
-                <SelectItem value="add-new" onSelect={() => setLocation('/stores')}>
-                  <div className="flex items-center text-blue-600">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add New Site
-                  </div>
-                </SelectItem>
-                <div className="border-t pt-1">
-                  <SelectItem value="setup" onSelect={() => setLocation('/settings')}>
-                    <div className="flex items-center">
-                      <SettingsIcon className="w-4 h-4 mr-2" />
-                      Setup
-                    </div>
-                  </SelectItem>
-                </div>
-              </SelectContent>
-            </Select>
-          )}
+        <div>
+          <h1 className="text-2xl font-semibold" style={{ color: '#0071b9' }}>
+            Foxx Internal Tools
+          </h1>
+          <p className="text-sm text-muted-foreground">Newsletter Management Dashboard</p>
         </div>
         
         <div className="flex items-center space-x-4">
