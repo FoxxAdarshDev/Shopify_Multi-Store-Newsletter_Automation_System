@@ -33,6 +33,8 @@ export const stores = pgTable("stores", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   shopifyUrl: text("shopify_url").notNull(),
+  shopifyStoreName: text("shopify_store_name"), // Store name for .myshopify.com format
+  customDomain: text("custom_domain"), // Custom domain URL
   shopifyAccessToken: text("shopify_access_token"),
   isConnected: boolean("is_connected").default(false).notNull(),
   isVerified: boolean("is_verified").default(false).notNull(),

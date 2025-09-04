@@ -556,7 +556,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stores/:storeId/shopify/connect", authenticateSession, requirePermission('manage_integrations'), async (req: AuthRequest, res) => {
     try {
       const { storeId } = req.params;
-      const { shopifyUrl, accessToken } = req.body;
+      const { shopifyUrl, shopifyStoreName, customDomain, accessToken } = req.body;
+      
+      // Build shopifyUrl from the separate fields or use the legacy field
+      let finalShopifyUrl = shopifyUrl;
+      if (shopifyStoreName) {
+        finalShopifyUrl = `${shopifyStoreName}.myshopify.com`;
+      } else if (customDomain) {
+        finalShopifyUrl = customDomain.startsWith('http') ? customDomain : `https://${customDomain}`;
+      }
       
       // Check if this is just a URL update (when accessToken is empty)
       const isUrlOnlyUpdate = !accessToken || accessToken.trim() === '';
@@ -564,10 +572,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isUrlOnlyUpdate) {
         // Just update the URL without verifying connection
         console.log('URL-only update detected, skipping Shopify verification');
-        const store = await storage.updateStore(storeId, {
-          shopifyUrl,
+        const updateData: any = {
+          shopifyUrl: finalShopifyUrl,
+          shopifyStoreName: shopifyStoreName || null,
+          customDomain: customDomain || null,
           // Keep existing connection status if just updating URL
-        });
+        };
+        const store = await storage.updateStore(storeId, updateData);
         
         if (!store) {
           return res.status(404).json({ message: "Store not found" });
@@ -597,7 +608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Contains non-ASCII:', accessToken !== sanitizedAccessToken);
       
       // Validate Shopify connection with the fresh sanitized data
-      const isValid = await shopifyService.verifyConnection({ shopUrl: shopifyUrl, accessToken: sanitizedAccessToken });
+      const isValid = await shopifyService.verifyConnection({ shopUrl: finalShopifyUrl, accessToken: sanitizedAccessToken });
       
       if (!isValid) {
         return res.status(400).json({ message: "Invalid Shopify credentials. Please check your store URL and access token." });
@@ -609,7 +620,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update store with Shopify info
       const store = await storage.updateStore(storeId, {
-        shopifyUrl,
+        shopifyUrl: finalShopifyUrl,
+        shopifyStoreName: shopifyStoreName || null,
+        customDomain: customDomain || null,
         shopifyAccessToken: encryptedToken,
         isConnected: true
       });

@@ -26,6 +26,8 @@ interface Store {
   id: string;
   name: string;
   shopifyUrl: string;
+  shopifyStoreName?: string;
+  customDomain?: string;
   shopifyAccessToken?: string;
   isConnected: boolean;
   isVerified: boolean;
@@ -179,11 +181,12 @@ export default function Settings() {
 
   
   const updateUrlMutation = useMutation({
-    mutationFn: ({ storeId, shopifyUrl }: { storeId: string; shopifyUrl: string }) => {
+    mutationFn: ({ storeId, shopifyStoreName, customDomain }: { storeId: string; shopifyStoreName?: string; customDomain?: string }) => {
       return apiRequest(`/api/stores/${storeId}/shopify/connect`, {
         method: "POST",
         body: JSON.stringify({ 
-          shopifyUrl: normalizeShopifyUrl(shopifyUrl), 
+          shopifyStoreName: shopifyStoreName || null,
+          customDomain: customDomain || null,
           accessToken: '' // Empty for URL-only updates to avoid Unicode token issues
         }),
       });
@@ -208,38 +211,27 @@ export default function Settings() {
     },
   });
   
-  const handleUrlEdit = (storeId: string, currentUrl: string) => {
+  const handleUrlEdit = (storeId: string, currentStoreName: string) => {
     setEditingUrl(storeId);
-    // Only populate if it's actually a .myshopify.com URL
-    if (currentUrl?.endsWith('.myshopify.com')) {
-      setNewUrl(currentUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', ''));
-    } else {
-      setNewUrl(''); // Empty for non-.myshopify.com URLs
-    }
+    setNewUrl(currentStoreName || '');
     setUrlEditMode('myshopify');
   };
   
-  const handleDomainEdit = (storeId: string, currentUrl: string) => {
+  const handleDomainEdit = (storeId: string, currentDomain: string) => {
     setEditingDomain(storeId);
-    // Only populate if it's NOT a .myshopify.com URL
-    if (currentUrl?.endsWith('.myshopify.com')) {
-      setNewDomain(''); // Empty for .myshopify.com URLs
-    } else {
-      setNewDomain(currentUrl || '');
-    }
+    setNewDomain(currentDomain || '');
     setUrlEditMode('domain');
   };
   
   const handleUrlSave = (storeId: string) => {
     if (newUrl.trim()) {
-      const finalUrl = `${newUrl.trim()}.myshopify.com`;
-      updateUrlMutation.mutate({ storeId, shopifyUrl: finalUrl });
+      updateUrlMutation.mutate({ storeId, shopifyStoreName: newUrl.trim() });
     }
   };
   
   const handleDomainSave = (storeId: string) => {
     if (newDomain.trim()) {
-      updateUrlMutation.mutate({ storeId, shopifyUrl: newDomain.trim() });
+      updateUrlMutation.mutate({ storeId, customDomain: newDomain.trim() });
     }
   };
   
@@ -499,9 +491,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyUrl?.endsWith('.myshopify.com') 
-                                      ? store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')
-                                      : ''}
+                                    value={store.shopifyStoreName || ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
@@ -510,7 +500,7 @@ export default function Settings() {
                                     variant="outline"
                                     size="sm"
                                     className="ml-2"
-                                    onClick={() => handleUrlEdit(store.id, store.shopifyUrl || '')}
+                                    onClick={() => handleUrlEdit(store.id, store.shopifyStoreName || '')}
                                     data-testid={`button-edit-store-name-${store.id}`}
                                   >
                                     <Edit className="h-4 w-4" />
@@ -560,9 +550,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyUrl?.endsWith('.myshopify.com') 
-                                      ? '' // Don't show .myshopify.com URLs in custom domain field
-                                      : store.shopifyUrl || ''}
+                                    value={store.customDomain || ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
@@ -571,7 +559,7 @@ export default function Settings() {
                                     variant="outline"
                                     size="sm"
                                     className="ml-2"
-                                    onClick={() => handleDomainEdit(store.id, store.shopifyUrl || '')}
+                                    onClick={() => handleDomainEdit(store.id, store.customDomain || '')}
                                     data-testid={`button-edit-domain-${store.id}`}
                                   >
                                     <Edit className="h-4 w-4" />
