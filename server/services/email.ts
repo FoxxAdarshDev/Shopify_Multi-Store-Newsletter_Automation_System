@@ -30,7 +30,7 @@ export class EmailService {
   }
 
   async createTransporter(config: EmailConfig): Promise<nodemailer.Transporter> {
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.port === 465,
