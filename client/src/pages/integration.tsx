@@ -32,7 +32,7 @@ export default function Integration() {
   // Get current store info
   const currentStore = stores.find(store => store.id === selectedStoreId);
 
-  const { data: integrationScript } = useQuery({
+  const { data: integrationScript } = useQuery<string>({
     queryKey: [`/api/stores/${selectedStoreId}/integration-script`],
     enabled: !!selectedStoreId,
   });

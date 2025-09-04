@@ -9,7 +9,7 @@ import {
   insertStoreSchema, insertPopupConfigSchema, insertSubscriberSchema, insertEmailSettingsSchema,
   loginSchema, resetPasswordSchema, setPasswordSchema, updatePermissionsSchema
 } from "@shared/schema";
-import { encrypt, decrypt } from "./utils/encryption.js";
+import { encrypt, decrypt } from "./utils/encryption";
 import { z } from "zod";
 import { authenticateSession, requireAdmin, requirePermission, optionalAuth, type AuthRequest } from "./middleware/auth";
 
@@ -633,7 +633,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Encrypt the sanitized access token before storing
-      const { encrypt } = await import('../utils/encryption.js');
       const encryptedToken = encrypt(sanitizedAccessToken);
       
       // Get current store to preserve existing values
@@ -829,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Send welcome email
-      if (store) {
+      if (store && subscriber) {
         await emailService.sendWelcomeEmail(
           store.userId,
           subscriber.email,
@@ -890,6 +889,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Verify installation error:", error);
       res.status(500).json({ message: "Failed to verify installation" });
+    }
+  });
+
+  // Integration Script Generation
+  app.get("/api/stores/:storeId/integration-script", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const { storeId } = req.params;
+      
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
+      res.json(script);
+    } catch (error) {
+      console.error("Generate integration script error:", error);
+      res.status(500).json({ message: "Failed to generate integration script" });
+    }
+  });
+
+  // Public endpoint to serve popup configuration (for the script)
+  app.get("/api/popup-config/:storeId", async (req, res) => {
+    try {
+      const { storeId } = req.params;
+      const origin = req.get('Origin') || req.get('Referer')?.match(/https?:\/\/[^\/]+/)?.[0];
+      
+      const popupConfig = await storage.getPopupConfig(storeId);
+      if (!popupConfig) {
+        return res.status(404).json({ message: "Popup configuration not found" });
+      }
+
+      // Get store for domain verification
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Basic domain verification - allow requests from the configured store domain
+      if (origin) {
+        const originDomain = new URL(origin).hostname;
+        const storeDomain = new URL(store.shopifyUrl).hostname;
+        
+        if (!originDomain.includes(storeDomain) && !storeDomain.includes(originDomain)) {
+          return res.status(403).json({ message: "Domain not authorized" });
+        }
+      }
+
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET");
+      res.json(popupConfig);
+    } catch (error) {
+      console.error("Get popup config error:", error);
+      res.status(500).json({ message: "Failed to fetch popup configuration" });
+    }
+  });
+
+  // Serve the newsletter popup JavaScript file
+  app.get("/js/newsletter-popup.js", (req, res) => {
+    try {
+      const script = popupGeneratorService.getNewsletterScript();
+      res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.send(script);
+    } catch (error) {
+      console.error("Serve newsletter script error:", error);
+      res.status(500).send('// Error loading newsletter script');
     }
   });
 
