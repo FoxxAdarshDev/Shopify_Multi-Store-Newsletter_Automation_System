@@ -464,7 +464,7 @@ export default function Settings() {
                           </div>
                         </div>
 
-                      <div>
+                        <div>
                         <Label>Store Access Token</Label>
                         {editingToken === store.id ? (
                           <div className="space-y-2">
@@ -546,6 +546,7 @@ export default function Settings() {
                           <RefreshCw className={`h-4 w-4 mr-2 ${verifyShopifyMutation.isPending ? 'animate-spin' : ''}`} />
                           Test Connection
                         </Button>
+                        </div>
                       </div>
                     </div>
                   ))
