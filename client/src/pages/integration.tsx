@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Copy, CheckCircle, Code, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Store {
   id: string;
@@ -126,6 +126,28 @@ export default function Integration() {
     }
   };
 
+  const handleRegenerateScript = async () => {
+    if (!selectedStoreId) return;
+    
+    try {
+      // Force refetch by invalidating the query
+      queryClient.invalidateQueries({ 
+        queryKey: [`integration-script-${selectedStoreId}`] 
+      });
+      
+      toast({
+        title: "Success",
+        description: "Integration script regenerated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to regenerate script",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="p-6 space-y-6" data-testid="integration-page">
       <div className="flex justify-between items-center">
@@ -226,20 +248,30 @@ export default function Integration() {
                     )}
                   </code>
                 </div>
-                <Button 
-                  onClick={handleCopyScript} 
-                  variant="outline" 
-                  className="w-full"
-                  disabled={!integrationScript}
-                  data-testid="button-copy-script"
-                >
-                  {copiedScript ? (
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Copy className="h-4 w-4 mr-2" />
-                  )}
-                  {copiedScript ? "Copied!" : "Copy to Clipboard"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleCopyScript} 
+                    variant="outline" 
+                    className="flex-1"
+                    disabled={!integrationScript}
+                    data-testid="button-copy-script"
+                  >
+                    {copiedScript ? (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    ) : (
+                      <Copy className="h-4 w-4 mr-2" />
+                    )}
+                    {copiedScript ? "Copied!" : "Copy to Clipboard"}
+                  </Button>
+                  <Button 
+                    onClick={handleRegenerateScript} 
+                    variant="outline" 
+                    disabled={!selectedStoreId}
+                    data-testid="button-regenerate-script"
+                  >
+                    ↻
+                  </Button>
+                </div>
               </>
             ) : (
               <div className="bg-muted p-4 rounded-md mb-4 text-center">

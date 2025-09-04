@@ -902,18 +902,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      // For Replit environment, prefer environment variable over request headers
+      // Use SCRIPTENV secret for domain detection
       let baseUrl;
-      if (process.env.REPLIT_DEV_DOMAIN) {
-        baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
-      } else {
+      const scriptEnv = process.env.SCRIPTENV;
+      
+      if (scriptEnv === 'production') {
+        // Production environment - get from request headers
         const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');  
-        const host = req.get('Host') || 'localhost:5000';
-        baseUrl = `${protocol}://${host}`;
+        const host = req.get('Host');
+        baseUrl = host ? `${protocol}://${host}` : 'https://your-production-domain.com';
+      } else if (scriptEnv === 'dev') {
+        // Development environment - use current request
+        const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');  
+        const host = req.get('Host');
+        baseUrl = host ? `${protocol}://${host}` : 'http://localhost:5000';
+      } else {
+        // Fallback to localhost if SCRIPTENV not set
+        baseUrl = 'http://localhost:5000';
       }
       
-      console.log('Domain detection:', { 
-        env_domain: process.env.REPLIT_DEV_DOMAIN,
+      console.log('Domain detection using SCRIPTENV:', { 
+        scriptEnv,
         final_baseUrl: baseUrl 
       });
       
@@ -935,10 +944,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      // Get current domain for the service worker
-      const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');  
-      const host = req.get('Host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
-      const baseUrl = `${protocol}://${host}`;
+      // Use SCRIPTENV secret for domain detection (same logic as integration script)
+      let baseUrl;
+      const scriptEnv = process.env.SCRIPTENV;
+      
+      if (scriptEnv === 'production') {
+        const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');  
+        const host = req.get('Host');
+        baseUrl = host ? `${protocol}://${host}` : 'https://your-production-domain.com';
+      } else if (scriptEnv === 'dev') {
+        const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');  
+        const host = req.get('Host');
+        baseUrl = host ? `${protocol}://${host}` : 'http://localhost:5000';
+      } else {
+        baseUrl = 'http://localhost:5000';
+      }
       
       const serviceWorkerContent = popupGeneratorService.generateIntegrationFile(storeId, store.shopifyUrl, baseUrl);
       
