@@ -60,15 +60,15 @@ export default function PopupBuilder() {
   });
 
   const { data: popupConfig, isLoading } = useQuery({
-    queryKey: ["/api/stores", selectedStoreId, "popup-config"],
+    queryKey: [`/api/stores/${selectedStoreId}/popup`],
     enabled: !!selectedStoreId,
   });
 
   const updateConfigMutation = useMutation({
     mutationFn: (updates: Partial<PopupConfig>) =>
-      apiRequest(`/api/stores/${selectedStoreId}/popup-config`, { method: "PUT", body: JSON.stringify(updates) }),
+      apiRequest(`/api/stores/${selectedStoreId}/popup`, { method: "PUT", body: JSON.stringify(updates) }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stores", selectedStoreId, "popup-config"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/stores/${selectedStoreId}/popup`] });
       toast({
         title: "Success",
         description: "Popup configuration updated successfully",
