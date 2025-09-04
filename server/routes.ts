@@ -1056,23 +1056,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                 html.includes(`script.setAttribute('data-generated-at'`) ||
                                 html.includes(`script.setAttribute("data-generated-at"`);
           
-          // Script is valid if it has the newsletter script AND store ID AND key attributes
-          // Core required: newsletter script + store ID + at least basic attributes
-          const hasBasicAttributes = hasStoreDomain || hasPopupConfig || hasIntegrationType;
-          
-          // Enhanced validation: check for script version and generation timestamp for complete verification
+          // STRICT VALIDATION: Require all new attributes for proper installation
+          const hasBasicAttributes = hasStoreDomain && hasPopupConfig && hasIntegrationType;
           const hasVersionInfo = hasScriptVersion && hasGeneratedAt;
           
-          // Two-tier validation:
-          // Tier 1: Basic valid script (backward compatibility)
-          const isBasicValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes;
-          
-          // Tier 2: Complete modern script with version tracking
-          const isCompleteValidInstallation = isBasicValidInstallation && hasVersionInfo;
-          
-          // Accept both tiers, but log the level of validation
-          const isValidInstallation = isBasicValidInstallation;
-          const validationLevel = isCompleteValidInstallation ? 'complete' : (isBasicValidInstallation ? 'basic' : 'invalid');
+          // Complete validation required: newsletter script + store ID + all core attributes + version info
+          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasVersionInfo;
+          const validationLevel = isValidInstallation ? 'complete' : 'incomplete';
           
           console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version: ${hasScriptVersion}, Generated at: ${hasGeneratedAt} | Validation: ${validationLevel}`);
           
