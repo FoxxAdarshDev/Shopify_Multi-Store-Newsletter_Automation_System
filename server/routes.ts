@@ -562,13 +562,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isValid = await shopifyService.verifyConnection({ shopUrl: shopifyUrl, accessToken });
       
       if (!isValid) {
-        return res.status(400).json({ message: "Invalid Shopify credentials" });
+        return res.status(400).json({ message: "Invalid Shopify credentials. Please check your store URL and access token." });
       }
+      
+      // Encrypt the access token before storing
+      const { encrypt } = await import('../utils/encryption.js');
+      const encryptedToken = encrypt(accessToken);
       
       // Update store with Shopify info
       const store = await storage.updateStore(storeId, {
         shopifyUrl,
-        shopifyAccessToken: accessToken,
+        shopifyAccessToken: encryptedToken,
         isConnected: true
       });
       

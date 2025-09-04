@@ -43,6 +43,32 @@ export default function Settings() {
   const [showPassword, setShowPassword] = useState(false);
   const [editingToken, setEditingToken] = useState<string | null>(null);
   const [newToken, setNewToken] = useState('');
+  const [editingUrl, setEditingUrl] = useState<string | null>(null);
+  const [newUrl, setNewUrl] = useState('');
+  
+  // Helper to mask token display
+  const maskToken = (token: string) => {
+    if (!token || token.length < 8) return token;
+    const first4 = token.substring(0, 4);
+    const last4 = token.substring(token.length - 4);
+    const middle = '•'.repeat(Math.max(8, token.length - 8));
+    return `${first4}${middle}${last4}`;
+  };
+  
+  // Helper to normalize Shopify URL
+  const normalizeShopifyUrl = (url: string) => {
+    if (!url) return url;
+    
+    // Remove protocol and trailing slash
+    url = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    
+    // If it's just a store name (no dots), add .myshopify.com
+    if (!url.includes('.')) {
+      return `${url}.myshopify.com`;
+    }
+    
+    return url;
+  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -148,6 +174,49 @@ export default function Settings() {
   const handleTokenCancel = () => {
     setEditingToken(null);
     setNewToken('');
+  };
+  
+  const updateUrlMutation = useMutation({
+    mutationFn: ({ storeId, shopifyUrl }: { storeId: string; shopifyUrl: string }) =>
+      apiRequest(`/api/stores/${storeId}/shopify/connect`, {
+        method: "POST",
+        body: JSON.stringify({ 
+          shopifyUrl: normalizeShopifyUrl(shopifyUrl), 
+          accessToken: stores.find(s => s.id === storeId)?.shopifyAccessToken || '' 
+        }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      setEditingUrl(null);
+      setNewUrl('');
+      toast({
+        title: "Success",
+        description: "Store URL updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update store URL",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleUrlEdit = (storeId: string, currentUrl: string) => {
+    setEditingUrl(storeId);
+    setNewUrl(currentUrl);
+  };
+  
+  const handleUrlSave = (storeId: string) => {
+    if (newUrl.trim()) {
+      updateUrlMutation.mutate({ storeId, shopifyUrl: newUrl.trim() });
+    }
+  };
+  
+  const handleUrlCancel = () => {
+    setEditingUrl(null);
+    setNewUrl('');
   };
 
   if (emailLoading) {
@@ -319,11 +388,68 @@ export default function Settings() {
                         </div>
                         <div>
                           <Label>Shopify Store URL</Label>
-                          <Input
-                            value={store.shopifyUrl}
-                            readOnly
-                            className="bg-muted text-muted-foreground"
-                          />
+                          {editingUrl === store.id ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center">
+                                <Input
+                                  type="text"
+                                  value={newUrl}
+                                  onChange={(e) => setNewUrl(e.target.value)}
+                                  placeholder="store-name.myshopify.com or store-name"
+                                  className="flex-1"
+                                  data-testid={`input-new-url-${store.id}`}
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="ml-2"
+                                  onClick={() => handleUrlEdit(store.id, store.shopifyUrl)}
+                                  data-testid={`button-edit-url-${store.id}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleUrlSave(store.id)}
+                                  disabled={!newUrl.trim() || updateUrlMutation.isPending}
+                                  data-testid={`button-save-url-${store.id}`}
+                                >
+                                  {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleUrlCancel}
+                                  disabled={updateUrlMutation.isPending}
+                                  data-testid={`button-cancel-url-${store.id}`}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Enter either full URL (store.myshopify.com) or just store name
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <Input
+                                value={store.shopifyUrl}
+                                readOnly
+                                className="flex-1 bg-muted text-muted-foreground"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2"
+                                onClick={() => handleUrlEdit(store.id, store.shopifyUrl)}
+                                data-testid={`button-edit-url-${store.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -365,7 +491,7 @@ export default function Settings() {
                           <div className="flex items-center">
                             <Input
                               type="password"
-                              value={store.shopifyAccessToken ? `${store.shopifyAccessToken.substring(0, 10)}${'•'.repeat(40)}` : ''}
+                              value={store.shopifyAccessToken ? maskToken(store.shopifyAccessToken) : ''}
                               readOnly
                               className="flex-1 bg-muted text-muted-foreground"
                             />

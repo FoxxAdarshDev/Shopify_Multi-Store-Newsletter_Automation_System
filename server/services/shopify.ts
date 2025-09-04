@@ -24,7 +24,15 @@ import { decrypt } from "../utils/encryption.js";
 
 export class ShopifyService {
   private makeRequest = async (config: ShopifyConfig, endpoint: string, options: RequestInit = {}) => {
-    const url = `https://${config.shopUrl}/admin/api/2023-10/${endpoint}`;
+    // Normalize shop URL - remove protocol if present and add .myshopify.com if needed
+    let shopUrl = config.shopUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    
+    // If it doesn't contain a dot and doesn't end with .myshopify.com, add .myshopify.com
+    if (!shopUrl.includes('.') || (!shopUrl.endsWith('.myshopify.com') && !shopUrl.includes('.com'))) {
+      shopUrl = `${shopUrl}.myshopify.com`;
+    }
+    
+    const url = `https://${shopUrl}/admin/api/2023-10/${endpoint}`;
     
     const response = await fetch(url, {
       ...options,
