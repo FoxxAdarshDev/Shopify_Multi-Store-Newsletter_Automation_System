@@ -479,7 +479,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyUrl?.includes('.myshopify.com') 
+                                    value={store.shopifyUrl?.endsWith('.myshopify.com') 
                                       ? store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')
                                       : ''}
                                     readOnly
@@ -540,7 +540,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyUrl?.includes('.myshopify.com') 
+                                    value={store.shopifyUrl?.endsWith('.myshopify.com') 
                                       ? '' // Don't show .myshopify.com URLs in custom domain field
                                       : store.shopifyUrl || ''}
                                     readOnly
