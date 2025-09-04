@@ -41,6 +41,8 @@ export default function Settings() {
   });
   const [shopifyCollapsed, setShopifyCollapsed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [editingToken, setEditingToken] = useState<string | null>(null);
+  const [newToken, setNewToken] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -106,6 +108,46 @@ export default function Settings() {
       storeId,
       data: { shopifyUrl, accessToken: accessToken || "" },
     });
+  };
+
+  const updateTokenMutation = useMutation({
+    mutationFn: ({ storeId, accessToken }: { storeId: string; accessToken: string }) =>
+      apiRequest(`/api/stores/${storeId}/shopify/connect`, {
+        method: "POST",
+        body: JSON.stringify({ shopifyUrl: stores.find(s => s.id === storeId)?.shopifyUrl, accessToken }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      setEditingToken(null);
+      setNewToken('');
+      toast({
+        title: "Success",
+        description: "Access token updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update access token",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleTokenEdit = (storeId: string) => {
+    setEditingToken(storeId);
+    setNewToken('');
+  };
+
+  const handleTokenSave = (storeId: string) => {
+    if (newToken.trim()) {
+      updateTokenMutation.mutate({ storeId, accessToken: newToken.trim() });
+    }
+  };
+
+  const handleTokenCancel = () => {
+    setEditingToken(null);
+    setNewToken('');
   };
 
   if (emailLoading) {
@@ -287,22 +329,57 @@ export default function Settings() {
 
                       <div>
                         <Label>Store Access Token</Label>
-                        <div className="flex items-center">
-                          <Input
-                            type="password"
-                            value={store.shopifyAccessToken ? `${store.shopifyAccessToken.substring(0, 10)}${'•'.repeat(40)}` : ''}
-                            readOnly
-                            className="flex-1 bg-muted text-muted-foreground"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="ml-2"
-                            data-testid={`button-edit-token-${store.id}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {editingToken === store.id ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <Input
+                                type="text"
+                                value={newToken}
+                                onChange={(e) => setNewToken(e.target.value)}
+                                placeholder="Enter new access token"
+                                className="flex-1"
+                                data-testid={`input-new-token-${store.id}`}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleTokenSave(store.id)}
+                                disabled={!newToken.trim() || updateTokenMutation.isPending}
+                                data-testid={`button-save-token-${store.id}`}
+                              >
+                                {updateTokenMutation.isPending ? 'Saving...' : 'Save'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleTokenCancel}
+                                disabled={updateTokenMutation.isPending}
+                                data-testid={`button-cancel-token-${store.id}`}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <Input
+                              type="password"
+                              value={store.shopifyAccessToken ? `${store.shopifyAccessToken.substring(0, 10)}${'•'.repeat(40)}` : ''}
+                              readOnly
+                              className="flex-1 bg-muted text-muted-foreground"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-2"
+                              onClick={() => handleTokenEdit(store.id)}
+                              data-testid={`button-edit-token-${store.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">
                           Private app access token with inventory permissions
                         </p>

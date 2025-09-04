@@ -559,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { shopifyUrl, accessToken } = req.body;
       
       // Validate Shopify connection
-      const isValid = await shopifyService.validateConnection(shopifyUrl, accessToken);
+      const isValid = await shopifyService.verifyConnection({ shopUrl: shopifyUrl, accessToken });
       
       if (!isValid) {
         return res.status(400).json({ message: "Invalid Shopify credentials" });

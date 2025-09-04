@@ -128,6 +128,21 @@ export class ShopifyService {
     }
   }
 
+  async verifyDiscountCode(
+    shopUrl: string,
+    accessToken: string,
+    discountCode: string
+  ): Promise<boolean> {
+    try {
+      const config = { shopUrl, accessToken };
+      const result = await this.getDiscountCodeUsage(config, discountCode);
+      return result !== null;
+    } catch (error) {
+      console.error('Failed to verify discount code:', error);
+      return false;
+    }
+  }
+
   async createDiscountCode(
     config: ShopifyConfig,
     codeName: string,
