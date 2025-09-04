@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Download, Mail, Eye, Trash2, Users } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface Subscriber {
   id: string;
@@ -29,6 +33,10 @@ export default function Subscribers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedSubscribers, setSelectedSubscribers] = useState<string[]>([]);
+  const [viewingSubscriber, setViewingSubscriber] = useState<Subscriber | null>(null);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
@@ -37,6 +45,30 @@ export default function Subscribers() {
   const { data: subscribers = [], isLoading } = useQuery<Subscriber[]>({
     queryKey: ["/api/stores", selectedStoreId !== "all" ? selectedStoreId : stores[0]?.id, "subscribers"],
     enabled: selectedStoreId !== "all" ? !!selectedStoreId : stores.length > 0,
+  });
+  
+  const deleteSubscriberMutation = useMutation({
+    mutationFn: async (subscriberId: string) => {
+      return apiRequest(`/api/subscribers/${subscriberId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/stores", selectedStoreId !== "all" ? selectedStoreId : stores[0]?.id, "subscribers"]
+      });
+      toast({
+        title: "Success",
+        description: "Subscriber deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete subscriber",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredSubscribers = subscribers.filter(subscriber => {
@@ -64,6 +96,14 @@ export default function Subscribers() {
     } else {
       setSelectedSubscribers(prev => prev.filter(id => id !== subscriberId));
     }
+  };
+  
+  const handleViewSubscriber = (subscriber: Subscriber) => {
+    setViewingSubscriber(subscriber);
+  };
+  
+  const handleDeleteSubscriber = (subscriberId: string) => {
+    deleteSubscriberMutation.mutate(subscriberId);
   };
 
   if (isLoading) {
@@ -265,18 +305,80 @@ export default function Subscribers() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         <div className="flex space-x-2">
-                          <button 
-                            className="text-primary hover:text-primary/80"
-                            data-testid={`button-view-${subscriber.id}`}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button 
-                            className="text-red-600 hover:text-red-800"
-                            data-testid={`button-delete-${subscriber.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button 
+                                className="text-primary hover:text-primary/80"
+                                onClick={() => handleViewSubscriber(subscriber)}
+                                data-testid={`button-view-${subscriber.id}`}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Subscriber Details</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                                  <p className="text-sm">{subscriber.email}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Name</label>
+                                  <p className="text-sm">{subscriber.name || "Not provided"}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Company</label>
+                                  <p className="text-sm">{subscriber.company || "Not provided"}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Subscribed Date</label>
+                                  <p className="text-sm">{new Date(subscriber.subscribedAt).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Discount Code Sent</label>
+                                  <p className="text-sm">{subscriber.discountCodeSent || "None"}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Discount Code Used</label>
+                                  <p className="text-sm">{subscriber.discountCodeUsed ? "Yes" : "No"}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                                  <p className="text-sm">{subscriber.isActive ? "Active" : "Unsubscribed"}</p>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button 
+                                className="text-red-600 hover:text-red-800"
+                                data-testid={`button-delete-${subscriber.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Subscriber</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete {subscriber.email}? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteSubscriber(subscriber.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </td>
                     </tr>
