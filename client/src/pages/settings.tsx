@@ -540,9 +540,9 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={!store.shopifyUrl?.includes('.myshopify.com') 
-                                      ? store.shopifyUrl || ''
-                                      : ''}
+                                    value={store.shopifyUrl?.includes('.myshopify.com') 
+                                      ? '' // Don't show .myshopify.com URLs in custom domain field
+                                      : store.shopifyUrl || ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
