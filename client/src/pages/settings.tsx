@@ -502,9 +502,16 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyUrl?.endsWith('.myshopify.com') 
-                                      ? store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')
-                                      : ''}
+                                    value={(() => {
+                                      console.log('DEBUG - Store shopifyUrl:', store.shopifyUrl);
+                                      console.log('DEBUG - Ends with .myshopify.com:', store.shopifyUrl?.endsWith('.myshopify.com'));
+                                      if (store.shopifyUrl?.endsWith('.myshopify.com')) {
+                                        const extracted = store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '');
+                                        console.log('DEBUG - Extracted store name:', extracted);
+                                        return extracted;
+                                      }
+                                      return '';
+                                    })()}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
