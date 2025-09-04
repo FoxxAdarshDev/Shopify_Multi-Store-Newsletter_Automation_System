@@ -38,6 +38,8 @@ export const stores = pgTable("stores", {
   shopifyAccessToken: text("shopify_access_token"),
   isConnected: boolean("is_connected").default(false).notNull(),
   isVerified: boolean("is_verified").default(false).notNull(),
+  activeScriptVersion: text("active_script_version"), // Current active script version for verification
+  activeScriptTimestamp: text("active_script_timestamp"), // Timestamp of current active script
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
