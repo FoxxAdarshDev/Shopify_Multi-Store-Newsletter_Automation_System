@@ -28,6 +28,30 @@ export class PopupGeneratorService {
     const storeHash = storeId.split('-')[0]; // Use first part of store UUID
     const uniqueId = `${storeHash}_${timestamp}_${Math.random().toString(36).substring(2, 7)}`;
       
+    return this._generateScriptWithVersion(storeId, shopifyUrl, scriptBaseUrl, uniqueId, timestamp.toString());
+  }
+
+  generateIntegrationScriptWithVersion(storeId: string, shopifyUrl: string, scriptVersion: string, timestamp: string, baseUrl?: string): string {
+    // Use provided baseUrl or detect from environment
+    let scriptBaseUrl = baseUrl;
+    
+    if (!scriptBaseUrl) {
+      // For Replit environment
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        scriptBaseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else if (process.env.NODE_ENV === 'production') {
+        scriptBaseUrl = 'https://your-app-domain.com';
+      } else {
+        scriptBaseUrl = 'http://localhost:5000';
+      }
+    }
+    
+    console.log('Script baseUrl determined:', scriptBaseUrl);
+    
+    return this._generateScriptWithVersion(storeId, shopifyUrl, scriptBaseUrl, scriptVersion, timestamp);
+  }
+
+  private _generateScriptWithVersion(storeId: string, shopifyUrl: string, scriptBaseUrl: string, uniqueId: string, timestamp: string): string {
     return `<!-- Foxx Newsletter Popup Integration Script -->
 <!-- Add this code to your theme.liquid file, just before the closing </body> tag -->
 <!-- Generated: ${new Date().toISOString()} | Unique ID: ${uniqueId} -->

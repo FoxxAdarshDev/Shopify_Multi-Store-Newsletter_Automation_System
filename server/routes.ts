@@ -782,6 +782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stores/:storeId/integration-script", async (req: AuthRequest, res) => {
     try {
       const { storeId } = req.params;
+      const { regenerate } = req.query; // Allow explicit regeneration
       
       const store = await storage.getStore(storeId);
       if (!store) {
@@ -793,21 +794,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Popup configuration not found" });
       }
       
-      const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
+      // Check if we should use existing script version or generate new one
+      const shouldGenerateNew = regenerate === 'true' || !store.activeScriptVersion || !store.activeScriptTimestamp;
       
-      // Extract the generated script version and timestamp from the script
-      const scriptVersionMatch = script.match(/script\.setAttribute\('data-script-version',\s*'([^']+)'\)/);
-      const generatedAtMatch = script.match(/script\.setAttribute\('data-generated-at',\s*'([^']+)'\)/);
-      
-      if (scriptVersionMatch && generatedAtMatch) {
-        const scriptVersion = scriptVersionMatch[1];
-        const generatedAt = generatedAtMatch[1];
+      let script;
+      if (shouldGenerateNew) {
+        // Generate new script with new version/timestamp
+        script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
         
-        // Store the current script version and timestamp in the database
-        await storage.updateStore(storeId, {
-          activeScriptVersion: scriptVersion,
-          activeScriptTimestamp: generatedAt
-        });
+        // Extract and store the new script version and timestamp
+        const scriptVersionMatch = script.match(/script\.setAttribute\('data-script-version',\s*'([^']+)'\)/);
+        const generatedAtMatch = script.match(/script\.setAttribute\('data-generated-at',\s*'([^']+)'\)/);
+        
+        if (scriptVersionMatch && generatedAtMatch) {
+          const scriptVersion = scriptVersionMatch[1];
+          const generatedAt = generatedAtMatch[1];
+          
+          await storage.updateStore(storeId, {
+            activeScriptVersion: scriptVersion,
+            activeScriptTimestamp: generatedAt
+          });
+        }
+      } else {
+        // Use existing stored version to generate consistent script
+        script = popupGeneratorService.generateIntegrationScriptWithVersion(
+          storeId, 
+          store.shopifyUrl, 
+          store.activeScriptVersion,
+          store.activeScriptTimestamp
+        );
       }
       
       res.setHeader("Content-Type", "text/plain");
