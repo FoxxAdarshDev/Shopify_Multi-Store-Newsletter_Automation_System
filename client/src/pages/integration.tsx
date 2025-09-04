@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Copy, CheckCircle, Code, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,13 +13,24 @@ interface Store {
 }
 
 export default function Integration() {
+  const { id: storeId } = useParams<{ id: string }>();
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [copiedScript, setCopiedScript] = useState(false);
   const { toast } = useToast();
 
+  // Auto-select current store from URL
+  useEffect(() => {
+    if (storeId) {
+      setSelectedStoreId(storeId);
+    }
+  }, [storeId]);
+
   const { data: stores = [] } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
   });
+
+  // Get current store info
+  const currentStore = stores.find(store => store.id === selectedStoreId);
 
   const { data: integrationScript } = useQuery({
     queryKey: [`/api/stores/${selectedStoreId}/integration-script`],
@@ -99,18 +110,12 @@ export default function Integration() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select store" />
-            </SelectTrigger>
-            <SelectContent>
-              {stores.map((store) => (
-                <SelectItem key={store.id} value={store.id}>
-                  {store.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center bg-muted px-3 py-2 rounded-md">
+            <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              {currentStore?.name || 'Loading store...'}
+            </span>
+          </div>
           <Button 
             onClick={handleVerifyInstallation}
             disabled={!selectedStoreId}
