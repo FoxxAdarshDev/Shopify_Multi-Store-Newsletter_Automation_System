@@ -427,7 +427,7 @@ export default function Settings() {
               <div>
                 <Label htmlFor="smtpPassword">SMTP Password</Label>
                 <div className="relative">
-                  {!editingPassword && emailForm.smtpPassword ? (
+                  {!editingPassword && emailForm.isConfigured && !emailForm.smtpPassword ? (
                     // Show masked password with Edit option
                     <>
                       <Input
@@ -445,7 +445,7 @@ export default function Settings() {
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => {
                           setEditingPassword(true);
-                          setTempPassword(emailForm.smtpPassword || "");
+                          setTempPassword(""); // Start with empty for new password entry
                         }}
                         data-testid="button-edit-password"
                       >
@@ -468,7 +468,7 @@ export default function Settings() {
                           }
                         }}
                         onBlur={() => {
-                          if (editingPassword) {
+                          if (editingPassword && tempPassword.trim()) {
                             setEmailForm({ ...emailForm, smtpPassword: tempPassword });
                             setEditingPassword(false);
                             setTempPassword("");
@@ -486,9 +486,11 @@ export default function Settings() {
                             size="sm"
                             className="h-full px-2 hover:bg-transparent"
                             onClick={() => {
-                              setEmailForm({ ...emailForm, smtpPassword: tempPassword });
-                              setEditingPassword(false);
-                              setTempPassword("");
+                              if (tempPassword.trim()) {
+                                setEmailForm({ ...emailForm, smtpPassword: tempPassword });
+                                setEditingPassword(false);
+                                setTempPassword("");
+                              }
                             }}
                             data-testid="button-save-password"
                           >
