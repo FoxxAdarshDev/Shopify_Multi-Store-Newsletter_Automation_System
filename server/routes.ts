@@ -515,19 +515,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Subscriber does not belong to this store" });
       }
       
-      const updatedSubscriber = await storage.updateSubscriber(id, {
-        isActive: false,
-        unsubscribedAt: new Date()
-      });
+      // Delete subscriber and get session info
+      const deletionResult = await storage.deleteSubscriber(id);
       
-      if (!updatedSubscriber) {
+      if (!deletionResult) {
         return res.status(404).json({ message: "Subscriber not found" });
       }
       
-      res.json({ message: "Subscriber unsubscribed successfully" });
+      res.json({ 
+        message: "Subscriber deleted successfully", 
+        sessionId: deletionResult.sessionId 
+      });
     } catch (error) {
-      console.error("Store-specific unsubscribe error:", error);
-      res.status(500).json({ message: "Failed to unsubscribe" });
+      console.error("Store-specific delete error:", error);
+      res.status(500).json({ message: "Failed to delete subscriber" });
     }
   });
 
@@ -935,6 +936,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear session storage for deleted subscribers (used by popup script)
+  app.post("/api/stores/:storeId/clear-session", async (req, res) => {
+    try {
+      const { storeId } = req.params;
+      const { sessionId } = req.body;
+      
+      // Get store to verify request
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ success: false, message: "Store not found" });
+      }
+      
+      // This is a signal to the popup script to clear its session storage
+      // The actual clearing happens on the client side
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "POST");
+      res.json({ 
+        success: true, 
+        message: "Clear session signal sent",
+        clearSession: true 
+      });
+    } catch (error) {
+      console.error("Clear session error:", error);
+      res.json({ success: false, clearSession: false });
+    }
+  });
+
   // Public subscriber endpoint (used by script)
   app.post("/api/subscribe/:storeId", async (req, res) => {
     try {
@@ -972,7 +1000,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActive: true,
           subscribedAt: new Date(),
           unsubscribedAt: null,
-          discountCodeSent: discountCode
+          discountCodeSent: discountCode,
+          sessionId: subscriberData.sessionId
         });
       } else {
         // Create new subscriber

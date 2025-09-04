@@ -81,6 +81,7 @@ export const subscribers = pgTable("subscribers", {
   phone: text("phone"),
   company: text("company"),
   address: text("address"),
+  sessionId: text("session_id"), // Browser session ID to track popup suppression
   discountCodeSent: text("discount_code_sent"),
   discountCodeUsed: boolean("discount_code_used").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),

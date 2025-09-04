@@ -55,6 +55,7 @@ export interface IStorage {
   getSubscribersByStoreId(storeId: string): Promise<Subscriber[]>;
   createSubscriber(subscriber: InsertSubscriber): Promise<Subscriber>;
   updateSubscriber(id: string, updates: Partial<Subscriber>): Promise<Subscriber | undefined>;
+  deleteSubscriber(id: string): Promise<{ sessionId?: string } | null>;
   getSubscriberStats(storeId?: string): Promise<{
     total: number;
     active: number;
@@ -313,6 +314,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(subscribers.id, id))
       .returning();
     return updatedSubscriber || undefined;
+  }
+
+  async deleteSubscriber(id: string): Promise<{ sessionId?: string } | null> {
+    // Get the subscriber first to retrieve session ID
+    const subscriber = await this.getSubscriber(id);
+    if (!subscriber) {
+      return null;
+    }
+
+    // Delete the subscriber
+    const result = await db.delete(subscribers).where(eq(subscribers.id, id));
+    
+    if (result.rowCount > 0) {
+      return { sessionId: subscriber.sessionId || undefined };
+    }
+    return null;
   }
 
   async getSubscriberStats(storeId?: string): Promise<{
