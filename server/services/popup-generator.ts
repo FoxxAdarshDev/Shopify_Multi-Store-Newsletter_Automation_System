@@ -77,8 +77,12 @@ export class PopupGeneratorService {
   
   // Check if popup was already shown and user subscribed
   const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
-  if (lastSubscribedEmail && lastSubscribedEmail !== 'subscribed') {
-    // Check if this email is still actively subscribed in the database
+  if (lastSubscribedEmail === 'subscribed') {
+    // Legacy format - clear it so popup can show again since we can't verify
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('Foxx Newsletter: Cleared legacy localStorage, popup will show');
+  } else if (lastSubscribedEmail && lastSubscribedEmail.includes('@')) {
+    // New format with email - check if this email is still actively subscribed
     try {
       const checkResponse = await fetch(API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail));
       if (checkResponse.ok) {
@@ -88,13 +92,12 @@ export class PopupGeneratorService {
         } else {
           // No longer subscribed, clear localStorage and allow popup to show
           localStorage.removeItem(STORAGE_KEY);
+          console.log('Foxx Newsletter: User no longer subscribed, popup will show');
         }
       }
     } catch (error) {
       console.log('Foxx Newsletter: Could not verify subscription status, showing popup');
     }
-  } else if (lastSubscribedEmail === 'subscribed') {
-    return; // Legacy check for old localStorage format
   }
   
   // Load configuration from API

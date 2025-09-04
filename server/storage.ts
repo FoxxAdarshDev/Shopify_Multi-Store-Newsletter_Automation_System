@@ -344,7 +344,7 @@ export class DatabaseStorage implements IStorage {
       .where(whereClause ? and(whereClause, eq(subscribers.discountCodeUsed, true)) : eq(subscribers.discountCodeUsed, true));
 
     return {
-      total: totalResult.count,
+      total: activeResult.count, // Change to show only active subscribers in dashboard
       active: activeResult.count,
       unsubscribed: unsubscribedResult.count,
       couponsUsed: couponsUsedResult.count,
