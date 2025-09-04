@@ -1056,11 +1056,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                 html.includes(`script.setAttribute('data-generated-at'`) ||
                                 html.includes(`script.setAttribute("data-generated-at"`);
           
-          // Script is valid if it has the newsletter script AND store ID AND at least one other key attribute
-          const hasRequiredAttributes = hasStoreId && (hasStoreDomain || hasPopupConfig || hasIntegrationType);
-          const isValidInstallation = hasNewsletterScript && hasRequiredAttributes;
+          // Script is valid if it has the newsletter script AND store ID AND key attributes
+          // Core required: newsletter script + store ID + at least basic attributes
+          const hasBasicAttributes = hasStoreDomain || hasPopupConfig || hasIntegrationType;
           
-          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version: ${hasScriptVersion}, Generated at: ${hasGeneratedAt}`);
+          // Enhanced validation: check for script version and generation timestamp for complete verification
+          const hasVersionInfo = hasScriptVersion && hasGeneratedAt;
+          
+          // Two-tier validation:
+          // Tier 1: Basic valid script (backward compatibility)
+          const isBasicValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes;
+          
+          // Tier 2: Complete modern script with version tracking
+          const isCompleteValidInstallation = isBasicValidInstallation && hasVersionInfo;
+          
+          // Accept both tiers, but log the level of validation
+          const isValidInstallation = isBasicValidInstallation;
+          const validationLevel = isCompleteValidInstallation ? 'complete' : (isBasicValidInstallation ? 'basic' : 'invalid');
+          
+          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version: ${hasScriptVersion}, Generated at: ${hasGeneratedAt} | Validation: ${validationLevel}`);
           
           checkedUrls.push({
             url,
@@ -1071,6 +1085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasIntegrationType,
             hasScriptVersion,
             hasGeneratedAt,
+            validationLevel,
             success: isValidInstallation
           });
           
