@@ -33,7 +33,7 @@ export default function AddStoreModal({ open, onOpenChange }: AddStoreModalProps
   const queryClient = useQueryClient();
 
   const createStoreMutation = useMutation({
-    mutationFn: (data: StoreFormData) => apiRequest("POST", "/api/stores", data),
+    mutationFn: (data: StoreFormData) => apiRequest("/api/stores", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       toast({

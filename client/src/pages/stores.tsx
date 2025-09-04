@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ interface Store {
 
 export default function Stores() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,7 +31,7 @@ export default function Stores() {
   });
 
   const deleteStoreMutation = useMutation({
-    mutationFn: (storeId: string) => apiRequest("DELETE", `/api/stores/${storeId}`, {}),
+    mutationFn: (storeId: string) => apiRequest(`/api/stores/${storeId}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       toast({
@@ -50,6 +52,15 @@ export default function Stores() {
     if (confirm("Are you sure you want to delete this store? This action cannot be undone.")) {
       deleteStoreMutation.mutate(storeId);
     }
+  };
+
+  const handleConfigure = (storeId: string) => {
+    setLocation(`/popup-builder?storeId=${storeId}`);
+  };
+
+  const handlePreview = (storeId: string) => {
+    // For now, navigate to popup builder with preview mode
+    setLocation(`/popup-builder?storeId=${storeId}&preview=true`);
   };
 
   if (isLoading) {
@@ -85,7 +96,7 @@ export default function Stores() {
           </p>
         </div>
         <Button 
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => setLocation('/onboarding')}
           data-testid="button-add-store"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -104,7 +115,7 @@ export default function Stores() {
               <p className="text-muted-foreground mb-4">
                 Add your first Shopify store to start collecting newsletter subscribers
               </p>
-              <Button onClick={() => setIsAddModalOpen(true)}>
+              <Button onClick={() => setLocation('/onboarding')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Store
               </Button>
@@ -143,6 +154,7 @@ export default function Stores() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleConfigure(store.id)}
                       data-testid={`button-configure-${store.id}`}
                     >
                       <Settings className="h-4 w-4 mr-1" />
@@ -151,6 +163,7 @@ export default function Stores() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handlePreview(store.id)}
                       data-testid={`button-preview-${store.id}`}
                     >
                       <Eye className="h-4 w-4 mr-1" />

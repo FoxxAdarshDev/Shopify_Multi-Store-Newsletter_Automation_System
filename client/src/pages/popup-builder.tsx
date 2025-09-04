@@ -44,9 +44,14 @@ interface Store {
 }
 
 export default function PopupBuilder() {
-  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
+  // Get URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlStoreId = urlParams.get('storeId') || "";
+  const previewMode = urlParams.get('preview') === 'true';
+  
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(urlStoreId);
   const [config, setConfig] = useState<PopupConfig | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(previewMode);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -61,7 +66,7 @@ export default function PopupBuilder() {
 
   const updateConfigMutation = useMutation({
     mutationFn: (updates: Partial<PopupConfig>) =>
-      apiRequest("PUT", `/api/stores/${selectedStoreId}/popup-config`, updates),
+      apiRequest(`/api/stores/${selectedStoreId}/popup-config`, { method: "PUT", body: JSON.stringify(updates) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores", selectedStoreId, "popup-config"] });
       toast({

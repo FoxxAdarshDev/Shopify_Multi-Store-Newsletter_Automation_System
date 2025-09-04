@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,19 +46,21 @@ export default function Settings() {
 
   const { data: emailSettings, isLoading: emailLoading } = useQuery<EmailSettings>({
     queryKey: ["/api/email-settings"],
-    onSuccess: (data) => {
-      if (data) {
-        setEmailForm(data);
-      }
-    },
   });
+
+  // Handle emailSettings data updates
+  useEffect(() => {
+    if (emailSettings) {
+      setEmailForm(emailSettings);
+    }
+  }, [emailSettings]);
 
   const { data: stores = [] } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
   });
 
   const saveEmailMutation = useMutation({
-    mutationFn: (data: EmailSettings) => apiRequest("POST", "/api/email-settings", data),
+    mutationFn: (data: EmailSettings) => apiRequest("/api/email-settings", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
       toast({
@@ -77,7 +79,7 @@ export default function Settings() {
 
   const verifyShopifyMutation = useMutation({
     mutationFn: ({ storeId, data }: { storeId: string; data: { shopifyUrl: string; accessToken: string } }) =>
-      apiRequest("POST", `/api/stores/${storeId}/verify-shopify`, data),
+      apiRequest(`/api/stores/${storeId}/shopify/verify`, { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       toast({

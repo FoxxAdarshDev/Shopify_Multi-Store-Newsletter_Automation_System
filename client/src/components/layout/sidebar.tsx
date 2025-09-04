@@ -92,7 +92,7 @@ export default function Sidebar() {
                   </div>
                 </SelectItem>
               ))}
-              <SelectItem value="add-new" onSelect={() => setLocation('/stores')}>
+              <SelectItem value="add-new" onSelect={() => setLocation('/onboarding')}>
                 <div className="flex items-center text-blue-600">
                   <Plus className="w-4 h-4 mr-2" />
                   Add New Site
@@ -119,9 +119,9 @@ export default function Sidebar() {
               return (
                 <li key={item.name}>
                   <Link href={item.href}>
-                    <a
+                    <div
                       className={cn(
-                        "w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                        "w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
                         isActive 
                           ? "bg-accent text-accent-foreground" 
                           : "text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -130,7 +130,7 @@ export default function Sidebar() {
                     >
                       <item.icon className="mr-3 h-4 w-4 text-muted-foreground" />
                       {item.name}
-                    </a>
+                    </div>
                   </Link>
                 </li>
               );
