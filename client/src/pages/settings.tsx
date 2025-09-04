@@ -479,16 +479,9 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={(() => {
-                                      console.log('Store shopifyUrl:', store.shopifyUrl);
-                                      console.log('Includes .myshopify.com:', store.shopifyUrl?.includes('.myshopify.com'));
-                                      if (store.shopifyUrl?.includes('.myshopify.com')) {
-                                        const extracted = store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '');
-                                        console.log('Extracted store name:', extracted);
-                                        return extracted;
-                                      }
-                                      return '';
-                                    })()}
+                                    value={store.shopifyUrl?.includes('.myshopify.com') 
+                                      ? store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')
+                                      : ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
