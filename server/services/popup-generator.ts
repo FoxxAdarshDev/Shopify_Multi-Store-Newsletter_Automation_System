@@ -311,16 +311,23 @@ export class PopupGeneratorService {
         ">
           <button id="foxx-close-btn" style="
             position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
+            top: 12px;
+            right: 12px;
+            background: rgba(156, 163, 175, 0.1);
             border: none;
-            font-size: 24px;
-            color: #9ca3af;
+            font-size: 20px;
+            color: #6b7280;
             cursor: pointer;
-            padding: 4px;
+            padding: 8px;
             line-height: 1;
-          " onclick="closePopupWithSession()">×</button>
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+          " onclick="closePopupWithSession()" onmouseover="this.style.background='rgba(156, 163, 175, 0.2)'; this.style.color='#374151'" onmouseout="this.style.background='rgba(156, 163, 175, 0.1)'; this.style.color='#6b7280'">×</button>
           
           <div style="text-align: center; margin-bottom: 24px;">
             <h2 style="
@@ -341,7 +348,7 @@ export class PopupGeneratorService {
           <form id="foxx-newsletter-form">
             \${formFields}
             
-            <button type="submit" style="
+            <button type="submit" id="foxx-submit-btn" style="
               width: 100%;
               background: #0071b9;
               color: white;
@@ -351,10 +358,41 @@ export class PopupGeneratorService {
               font-size: 16px;
               font-weight: 600;
               cursor: pointer;
-              transition: background-color 0.2s;
-            " onmouseover="this.style.background='#005a94'" onmouseout="this.style.background='#0071b9'">
-              \${POPUP_CONFIG.buttonText}
+              transition: all 0.2s ease;
+              position: relative;
+              min-height: 48px;
+            " onmouseover="if(!this.disabled) this.style.background='#005a94'" onmouseout="if(!this.disabled) this.style.background='#0071b9'">
+              <span id="foxx-btn-text">\${POPUP_CONFIG.buttonText}</span>
+              <div id="foxx-btn-spinner" style="display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">
+                <div style="
+                  width: 20px; 
+                  height: 20px; 
+                  border: 2px solid rgba(255,255,255,0.3); 
+                  border-top: 2px solid white; 
+                  border-radius: 50%; 
+                  animation: spin 1s linear infinite;
+                "></div>
+              </div>
             </button>
+            
+            <!-- Loading messages container -->
+            <div id="foxx-loading-messages" style="
+              display: none;
+              text-align: center;
+              margin-top: 16px;
+              padding: 12px;
+              background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+              border-radius: 6px;
+              border-left: 4px solid #0071b9;
+            ">
+              <div id="foxx-current-message" style="
+                color: #0071b9;
+                font-size: 14px;
+                font-weight: 500;
+                margin-bottom: 4px;
+              "></div>
+              <div style="color: #64748b; font-size: 12px;" id="foxx-sub-message"></div>
+            </div>
           </form>
 
           <div style="
@@ -404,6 +442,14 @@ export class PopupGeneratorService {
         opacity: 1;
         transform: translateY(0) scale(1);
       }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
     }
   \`;
   document.head.appendChild(style);
@@ -459,6 +505,26 @@ export class PopupGeneratorService {
     }
   }
   
+  // Progress messages for loading state
+  const progressMessages = [
+    { main: "Validating your email...", sub: "Making sure everything looks perfect" },
+    { main: "Generating your discount code...", sub: "Creating a special 15% off just for you" },
+    { main: "Preparing your welcome email...", sub: "Adding you to our exclusive updates list" },
+    { main: "Almost there...", sub: "Finalizing your subscription benefits" }
+  ];
+
+  // Show progress message with animation
+  function showProgressMessage(index) {
+    const messageEl = document.getElementById('foxx-current-message');
+    const subMessageEl = document.getElementById('foxx-sub-message');
+    
+    if (messageEl && subMessageEl && progressMessages[index]) {
+      messageEl.style.animation = 'pulse 1.5s ease-in-out infinite';
+      messageEl.textContent = progressMessages[index].main;
+      subMessageEl.textContent = progressMessages[index].sub;
+    }
+  }
+
   // Handle form submission
   async function handleSubmit(e) {
     e.preventDefault();
@@ -476,6 +542,30 @@ export class PopupGeneratorService {
       return;
     }
     
+    // Start loading state
+    const submitBtn = document.getElementById('foxx-submit-btn');
+    const btnText = document.getElementById('foxx-btn-text');
+    const spinner = document.getElementById('foxx-btn-spinner');
+    const loadingMessages = document.getElementById('foxx-loading-messages');
+    
+    // Disable button and show spinner
+    submitBtn.disabled = true;
+    submitBtn.style.background = '#94a3b8';
+    btnText.style.opacity = '0';
+    spinner.style.display = 'block';
+    loadingMessages.style.display = 'block';
+    
+    // Show progress messages sequentially
+    let messageIndex = 0;
+    showProgressMessage(messageIndex);
+    
+    const messageInterval = setInterval(() => {
+      messageIndex++;
+      if (messageIndex < progressMessages.length) {
+        showProgressMessage(messageIndex);
+      }
+    }, 1200);
+    
     try {
       const response = await fetch(API_BASE + '/api/subscribe/' + STORE_ID, {
         method: 'POST',
@@ -487,6 +577,9 @@ export class PopupGeneratorService {
       
       const result = await response.json();
       
+      // Clear progress messages
+      clearInterval(messageInterval);
+      
       if (response.ok) {
         // Success
         // Store email and timestamp for smart suppression
@@ -496,123 +589,227 @@ export class PopupGeneratorService {
         // Also set session flag to prevent showing again this session
         sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
         
-        // Show success message with confetti
+        // Show modern 2024 success confirmation with brand colors
         document.getElementById('foxx-newsletter-popup').innerHTML = \`
           <div style="
             text-align: center; 
-            padding: 40px 30px; 
+            padding: 48px 36px; 
             position: relative;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #0071b9 0%, #00c68c 50%, #0071b9 100%);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 113, 185, 0.25), 0 0 0 1px rgba(255,255,255,0.1);
             color: white;
-            max-width: 450px;
+            max-width: 480px;
             margin: 0 auto;
+            overflow: hidden;
           ">
-            <!-- Confetti Animation -->
-            <div id="confetti-container" style="
+            <!-- Glassmorphism overlay -->
+            <div style="
               position: absolute;
               top: 0;
               left: 0;
-              width: 100%;
-              height: 100%;
-              overflow: hidden;
-              pointer-events: none;
-              border-radius: 20px;
+              right: 0;
+              bottom: 0;
+              background: rgba(255,255,255,0.05);
+              backdrop-filter: blur(20px);
+              border-radius: 24px;
             "></div>
             
-            <!-- Success Icon -->
-            <div style="
-              width: 100px;
-              height: 100px;
-              background: #00c68c;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              margin: 0 auto 30px;
-              color: white;
-              font-size: 48px;
-              font-weight: bold;
-              box-shadow: 0 10px 30px rgba(0, 198, 140, 0.4);
-              animation: bounceIn 0.6s ease-out;
-            ">✓</div>
-            
-            <!-- Success Message -->
-            <h2 style="
-              color: #fff;
-              margin-bottom: 15px;
-              font-size: 28px;
-              font-weight: 700;
-              text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            ">🎉 Awesome!</h2>
-            
-            <p style="
-              color: rgba(255,255,255,0.9);
-              margin-bottom: 25px;
-              font-size: 16px;
-              line-height: 1.5;
-            ">
-              You're all set! Check your email for your exclusive <strong>\${result.discountPercentage}%</strong> discount.
-            </p>
-            
-            <!-- Clickable Coupon Code -->
-            <div style="
-              background: rgba(255,255,255,0.2);
-              backdrop-filter: blur(10px);
-              border: 2px dashed rgba(255,255,255,0.3);
-              border-radius: 12px;
-              padding: 20px;
-              margin: 30px 0;
-              cursor: pointer;
-              transition: all 0.3s ease;
-            " onclick="copyToClipboard('\${result.discountCode}')">
-              <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 8px;">YOUR DISCOUNT CODE</div>
+            <!-- Content container -->
+            <div style="position: relative; z-index: 2;">
+              <!-- Animated Success Icon -->
               <div style="
-                font-size: 24px;
-                font-weight: 800;
-                letter-spacing: 2px;
+                width: 120px;
+                height: 120px;
+                background: linear-gradient(135deg, #00c68c, #00e699);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 32px;
+                color: white;
+                font-size: 60px;
+                font-weight: bold;
+                box-shadow: 0 15px 40px rgba(0, 198, 140, 0.4), 0 0 0 8px rgba(255,255,255,0.1);
+                animation: successBounce 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                position: relative;
+              ">
+                ✓
+                <!-- Pulse ring -->
+                <div style="
+                  position: absolute;
+                  width: 140px;
+                  height: 140px;
+                  border: 3px solid rgba(0, 198, 140, 0.3);
+                  border-radius: 50%;
+                  animation: pulseRing 2s ease-out infinite;
+                "></div>
+              </div>
+              
+              <!-- Success Message -->
+              <h2 style="
                 color: #fff;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-              ">\${result.discountCode}</div>
-              <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px;">👆 Click to copy</div>
-            </div>
-            
-            <!-- Big Close Button -->
-            <button onclick="document.getElementById('foxx-newsletter-backdrop').remove()" style="
-              background: rgba(255,255,255,0.2);
-              backdrop-filter: blur(10px);
-              color: white;
-              border: 2px solid rgba(255,255,255,0.3);
-              padding: 15px 30px;
-              border-radius: 50px;
-              font-weight: 700;
-              font-size: 16px;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              min-width: 120px;
-            " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-              ✕ Close
-            </button>
-            
-            <div style="
-              margin-top: 20px;
-              font-size: 13px;
-              color: rgba(255,255,255,0.7);
-            ">
-              Save \${result.discountPercentage}% on your next purchase!
+                margin-bottom: 16px;
+                font-size: 32px;
+                font-weight: 800;
+                text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                letter-spacing: -0.5px;
+              ">🎉 Welcome to the Family!</h2>
+              
+              <!-- Email confirmation with user's email -->
+              <div style="
+                background: rgba(255,255,255,0.15);
+                backdrop-filter: blur(10px);
+                border-radius: 16px;
+                padding: 20px;
+                margin: 24px 0;
+                border: 1px solid rgba(255,255,255,0.2);
+              ">
+                <div style="
+                  font-size: 14px; 
+                  color: rgba(255,255,255,0.8); 
+                  margin-bottom: 8px;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                  font-weight: 600;
+                ">Confirmation sent to</div>
+                <div style="
+                  font-size: 18px;
+                  font-weight: 700;
+                  color: #fff;
+                  margin-bottom: 12px;
+                  word-break: break-all;
+                ">\${data.email}</div>
+                <div style="
+                  font-size: 13px;
+                  color: rgba(255,255,255,0.7);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 8px;
+                ">
+                  <span style="font-size: 16px;">✉️</span>
+                  Email with discount code is on its way!
+                </div>
+              </div>
+              
+              <!-- Discount Code Section -->
+              <div style="
+                background: rgba(255,255,255,0.1);
+                backdrop-filter: blur(15px);
+                border: 2px dashed rgba(255,255,255,0.3);
+                border-radius: 20px;
+                padding: 24px;
+                margin: 32px 0;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                overflow: hidden;
+              " onclick="copyToClipboard('\${result.discountCode}')" onmouseover="this.style.transform='scale(1.02)'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(255,255,255,0.1)'">
+                <!-- Shimmer effect -->
+                <div style="
+                  position: absolute;
+                  top: 0;
+                  left: -100%;
+                  width: 100%;
+                  height: 100%;
+                  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                  animation: shimmer 2s infinite;
+                "></div>
+                
+                <div style="position: relative; z-index: 1;">
+                  <div style="
+                    font-size: 12px; 
+                    color: rgba(255,255,255,0.8); 
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    font-weight: 600;
+                  ">Your Exclusive Discount</div>
+                  <div style="
+                    font-size: 28px;
+                    font-weight: 900;
+                    letter-spacing: 3px;
+                    color: #fff;
+                    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    margin-bottom: 8px;
+                  ">\${result.discountCode}</div>
+                  <div style="
+                    font-size: 13px; 
+                    color: rgba(255,255,255,0.7); 
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                  ">
+                    <span style="font-size: 16px;">👆</span>
+                    Tap to copy • Save \${result.discountPercentage}%
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Email notification note -->
+              <div style="
+                background: rgba(0, 198, 140, 0.15);
+                border: 1px solid rgba(0, 198, 140, 0.3);
+                border-radius: 16px;
+                padding: 16px;
+                margin: 24px 0;
+                color: rgba(255,255,255,0.9);
+                font-size: 14px;
+                line-height: 1.5;
+              ">
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 8px;
+                  font-weight: 600;
+                ">
+                  <span style="font-size: 18px;">📧</span>
+                  Email Notification
+                </div>
+                We're sending you a welcome email with your discount code and exclusive updates. Check your inbox in the next few minutes!
+              </div>
+              
+              <!-- Modern Close Button -->
+              <button onclick="document.getElementById('foxx-newsletter-backdrop').remove()" style="
+                background: rgba(255,255,255,0.15);
+                backdrop-filter: blur(10px);
+                color: white;
+                border: 2px solid rgba(255,255,255,0.3);
+                padding: 16px 32px;
+                border-radius: 50px;
+                font-weight: 700;
+                font-size: 16px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                min-width: 140px;
+                margin-top: 24px;
+              " onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.transform='translateY(0)'">
+                Continue Shopping ✨
+              </button>
             </div>
           </div>
         \`;
         
-        // Add confetti animation and copy function
+        // Add modern animations and copy function
         const confettiScript = \`
           <style>
-            @keyframes bounceIn {
-              0% { transform: scale(0.3); opacity: 0; }
-              50% { transform: scale(1.05); }
-              70% { transform: scale(0.9); }
-              100% { transform: scale(1); opacity: 1; }
+            @keyframes successBounce {
+              0% { transform: scale(0.3) rotate(-12deg); opacity: 0; }
+              30% { transform: scale(1.1) rotate(12deg); opacity: 0.8; }
+              50% { transform: scale(0.95) rotate(-6deg); opacity: 1; }
+              70% { transform: scale(1.05) rotate(3deg); }
+              100% { transform: scale(1) rotate(0deg); opacity: 1; }
+            }
+            @keyframes pulseRing {
+              0% { transform: scale(0.8); opacity: 1; }
+              100% { transform: scale(1.2); opacity: 0; }
+            }
+            @keyframes shimmer {
+              0% { left: -100%; }
+              100% { left: 100%; }
             }
             @keyframes confetti-fall {
               to { transform: translateY(100vh) rotate(360deg); }
@@ -670,9 +867,25 @@ export class PopupGeneratorService {
         // Add completion status update
         console.log('Foxx Newsletter: Enhanced confirmation popup displayed with confetti effects');
       } else {
+        // Clear progress messages and reset button
+        clearInterval(messageInterval);
+        submitBtn.disabled = false;
+        submitBtn.style.background = '#0071b9';
+        btnText.style.opacity = '1';
+        spinner.style.display = 'none';
+        loadingMessages.style.display = 'none';
+        
         alert(result.message || 'Subscription failed. Please try again.');
       }
     } catch (error) {
+      // Clear progress messages and reset button on error
+      clearInterval(messageInterval);
+      submitBtn.disabled = false;
+      submitBtn.style.background = '#0071b9';
+      btnText.style.opacity = '1';
+      spinner.style.display = 'none';
+      loadingMessages.style.display = 'none';
+      
       console.error('Foxx Newsletter: Subscription error', error);
       alert('An error occurred. Please try again later.');
     }
