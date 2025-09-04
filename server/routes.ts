@@ -902,10 +902,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      // Get current domain from request
-      const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');
-      const host = req.get('Host');
-      const baseUrl = `${protocol}://${host}`;
+      // For Replit environment, prefer environment variable over request headers
+      let baseUrl;
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else {
+        const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');  
+        const host = req.get('Host') || 'localhost:5000';
+        baseUrl = `${protocol}://${host}`;
+      }
+      
+      console.log('Domain detection:', { 
+        env_domain: process.env.REPLIT_DEV_DOMAIN,
+        final_baseUrl: baseUrl 
+      });
       
       const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl, baseUrl);
       res.send(script);
@@ -925,7 +935,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      const serviceWorkerContent = popupGeneratorService.generateIntegrationFile();
+      // Get current domain for the service worker
+      const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');  
+      const host = req.get('Host') || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      const serviceWorkerContent = popupGeneratorService.generateIntegrationFile(storeId, store.shopifyUrl, baseUrl);
       
       res.setHeader('Content-Type', 'application/javascript');
       res.setHeader('Content-Disposition', 'attachment; filename="webpushr-sw.js"');

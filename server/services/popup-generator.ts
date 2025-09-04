@@ -7,10 +7,21 @@ export class PopupGeneratorService {
   }
 
   generateIntegrationScript(storeId: string, shopifyUrl: string, baseUrl?: string): string {
-    // Use provided baseUrl or fallback to environment detection
-    const scriptBaseUrl = baseUrl || (process.env.NODE_ENV === 'production' 
-      ? `https://${process.env.REPLIT_DEV_DOMAIN || 'your-app-domain.com'}` 
-      : 'http://localhost:5000');
+    // Use provided baseUrl or detect from environment
+    let scriptBaseUrl = baseUrl;
+    
+    if (!scriptBaseUrl) {
+      // For Replit environment
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        scriptBaseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else if (process.env.NODE_ENV === 'production') {
+        scriptBaseUrl = 'https://your-app-domain.com';
+      } else {
+        scriptBaseUrl = 'http://localhost:5000';
+      }
+    }
+    
+    console.log('Script baseUrl determined:', scriptBaseUrl);
       
     return `<!-- Foxx Newsletter Popup Integration Script -->
 <!-- Add this code to your theme.liquid file, just before the closing </body> tag -->
@@ -418,43 +429,183 @@ export class PopupGeneratorService {
 })();`;
   }
 
-  generateIntegrationFile(): string {
+  generateIntegrationFile(storeId?: string, shopifyUrl?: string, baseUrl?: string): string {
+    const apiBase = baseUrl || 'http://localhost:5000';
+    const storeDomain = shopifyUrl ? new URL(shopifyUrl).hostname : 'yourdomain.com';
+    
     return `
 // Foxx Newsletter Manager Service Worker
+// Store ID: ${storeId || 'N/A'}
+// Store Domain: ${storeDomain}
 // This file should be placed in the root directory of your website
 
+const STORE_ID = '${storeId || ''}';
+const API_BASE = '${apiBase}';
+const STORE_DOMAIN = '${storeDomain}';
+
 self.addEventListener('install', function(event) {
-  console.log('Foxx Newsletter Manager service worker installed');
+  console.log('Foxx Newsletter Manager service worker installed for store:', STORE_ID);
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', function(event) {
-  console.log('Foxx Newsletter Manager service worker activated');
+  console.log('Foxx Newsletter Manager service worker activated for store:', STORE_ID);
+  event.waitUntil(self.clients.claim());
 });
 
-// Handle push notifications (for future use)
+// Handle push notifications with store-specific branding
 self.addEventListener('push', function(event) {
   if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: '/icon-192x192.png',
-      badge: '/badge-72x72.png',
-      data: data.url
-    };
-    
+    try {
+      const data = event.data.json();
+      const options = {
+        body: data.body || 'New newsletter update available!',
+        icon: data.icon || '/icon-192x192.png',
+        badge: data.badge || '/badge-72x72.png',
+        data: {
+          url: data.url || 'https://' + STORE_DOMAIN,
+          storeId: STORE_ID
+        },
+        tag: 'foxx-newsletter-' + STORE_ID,
+        requireInteraction: true,
+        actions: [
+          {
+            action: 'view',
+            title: 'View Offer',
+            icon: '/icon-view.png'
+          },
+          {
+            action: 'dismiss',
+            title: 'Dismiss',
+            icon: '/icon-close.png'
+          }
+        ]
+      };
+      
+      event.waitUntil(
+        self.registration.showNotification(
+          data.title || 'Newsletter Update - ' + STORE_DOMAIN, 
+          options
+        )
+      );
+    } catch (error) {
+      console.error('Push notification error:', error);
+    }
+  }
+});
+
+// Handle notification clicks with analytics
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  
+  const { action, data } = event;
+  
+  if (action === 'dismiss') {
+    // Track dismissal
+    if (STORE_ID) {
+      fetch(API_BASE + '/api/stores/' + STORE_ID + '/notification-dismissed', {
+        method: 'POST',
+        body: JSON.stringify({ timestamp: Date.now() }),
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(console.error);
+    }
+    return;
+  }
+  
+  // Default action or 'view' action
+  const urlToOpen = event.notification.data?.url || 'https://' + STORE_DOMAIN;
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(function(clientList) {
+        // Check if there's already a window open with this URL
+        for (let client of clientList) {
+          if (client.url === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        
+        // Track click analytics
+        if (STORE_ID) {
+          fetch(API_BASE + '/api/stores/' + STORE_ID + '/notification-clicked', {
+            method: 'POST',
+            body: JSON.stringify({ 
+              timestamp: Date.now(),
+              url: urlToOpen 
+            }),
+            headers: { 'Content-Type': 'application/json' }
+          }).catch(console.error);
+        }
+        
+        // Open new window
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
+});
+
+// Background sync for newsletter subscriptions (when offline)
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'newsletter-sync-' + STORE_ID) {
     event.waitUntil(
-      self.registration.showNotification(data.title, options)
+      // Retry failed newsletter subscriptions
+      syncNewsletterSubscriptions()
     );
   }
 });
 
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-  
-  if (event.notification.data) {
-    event.waitUntil(
-      clients.openWindow(event.notification.data)
-    );
+// Function to sync offline newsletter subscriptions
+async function syncNewsletterSubscriptions() {
+  try {
+    // Get pending subscriptions from IndexedDB
+    const pending = await getPendingSubscriptions();
+    
+    for (let subscription of pending) {
+      try {
+        const response = await fetch(API_BASE + '/api/stores/' + STORE_ID + '/subscribers', {
+          method: 'POST',
+          body: JSON.stringify(subscription.data),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          await removePendingSubscription(subscription.id);
+        }
+      } catch (error) {
+        console.error('Failed to sync subscription:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Background sync error:', error);
+  }
+}
+
+// Helper functions for IndexedDB operations
+async function getPendingSubscriptions() {
+  // Simple mock for now - in production, use IndexedDB
+  return [];
+}
+
+async function removePendingSubscription(id) {
+  // Simple mock for now - in production, use IndexedDB
+  return true;
+}
+
+// Newsletter integration events
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'NEWSLETTER_SUBSCRIBED') {
+    // Newsletter popup successfully subscribed
+    console.log('Newsletter subscription confirmed for store:', STORE_ID);
+    
+    // Optional: Show a confirmation notification
+    if (event.data.showNotification) {
+      self.registration.showNotification('Welcome!', {
+        body: 'Thanks for subscribing to our newsletter!',
+        icon: '/icon-success.png',
+        tag: 'welcome-' + STORE_ID
+      });
+    }
   }
 });
 `;
