@@ -902,11 +902,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
+      // Get current domain from request
+      const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');
+      const host = req.get('Host');
+      const baseUrl = `${protocol}://${host}`;
+      
+      const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl, baseUrl);
       res.send(script);
     } catch (error) {
       console.error("Generate integration script error:", error);
       res.status(500).json({ message: "Failed to generate integration script" });
+    }
+  });
+
+  // Service worker file download
+  app.get("/api/stores/:storeId/download-file", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const { storeId } = req.params;
+      
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      const serviceWorkerContent = popupGeneratorService.generateIntegrationFile();
+      
+      res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Content-Disposition', 'attachment; filename="webpushr-sw.js"');
+      res.send(serviceWorkerContent);
+    } catch (error) {
+      console.error("Download file error:", error);
+      res.status(500).json({ message: "Failed to generate download file" });
     }
   });
 

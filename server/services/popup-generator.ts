@@ -6,17 +6,18 @@ export class PopupGeneratorService {
     return this.getNewsletterScript();
   }
 
-  generateIntegrationScript(storeId: string, shopifyUrl: string): string {
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://your-app-domain.com' // Replace with your actual domain
-      : 'http://localhost:5000';
+  generateIntegrationScript(storeId: string, shopifyUrl: string, baseUrl?: string): string {
+    // Use provided baseUrl or fallback to environment detection
+    const scriptBaseUrl = baseUrl || (process.env.NODE_ENV === 'production' 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN || 'your-app-domain.com'}` 
+      : 'http://localhost:5000');
       
     return `<!-- Foxx Newsletter Popup Integration Script -->
 <!-- Add this code to your theme.liquid file, just before the closing </body> tag -->
 <script>
 (function() {
   var script = document.createElement('script');
-  script.src = '${baseUrl}/js/newsletter-popup.js';
+  script.src = '${scriptBaseUrl}/js/newsletter-popup.js';
   script.async = true;
   script.setAttribute('data-store-id', '${storeId}');
   script.setAttribute('data-popup-config', 'auto');

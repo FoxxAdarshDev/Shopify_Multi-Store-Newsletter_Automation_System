@@ -45,12 +45,35 @@ export default function Integration() {
     refetchInterval: 30000, // Check every 30 seconds
   });
 
-  const handleDownloadFile = () => {
-    // For newsletter popup, show instructions instead of downloading
-    toast({
-      title: "Info",
-      description: "Copy the script code below and add it to your theme.liquid file",
-    });
+  const handleDownloadFile = async () => {
+    if (!selectedStoreId) return;
+    
+    try {
+      const response = await fetch(`/api/stores/${selectedStoreId}/download-file`);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'webpushr-sw.js';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Service worker file downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleVerifyInstallation = async () => {
