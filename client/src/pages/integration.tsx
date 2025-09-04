@@ -84,6 +84,11 @@ export default function Integration() {
       const response = await fetch(`/api/stores/${selectedStoreId}/verify-installation`);
       const result = await response.json();
       
+      // Force refresh the installation status query
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/stores/${selectedStoreId}/verify-installation`] 
+      });
+      
       if (result.installed) {
         toast({
           title: "Success", 

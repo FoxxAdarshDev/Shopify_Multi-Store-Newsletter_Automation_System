@@ -744,9 +744,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      // Basic domain verification
-      if (origin && !origin.includes(new URL(store.shopifyUrl).hostname)) {
-        return res.status(403).json({ message: "Domain not authorized" });
+      // Basic domain verification - allow if origin matches store domain or custom domain
+      if (origin) {
+        const originHostname = new URL(origin).hostname;
+        const storeHostname = new URL(store.shopifyUrl).hostname;
+        const customDomainHostname = store.customDomain ? new URL(store.customDomain).hostname : null;
+        
+        const isAuthorized = originHostname === storeHostname || 
+                           originHostname === customDomainHostname ||
+                           originHostname.includes(storeHostname) ||
+                           (customDomainHostname && originHostname.includes(customDomainHostname));
+                           
+        if (!isAuthorized) {
+          console.log(`CORS blocked: origin=${originHostname}, store=${storeHostname}, custom=${customDomainHostname}`);
+          return res.status(403).json({ message: "Domain not authorized" });
+        }
       }
       
       const config = await storage.getPopupConfig(storeId);
