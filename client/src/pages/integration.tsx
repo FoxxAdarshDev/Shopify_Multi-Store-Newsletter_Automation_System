@@ -32,6 +32,14 @@ export default function Integration() {
     refetchInterval: 30000, // Check every 30 seconds
   });
 
+  const handleDownloadFile = () => {
+    // For newsletter popup, show instructions instead of downloading
+    toast({
+      title: "Info",
+      description: "Copy the script code below and add it to your theme.liquid file",
+    });
+  };
+
   const handleVerifyInstallation = async () => {
     if (!selectedStoreId) return;
     
@@ -41,7 +49,7 @@ export default function Integration() {
       
       if (result.installed) {
         toast({
-          title: "Success",
+          title: "Success", 
           description: "Newsletter script is properly installed!",
         });
       } else {
