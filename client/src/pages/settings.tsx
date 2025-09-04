@@ -44,7 +44,10 @@ export default function Settings() {
   const [editingToken, setEditingToken] = useState<string | null>(null);
   const [newToken, setNewToken] = useState('');
   const [editingUrl, setEditingUrl] = useState<string | null>(null);
+  const [editingDomain, setEditingDomain] = useState<string | null>(null);
   const [newUrl, setNewUrl] = useState('');
+  const [newDomain, setNewDomain] = useState('');
+  const [urlEditMode, setUrlEditMode] = useState<'myshopify' | 'domain'>('myshopify');
   
   // Helper to mask token display
   const maskToken = (token: string) => {
@@ -137,11 +140,17 @@ export default function Settings() {
   };
 
   const updateTokenMutation = useMutation({
-    mutationFn: ({ storeId, accessToken }: { storeId: string; accessToken: string }) =>
-      apiRequest(`/api/stores/${storeId}/shopify/connect`, {
+    mutationFn: ({ storeId, accessToken }: { storeId: string; accessToken: string }) => {
+      // Never log or expose the full token
+      const store = stores.find(s => s.id === storeId);
+      return apiRequest(`/api/stores/${storeId}/shopify/connect`, {
         method: "POST",
-        body: JSON.stringify({ shopifyUrl: stores.find(s => s.id === storeId)?.shopifyUrl, accessToken }),
-      }),
+        body: JSON.stringify({ 
+          shopifyUrl: store?.shopifyUrl, 
+          accessToken // This will be encrypted server-side
+        }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       setEditingToken(null);
@@ -160,31 +169,18 @@ export default function Settings() {
     },
   });
 
-  const handleTokenEdit = (storeId: string) => {
-    setEditingToken(storeId);
-    setNewToken('');
-  };
-
-  const handleTokenSave = (storeId: string) => {
-    if (newToken.trim()) {
-      updateTokenMutation.mutate({ storeId, accessToken: newToken.trim() });
-    }
-  };
-
-  const handleTokenCancel = () => {
-    setEditingToken(null);
-    setNewToken('');
-  };
   
   const updateUrlMutation = useMutation({
-    mutationFn: ({ storeId, shopifyUrl }: { storeId: string; shopifyUrl: string }) =>
-      apiRequest(`/api/stores/${storeId}/shopify/connect`, {
+    mutationFn: ({ storeId, shopifyUrl }: { storeId: string; shopifyUrl: string }) => {
+      const store = stores.find(s => s.id === storeId);
+      return apiRequest(`/api/stores/${storeId}/shopify/connect`, {
         method: "POST",
         body: JSON.stringify({ 
           shopifyUrl: normalizeShopifyUrl(shopifyUrl), 
-          accessToken: stores.find(s => s.id === storeId)?.shopifyAccessToken || '' 
+          accessToken: store?.shopifyAccessToken || '' // Already encrypted
         }),
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       setEditingUrl(null);
@@ -205,20 +201,53 @@ export default function Settings() {
   
   const handleUrlEdit = (storeId: string, currentUrl: string) => {
     setEditingUrl(storeId);
-    setNewUrl(currentUrl);
+    setNewUrl(currentUrl?.replace('.myshopify.com', '').replace('https://', '').replace('http://', '') || '');
+    setUrlEditMode('myshopify');
+  };
+  
+  const handleDomainEdit = (storeId: string, currentUrl: string) => {
+    setEditingDomain(storeId);
+    setNewDomain(currentUrl || '');
+    setUrlEditMode('domain');
   };
   
   const handleUrlSave = (storeId: string) => {
     if (newUrl.trim()) {
-      // If it's just a store name, add .myshopify.com
-      const finalUrl = newUrl.includes('.') ? newUrl.trim() : `${newUrl.trim()}.myshopify.com`;
+      const finalUrl = `${newUrl.trim()}.myshopify.com`;
       updateUrlMutation.mutate({ storeId, shopifyUrl: finalUrl });
+    }
+  };
+  
+  const handleDomainSave = (storeId: string) => {
+    if (newDomain.trim()) {
+      updateUrlMutation.mutate({ storeId, shopifyUrl: newDomain.trim() });
     }
   };
   
   const handleUrlCancel = () => {
     setEditingUrl(null);
+    setEditingDomain(null);
     setNewUrl('');
+    setNewDomain('');
+  };
+  
+  const handleTokenEdit = (storeId: string) => {
+    setEditingToken(storeId);
+    setNewToken(''); // Never pre-populate with existing token for security
+  };
+  
+  const handleTokenSave = (storeId: string) => {
+    if (newToken.trim()) {
+      // Clear the input immediately for security
+      const tokenToSave = newToken.trim();
+      setNewToken('');
+      updateTokenMutation.mutate({ storeId, accessToken: tokenToSave });
+    }
+  };
+  
+  const handleTokenCancel = () => {
+    setEditingToken(null);
+    setNewToken('');
   };
 
   if (emailLoading) {
@@ -389,93 +418,175 @@ export default function Settings() {
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Shopify Store Name (.myshopify.com)</Label>
-                            {editingUrl === store.id ? (
-                              <div className="space-y-2">
-                                <Input
-                                  type="text"
-                                  value={newUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')}
-                                  onChange={(e) => {
-                                    const storeName = e.target.value.replace(/[^a-zA-Z0-9-]/g, '');
-                                    setNewUrl(storeName);
-                                  }}
-                                  placeholder="your-store-name"
-                                  className="flex-1"
-                                  data-testid={`input-store-name-${store.id}`}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Will become: {newUrl || 'your-store-name'}.myshopify.com
-                                </p>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleUrlSave(store.id)}
-                                    disabled={!newUrl.trim() || updateUrlMutation.isPending}
-                                    data-testid={`button-save-store-name-${store.id}`}
-                                  >
-                                    {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
-                                  </Button>
+                        <div className="space-y-4">
+                          <div className="flex gap-2 mb-3">
+                            <Button
+                              variant={urlEditMode === 'myshopify' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setUrlEditMode('myshopify')}
+                              data-testid={`button-mode-myshopify-${store.id}`}
+                            >
+                              .myshopify.com Format
+                            </Button>
+                            <Button
+                              variant={urlEditMode === 'domain' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setUrlEditMode('domain')}
+                              data-testid={`button-mode-domain-${store.id}`}
+                            >
+                              Custom Domain
+                            </Button>
+                          </div>
+                          
+                          {urlEditMode === 'myshopify' ? (
+                            <div>
+                              <Label>Shopify Store Name (.myshopify.com)</Label>
+                              {editingUrl === store.id ? (
+                                <div className="space-y-2">
+                                  <Input
+                                    type="text"
+                                    value={newUrl}
+                                    onChange={(e) => {
+                                      const storeName = e.target.value.replace(/[^a-zA-Z0-9-]/g, '');
+                                      setNewUrl(storeName);
+                                    }}
+                                    placeholder="your-store-name"
+                                    className="flex-1"
+                                    data-testid={`input-store-name-${store.id}`}
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    Will become: {newUrl || 'your-store-name'}.myshopify.com
+                                  </p>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUrlSave(store.id)}
+                                      disabled={!newUrl.trim() || updateUrlMutation.isPending}
+                                      data-testid={`button-save-store-name-${store.id}`}
+                                    >
+                                      {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={handleUrlCancel}
+                                      disabled={updateUrlMutation.isPending}
+                                      data-testid={`button-cancel-store-name-${store.id}`}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center">
+                                  <Input
+                                    value={store.shopifyUrl?.includes('.myshopify.com') 
+                                      ? store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')
+                                      : ''}
+                                    readOnly
+                                    className="flex-1 bg-muted text-muted-foreground"
+                                    placeholder="Not configured"
+                                  />
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={handleUrlCancel}
-                                    disabled={updateUrlMutation.isPending}
-                                    data-testid={`button-cancel-store-name-${store.id}`}
+                                    className="ml-2"
+                                    onClick={() => handleUrlEdit(store.id, store.shopifyUrl || '')}
+                                    data-testid={`button-edit-store-name-${store.id}`}
                                   >
-                                    Cancel
+                                    <Edit className="h-4 w-4" />
                                   </Button>
                                 </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center">
-                                <Input
-                                  value={store.shopifyUrl?.replace('.myshopify.com', '').replace('https://', '').replace('http://', '') || ''}
-                                  readOnly
-                                  className="flex-1 bg-muted text-muted-foreground"
-                                />
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="ml-2"
-                                  onClick={() => handleUrlEdit(store.id, store.shopifyUrl?.replace('.myshopify.com', '').replace('https://', '').replace('http://', '') || '')}
-                                  data-testid={`button-edit-store-name-${store.id}`}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Enter your Shopify store name (without .myshopify.com)
-                            </p>
-                          </div>
-                          
-                          <div>
-                            <Label>Full Shopify Store URL</Label>
-                            <Input
-                              value={store.shopifyUrl}
-                              readOnly
-                              className="bg-muted text-muted-foreground"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Complete URL with protocol (auto-generated)
-                            </p>
-                          </div>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Enter your Shopify store name (e.g., "my-store" becomes "my-store.myshopify.com")
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <Label>Custom Domain URL</Label>
+                              {editingDomain === store.id ? (
+                                <div className="space-y-2">
+                                  <Input
+                                    type="url"
+                                    value={newDomain}
+                                    onChange={(e) => setNewDomain(e.target.value)}
+                                    placeholder="https://shop.yourdomain.com"
+                                    className="flex-1"
+                                    data-testid={`input-domain-${store.id}`}
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    Enter your custom Shopify domain with protocol
+                                  </p>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleDomainSave(store.id)}
+                                      disabled={!newDomain.trim() || updateUrlMutation.isPending}
+                                      data-testid={`button-save-domain-${store.id}`}
+                                    >
+                                      {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={handleUrlCancel}
+                                      disabled={updateUrlMutation.isPending}
+                                      data-testid={`button-cancel-domain-${store.id}`}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center">
+                                  <Input
+                                    value={!store.shopifyUrl?.includes('.myshopify.com') 
+                                      ? store.shopifyUrl || ''
+                                      : ''}
+                                    readOnly
+                                    className="flex-1 bg-muted text-muted-foreground"
+                                    placeholder="Not configured"
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-2"
+                                    onClick={() => handleDomainEdit(store.id, store.shopifyUrl || '')}
+                                    data-testid={`button-edit-domain-${store.id}`}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                For custom domains (e.g., "https://shop.yourstore.com")
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         <div>
                         <Label>Store Access Token</Label>
                         {editingToken === store.id ? (
                           <div className="space-y-2">
+                            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md mb-2">
+                              <div className="flex items-center">
+                                <Lock className="h-4 w-4 mr-2 text-yellow-800" />
+                                <p className="text-xs text-yellow-800">
+                                  Enter your new access token. It will be encrypted and securely stored.
+                                </p>
+                              </div>
+                            </div>
                             <div className="flex items-center">
                               <Input
-                                type="text"
+                                type="password"
                                 value={newToken}
                                 onChange={(e) => setNewToken(e.target.value)}
-                                placeholder="Enter new access token"
+                                placeholder="Enter new access token (will be encrypted)"
                                 className="flex-1"
                                 data-testid={`input-new-token-${store.id}`}
+                                autoComplete="new-password"
                               />
                             </div>
                             <div className="flex gap-2">
@@ -485,7 +596,7 @@ export default function Settings() {
                                 disabled={!newToken.trim() || updateTokenMutation.isPending}
                                 data-testid={`button-save-token-${store.id}`}
                               >
-                                {updateTokenMutation.isPending ? 'Saving...' : 'Save'}
+                                {updateTokenMutation.isPending ? 'Encrypting & Saving...' : 'Save & Encrypt'}
                               </Button>
                               <Button
                                 variant="outline"
@@ -505,6 +616,7 @@ export default function Settings() {
                               value={store.shopifyAccessToken ? maskToken(store.shopifyAccessToken) : ''}
                               readOnly
                               className="flex-1 bg-muted text-muted-foreground"
+                              placeholder="No token configured"
                             />
                             <Button
                               variant="outline"
