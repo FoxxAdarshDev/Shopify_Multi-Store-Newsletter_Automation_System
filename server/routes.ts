@@ -558,16 +558,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { storeId } = req.params;
       const { shopifyUrl, accessToken } = req.body;
       
+      // Sanitize access token - remove any non-ASCII characters that could cause ByteString errors
+      const sanitizedAccessToken = accessToken.replace(/[^\x00-\x7F]/g, '').trim();
+      
+      if (!sanitizedAccessToken) {
+        return res.status(400).json({ message: "Invalid access token format. Please ensure the token contains only standard characters." });
+      }
+      
       // Validate Shopify connection
-      const isValid = await shopifyService.verifyConnection({ shopUrl: shopifyUrl, accessToken });
+      const isValid = await shopifyService.verifyConnection({ shopUrl: shopifyUrl, accessToken: sanitizedAccessToken });
       
       if (!isValid) {
         return res.status(400).json({ message: "Invalid Shopify credentials. Please check your store URL and access token." });
       }
       
-      // Encrypt the access token before storing
+      // Encrypt the sanitized access token before storing
       const { encrypt } = await import('../utils/encryption.js');
-      const encryptedToken = encrypt(accessToken);
+      const encryptedToken = encrypt(sanitizedAccessToken);
       
       // Update store with Shopify info
       const store = await storage.updateStore(storeId, {
