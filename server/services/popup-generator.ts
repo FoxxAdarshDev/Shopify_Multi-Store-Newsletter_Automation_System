@@ -408,39 +408,179 @@ export class PopupGeneratorService {
         // Also set session flag to prevent showing again this session
         sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
         
-        // Show success message
+        // Show success message with confetti
         document.getElementById('foxx-newsletter-popup').innerHTML = \`
-          <div style="text-align: center; padding: 20px;">
+          <div style="
+            text-align: center; 
+            padding: 40px 30px; 
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            color: white;
+            max-width: 450px;
+            margin: 0 auto;
+          ">
+            <!-- Confetti Animation -->
+            <div id="confetti-container" style="
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              overflow: hidden;
+              pointer-events: none;
+              border-radius: 20px;
+            "></div>
+            
+            <!-- Success Icon -->
             <div style="
-              width: 64px;
-              height: 64px;
+              width: 100px;
+              height: 100px;
               background: #00c68c;
               border-radius: 50%;
               display: flex;
               align-items: center;
               justify-content: center;
-              margin: 0 auto 20px;
+              margin: 0 auto 30px;
               color: white;
-              font-size: 32px;
+              font-size: 48px;
+              font-weight: bold;
+              box-shadow: 0 10px 30px rgba(0, 198, 140, 0.4);
+              animation: bounceIn 0.6s ease-out;
             ">✓</div>
-            <h3 style="color: #00c68c; margin-bottom: 12px;">Thank You!</h3>
-            <p style="color: #6b7280; margin-bottom: 20px;">
-              Please check your email for your exclusive \${result.discountPercentage}% discount code: <strong>\${result.discountCode}</strong>
+            
+            <!-- Success Message -->
+            <h2 style="
+              color: #fff;
+              margin-bottom: 15px;
+              font-size: 28px;
+              font-weight: 700;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            ">🎉 Awesome!</h2>
+            
+            <p style="
+              color: rgba(255,255,255,0.9);
+              margin-bottom: 25px;
+              font-size: 16px;
+              line-height: 1.5;
+            ">
+              You're all set! Check your email for your exclusive <strong>\${result.discountPercentage}%</strong> discount.
             </p>
-            <button onclick="document.getElementById('foxx-newsletter-backdrop').remove()" style="
-              background: #0071b9;
-              color: white;
-              border: none;
-              padding: 12px 24px;
-              border-radius: 6px;
-              font-weight: 600;
+            
+            <!-- Clickable Coupon Code -->
+            <div style="
+              background: rgba(255,255,255,0.2);
+              backdrop-filter: blur(10px);
+              border: 2px dashed rgba(255,255,255,0.3);
+              border-radius: 12px;
+              padding: 20px;
+              margin: 30px 0;
               cursor: pointer;
-            ">Close</button>
+              transition: all 0.3s ease;
+            " onclick="copyToClipboard('\${result.discountCode}')">
+              <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 8px;">YOUR DISCOUNT CODE</div>
+              <div style="
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: 2px;
+                color: #fff;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              ">\${result.discountCode}</div>
+              <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 8px;">👆 Click to copy</div>
+            </div>
+            
+            <!-- Big Close Button -->
+            <button onclick="document.getElementById('foxx-newsletter-backdrop').remove()" style="
+              background: rgba(255,255,255,0.2);
+              backdrop-filter: blur(10px);
+              color: white;
+              border: 2px solid rgba(255,255,255,0.3);
+              padding: 15px 30px;
+              border-radius: 50px;
+              font-weight: 700;
+              font-size: 16px;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              min-width: 120px;
+            " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+              ✕ Close
+            </button>
+            
+            <div style="
+              margin-top: 20px;
+              font-size: 13px;
+              color: rgba(255,255,255,0.7);
+            ">
+              Save \${result.discountPercentage}% on your next purchase!
+            </div>
           </div>
         \`;
         
-        // Auto-close after 4 seconds
-        setTimeout(closePopup, 4000);
+        // Add confetti animation and copy function
+        const confettiScript = \`
+          <style>
+            @keyframes bounceIn {
+              0% { transform: scale(0.3); opacity: 0; }
+              50% { transform: scale(1.05); }
+              70% { transform: scale(0.9); }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes confetti-fall {
+              to { transform: translateY(100vh) rotate(360deg); }
+            }
+          </style>
+          <script>
+            function copyToClipboard(text) {
+              navigator.clipboard.writeText(text).then(() => {
+                // Show copy feedback
+                const button = event.currentTarget;
+                const originalContent = button.innerHTML;
+                button.innerHTML = button.innerHTML.replace('👆 Click to copy', '✅ Copied!');
+                button.style.background = 'rgba(0, 198, 140, 0.3)';
+                setTimeout(() => {
+                  button.innerHTML = originalContent;
+                  button.style.background = 'rgba(255,255,255,0.2)';
+                }, 2000);
+              });
+            }
+            
+            function createConfetti() {
+              const container = document.getElementById('confetti-container');
+              const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#f368e0'];
+              
+              for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'absolute';
+                confetti.style.width = Math.random() * 10 + 5 + 'px';
+                confetti.style.height = Math.random() * 10 + 5 + 'px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                confetti.style.animation = 'confetti-fall ' + (Math.random() * 3 + 2) + 's linear infinite';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                container.appendChild(confetti);
+              }
+              
+              // Clean up confetti after animation
+              setTimeout(() => {
+                if (container) container.innerHTML = '';
+              }, 6000);
+            }
+            
+            // Start confetti animation
+            setTimeout(createConfetti, 100);
+          </script>
+        \`;
+        
+        // Inject confetti script
+        document.head.insertAdjacentHTML('beforeend', confettiScript);
+        
+        // NO AUTO-CLOSE - User must click close button
+        
+        // Add completion status update
+        console.log('Foxx Newsletter: Enhanced confirmation popup displayed with confetti effects');
       } else {
         alert(result.message || 'Subscription failed. Please try again.');
       }
