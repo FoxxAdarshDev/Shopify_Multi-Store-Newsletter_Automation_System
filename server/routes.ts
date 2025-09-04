@@ -558,11 +558,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { storeId } = req.params;
       const { shopifyUrl, accessToken } = req.body;
       
-      // Check if this is just a URL update (when accessToken is empty or encrypted data)
-      const isUrlOnlyUpdate = !accessToken || accessToken.length < 10;
+      // Check if this is just a URL update (when accessToken is empty)
+      const isUrlOnlyUpdate = !accessToken || accessToken.trim() === '';
       
       if (isUrlOnlyUpdate) {
         // Just update the URL without verifying connection
+        console.log('URL-only update detected, skipping Shopify verification');
         const store = await storage.updateStore(storeId, {
           shopifyUrl,
           // Keep existing connection status if just updating URL
