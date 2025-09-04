@@ -196,7 +196,21 @@ export default function Settings() {
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    saveEmailMutation.mutate(emailForm);
+    
+    // Ensure temporary password is included in submission
+    const formDataToSubmit = {
+      ...emailForm,
+      smtpPassword: editingPassword && tempPassword.trim() ? tempPassword : emailForm.smtpPassword
+    };
+    
+    // Clear editing state
+    if (editingPassword && tempPassword.trim()) {
+      setEmailForm({ ...emailForm, smtpPassword: tempPassword });
+      setEditingPassword(false);
+      setTempPassword("");
+    }
+    
+    saveEmailMutation.mutate(formDataToSubmit);
   };
 
   const handleSaveAllSettings = () => {
