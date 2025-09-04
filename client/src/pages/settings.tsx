@@ -62,18 +62,15 @@ export default function Settings() {
   const normalizeShopifyUrl = (url: string) => {
     if (!url) return url;
     
+    // If it ends with .myshopify.com, it's a Shopify store - normalize it
+    if (url.endsWith('.myshopify.com')) {
+      // Remove any protocol and trailing slash, but keep the .myshopify.com format
+      return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    }
+    
     // If it's just a store name (no dots), add .myshopify.com
     if (!url.includes('.')) {
       return `${url}.myshopify.com`;
-    }
-    
-    // If it's a .myshopify.com URL, normalize it (remove protocol, ensure .myshopify.com)
-    if (url.includes('.myshopify.com') || (!url.includes('http') && !url.includes('://'))) {
-      url = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-      if (!url.endsWith('.myshopify.com') && !url.includes('.')) {
-        url = `${url}.myshopify.com`;
-      }
-      return url;
     }
     
     // For custom domains, preserve the full URL with protocol
@@ -502,16 +499,9 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={(() => {
-                                      console.log('DEBUG - Store shopifyUrl:', store.shopifyUrl);
-                                      console.log('DEBUG - Ends with .myshopify.com:', store.shopifyUrl?.endsWith('.myshopify.com'));
-                                      if (store.shopifyUrl?.endsWith('.myshopify.com')) {
-                                        const extracted = store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '');
-                                        console.log('DEBUG - Extracted store name:', extracted);
-                                        return extracted;
-                                      }
-                                      return '';
-                                    })()}
+                                    value={store.shopifyUrl?.endsWith('.myshopify.com') 
+                                      ? store.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')
+                                      : ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
