@@ -7,7 +7,7 @@ import { shopifyService } from "./services/shopify";
 import { popupGeneratorService } from "./services/popup-generator";
 import { 
   insertStoreSchema, insertPopupConfigSchema, updatePopupConfigSchema, insertSubscriberSchema, insertEmailSettingsSchema,
-  loginSchema, resetPasswordSchema, setPasswordSchema, updatePermissionsSchema
+  loginSchema, resetPasswordSchema, setPasswordSchema, updatePermissionsSchema, updateUserPreferencesSchema
 } from "@shared/schema";
 import { encrypt, decrypt } from "./utils/encryption";
 import { z } from "zod";
@@ -614,7 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/user-preferences", authenticateSession, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      const preferencesData = { ...req.body, userId };
+      const preferencesData = updateUserPreferencesSchema.parse(req.body);
       
       const existingPreferences = await storage.getUserPreferences(userId);
       
@@ -622,7 +622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingPreferences) {
         preferences = await storage.updateUserPreferences(userId, preferencesData);
       } else {
-        preferences = await storage.createUserPreferences(preferencesData);
+        preferences = await storage.createUserPreferences({ ...preferencesData, userId });
       }
       
       if (!preferences) {
