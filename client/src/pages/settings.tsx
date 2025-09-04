@@ -172,12 +172,11 @@ export default function Settings() {
   
   const updateUrlMutation = useMutation({
     mutationFn: ({ storeId, shopifyUrl }: { storeId: string; shopifyUrl: string }) => {
-      const store = stores.find(s => s.id === storeId);
       return apiRequest(`/api/stores/${storeId}/shopify/connect`, {
         method: "POST",
         body: JSON.stringify({ 
           shopifyUrl: normalizeShopifyUrl(shopifyUrl), 
-          accessToken: store?.shopifyAccessToken || '' // Already encrypted
+          accessToken: '' // Empty for URL-only updates to avoid Unicode token issues
         }),
       });
     },
@@ -582,7 +581,11 @@ export default function Settings() {
                               <Input
                                 type="password"
                                 value={newToken}
-                                onChange={(e) => setNewToken(e.target.value)}
+                                onChange={(e) => {
+                                  // Sanitize input to remove Unicode characters that cause ByteString errors
+                                  const sanitized = e.target.value.replace(/[^\x00-\x7F]/g, '');
+                                  setNewToken(sanitized);
+                                }}
                                 placeholder="Enter new access token (will be encrypted)"
                                 className="flex-1"
                                 data-testid={`input-new-token-${store.id}`}

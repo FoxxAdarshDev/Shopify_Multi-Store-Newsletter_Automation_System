@@ -558,14 +558,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { storeId } = req.params;
       const { shopifyUrl, accessToken } = req.body;
       
+      // Check if this is just a URL update (when accessToken is empty or encrypted data)
+      const isUrlOnlyUpdate = !accessToken || accessToken.length < 10;
+      
+      if (isUrlOnlyUpdate) {
+        // Just update the URL without verifying connection
+        const store = await storage.updateStore(storeId, {
+          shopifyUrl,
+          // Keep existing connection status if just updating URL
+        });
+        
+        if (!store) {
+          return res.status(404).json({ message: "Store not found" });
+        }
+        
+        return res.json(store);
+      }
+      
+      // Full connection setup with new access token
       // Sanitize access token - remove any non-ASCII characters that could cause ByteString errors
-      const sanitizedAccessToken = accessToken.replace(/[^\x00-\x7F]/g, '').trim();
+      const sanitizedAccessToken = accessToken ? accessToken.replace(/[^\x00-\x7F]/g, '').trim() : '';
       
       if (!sanitizedAccessToken) {
         return res.status(400).json({ message: "Invalid access token format. Please ensure the token contains only standard characters." });
       }
       
-      // Validate Shopify connection
+      // Clear any existing problematic connection data first
+      await storage.updateStore(storeId, {
+        shopifyAccessToken: null,
+        isConnected: false,
+        isVerified: false
+      });
+      
+      // Debug logging to understand what's being processed
+      console.log('Original access token length:', accessToken?.length || 0);
+      console.log('Sanitized access token length:', sanitizedAccessToken.length);
+      console.log('Contains non-ASCII:', accessToken !== sanitizedAccessToken);
+      
+      // Validate Shopify connection with the fresh sanitized data
       const isValid = await shopifyService.verifyConnection({ shopUrl: shopifyUrl, accessToken: sanitizedAccessToken });
       
       if (!isValid) {

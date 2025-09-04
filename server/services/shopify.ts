@@ -34,6 +34,14 @@ export class ShopifyService {
     
     const url = `https://${shopUrl}/admin/api/2023-10/${endpoint}`;
     
+    // Debug: check for Unicode characters in the access token
+    console.log('Access token length:', config.accessToken.length);
+    console.log('Access token has non-ASCII:', /[^\x00-\x7F]/.test(config.accessToken));
+    if (/[^\x00-\x7F]/.test(config.accessToken)) {
+      console.log('Non-ASCII character found at:', config.accessToken.search(/[^\x00-\x7F]/));
+      console.log('Character code:', config.accessToken.charCodeAt(config.accessToken.search(/[^\x00-\x7F]/)));
+    }
+    
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -52,9 +60,12 @@ export class ShopifyService {
 
   // Helper to decrypt access token before making API calls
   private decryptConfig(config: ShopifyConfig): ShopifyConfig {
+    const decryptedToken = decrypt(config.accessToken);
+    // Sanitize the decrypted token to remove any Unicode characters that might cause ByteString errors
+    const sanitizedToken = decryptedToken.replace(/[^\x00-\x7F]/g, '').trim();
     return {
       ...config,
-      accessToken: decrypt(config.accessToken)
+      accessToken: sanitizedToken
     };
   }
 
