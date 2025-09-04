@@ -69,8 +69,8 @@ export class PopupGeneratorService {
     return;
   }
   
-  // Configuration - Get the API base URL from the script tag
-  const API_BASE = scriptTag.src.replace(/\/js\/newsletter-popup\.js.*$/, '');
+  // Configuration
+  const API_BASE = '${process.env.API_BASE_URL}';
   const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
   
   let POPUP_CONFIG = null;
