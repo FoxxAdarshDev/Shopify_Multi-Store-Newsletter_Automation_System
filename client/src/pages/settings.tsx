@@ -65,6 +65,8 @@ export default function Settings() {
   });
   const [shopifyCollapsed, setShopifyCollapsed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
+  const [tempPassword, setTempPassword] = useState("");
   const [editingToken, setEditingToken] = useState<string | null>(null);
   const [newToken, setNewToken] = useState('');
   const [editingUrl, setEditingUrl] = useState<string | null>(null);
@@ -119,6 +121,10 @@ export default function Settings() {
   useEffect(() => {
     if (emailSettings) {
       setEmailForm(emailSettings);
+      // Reset editing states when new data loads
+      setEditingPassword(false);
+      setTempPassword("");
+      setShowPassword(false);
     }
   }, [emailSettings]);
 
@@ -421,23 +427,87 @@ export default function Settings() {
               <div>
                 <Label htmlFor="smtpPassword">SMTP Password</Label>
                 <div className="relative">
-                  <Input
-                    id="smtpPassword"
-                    type={showPassword ? "text" : "password"}
-                    value={emailForm.smtpPassword || ""}
-                    onChange={(e) => setEmailForm({ ...emailForm, smtpPassword: e.target.value })}
-                    placeholder="Your app password"
-                    data-testid="input-smtp-password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </Button>
+                  {!editingPassword && emailForm.smtpPassword ? (
+                    // Show masked password with Edit option
+                    <>
+                      <Input
+                        id="smtpPassword"
+                        type="password"
+                        value="••••••••••••"
+                        readOnly
+                        className="pr-16"
+                        data-testid="input-smtp-password-masked"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => {
+                          setEditingPassword(true);
+                          setTempPassword(emailForm.smtpPassword || "");
+                        }}
+                        data-testid="button-edit-password"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    // Show editable password field
+                    <>
+                      <Input
+                        id="smtpPassword"
+                        type={showPassword ? "text" : "password"}
+                        value={editingPassword ? tempPassword : (emailForm.smtpPassword || "")}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          if (editingPassword) {
+                            setTempPassword(newValue);
+                          } else {
+                            setEmailForm({ ...emailForm, smtpPassword: newValue });
+                          }
+                        }}
+                        onBlur={() => {
+                          if (editingPassword) {
+                            setEmailForm({ ...emailForm, smtpPassword: tempPassword });
+                            setEditingPassword(false);
+                            setTempPassword("");
+                          }
+                        }}
+                        placeholder="Your app password"
+                        className="pr-20"
+                        data-testid="input-smtp-password"
+                      />
+                      <div className="absolute right-0 top-0 h-full flex">
+                        {editingPassword && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-full px-2 hover:bg-transparent"
+                            onClick={() => {
+                              setEmailForm({ ...emailForm, smtpPassword: tempPassword });
+                              setEditingPassword(false);
+                              setTempPassword("");
+                            }}
+                            data-testid="button-save-password"
+                          >
+                            ✓
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          data-testid="button-toggle-password"
+                        >
+                          {showPassword ? "Hide" : "Show"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
