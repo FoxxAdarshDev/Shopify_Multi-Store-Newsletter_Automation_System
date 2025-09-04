@@ -297,7 +297,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(subscribers)
-      .where(eq(subscribers.storeId, storeId))
+      .where(and(eq(subscribers.storeId, storeId), eq(subscribers.isActive, true)))
       .orderBy(desc(subscribers.subscribedAt));
   }
 
