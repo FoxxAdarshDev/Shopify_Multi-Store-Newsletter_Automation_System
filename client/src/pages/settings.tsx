@@ -210,7 +210,9 @@ export default function Settings() {
   
   const handleUrlSave = (storeId: string) => {
     if (newUrl.trim()) {
-      updateUrlMutation.mutate({ storeId, shopifyUrl: newUrl.trim() });
+      // If it's just a store name, add .myshopify.com
+      const finalUrl = newUrl.includes('.') ? newUrl.trim() : `${newUrl.trim()}.myshopify.com`;
+      updateUrlMutation.mutate({ storeId, shopifyUrl: finalUrl });
     }
   };
   
@@ -378,7 +380,7 @@ export default function Settings() {
                 ) : (
                   stores.map((store) => (
                     <div key={store.id} className="space-y-4 border rounded-lg p-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         <div>
                           <Label>Store Name</Label>
                           <div className="flex items-center p-3 border border-border rounded-md bg-muted">
@@ -386,72 +388,81 @@ export default function Settings() {
                             <span className="text-sm text-foreground">{store.name}</span>
                           </div>
                         </div>
-                        <div>
-                          <Label>Shopify Store URL</Label>
-                          {editingUrl === store.id ? (
-                            <div className="space-y-2">
-                              <div className="flex items-center">
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Shopify Store Name (.myshopify.com)</Label>
+                            {editingUrl === store.id ? (
+                              <div className="space-y-2">
                                 <Input
                                   type="text"
-                                  value={newUrl}
-                                  onChange={(e) => setNewUrl(e.target.value)}
-                                  placeholder="store-name.myshopify.com or store-name"
+                                  value={newUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '')}
+                                  onChange={(e) => {
+                                    const storeName = e.target.value.replace(/[^a-zA-Z0-9-]/g, '');
+                                    setNewUrl(storeName);
+                                  }}
+                                  placeholder="your-store-name"
                                   className="flex-1"
-                                  data-testid={`input-new-url-${store.id}`}
+                                  data-testid={`input-store-name-${store.id}`}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Will become: {newUrl || 'your-store-name'}.myshopify.com
+                                </p>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUrlSave(store.id)}
+                                    disabled={!newUrl.trim() || updateUrlMutation.isPending}
+                                    data-testid={`button-save-store-name-${store.id}`}
+                                  >
+                                    {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleUrlCancel}
+                                    disabled={updateUrlMutation.isPending}
+                                    data-testid={`button-cancel-store-name-${store.id}`}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <Input
+                                  value={store.shopifyUrl?.replace('.myshopify.com', '').replace('https://', '').replace('http://', '') || ''}
+                                  readOnly
+                                  className="flex-1 bg-muted text-muted-foreground"
                                 />
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   className="ml-2"
-                                  onClick={() => handleUrlEdit(store.id, store.shopifyUrl)}
-                                  data-testid={`button-edit-url-${store.id}`}
+                                  onClick={() => handleUrlEdit(store.id, store.shopifyUrl?.replace('.myshopify.com', '').replace('https://', '').replace('http://', '') || '')}
+                                  data-testid={`button-edit-store-name-${store.id}`}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUrlSave(store.id)}
-                                  disabled={!newUrl.trim() || updateUrlMutation.isPending}
-                                  data-testid={`button-save-url-${store.id}`}
-                                >
-                                  {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleUrlCancel}
-                                  disabled={updateUrlMutation.isPending}
-                                  data-testid={`button-cancel-url-${store.id}`}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Enter either full URL (store.myshopify.com) or just store name
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="flex items-center">
-                              <Input
-                                value={store.shopifyUrl}
-                                readOnly
-                                className="flex-1 bg-muted text-muted-foreground"
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="ml-2"
-                                onClick={() => handleUrlEdit(store.id, store.shopifyUrl)}
-                                data-testid={`button-edit-url-${store.id}`}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Enter your Shopify store name (without .myshopify.com)
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <Label>Full Shopify Store URL</Label>
+                            <Input
+                              value={store.shopifyUrl}
+                              readOnly
+                              className="bg-muted text-muted-foreground"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Complete URL with protocol (auto-generated)
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
                       <div>
                         <Label>Store Access Token</Label>
