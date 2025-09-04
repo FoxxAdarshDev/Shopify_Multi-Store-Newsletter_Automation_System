@@ -327,6 +327,8 @@ export default function Integration() {
               </p>
               <Button 
                 variant="outline"
+                onClick={handleVerifyInstallation}
+                disabled={!selectedStoreId}
                 data-testid="button-check-installation"
               >
                 Check Installation

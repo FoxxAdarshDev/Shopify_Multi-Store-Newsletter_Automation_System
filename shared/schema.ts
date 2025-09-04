@@ -153,6 +153,7 @@ export const updatePermissionsSchema = z.object({
 });
 export const insertStoreSchema = createInsertSchema(stores).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPopupConfigSchema = createInsertSchema(popupConfigs).omit({ id: true, createdAt: true, updatedAt: true });
+export const updatePopupConfigSchema = insertPopupConfigSchema.omit({ storeId: true });
 export const insertSubscriberSchema = createInsertSchema(subscribers).omit({ id: true, subscribedAt: true });
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true, createdAt: true, updatedAt: true });
 

@@ -83,7 +83,7 @@ export class PopupGeneratorService {
   // Load configuration from API
   async function loadConfig() {
     try {
-      const response = await fetch(API_BASE + '/api/popup-config/' + STORE_ID);
+      const response = await fetch(API_BASE.replace(/\/$/, '') + '/api/popup-config/' + STORE_ID);
       if (!response.ok) {
         throw new Error('Failed to load popup configuration');
       }
