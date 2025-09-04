@@ -213,8 +213,24 @@ export class DatabaseStorage implements IStorage {
 
   // Popup Configs
   async getPopupConfig(storeId: string): Promise<PopupConfig | undefined> {
-    const [config] = await db.select().from(popupConfigs).where(eq(popupConfigs.storeId, storeId));
-    return config || undefined;
+    try {
+      const [config] = await db.select().from(popupConfigs).where(eq(popupConfigs.storeId, storeId));
+      return config || undefined;
+    } catch (error) {
+      // Handle missing column gracefully
+      if (error instanceof Error && error.message.includes('show_exit_intent_if_not_subscribed')) {
+        console.log('Using fallback query for missing column');
+        const result = await db.execute(sql`
+          SELECT id, store_id, title, subtitle, button_text, fields, email_validation, 
+                 discount_code, discount_percentage, display_trigger, animation, 
+                 suppress_after_subscription, is_active, created_at, updated_at,
+                 false as show_exit_intent_if_not_subscribed
+          FROM popup_configs WHERE store_id = ${storeId}
+        `);
+        return result.rows[0] as PopupConfig || undefined;
+      }
+      throw error;
+    }
   }
 
   async createPopupConfig(config: InsertPopupConfig): Promise<PopupConfig> {
@@ -223,12 +239,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePopupConfig(storeId: string, updates: Partial<PopupConfig>): Promise<PopupConfig | undefined> {
-    const [updatedConfig] = await db
-      .update(popupConfigs)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(popupConfigs.storeId, storeId))
-      .returning();
-    return updatedConfig || undefined;
+    try {
+      const [updatedConfig] = await db
+        .update(popupConfigs)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(popupConfigs.storeId, storeId))
+        .returning();
+      return updatedConfig || undefined;
+    } catch (error) {
+      // Handle missing column gracefully
+      if (error instanceof Error && error.message.includes('show_exit_intent_if_not_subscribed')) {
+        console.log('Using fallback update for missing column');
+        // Remove the new field from updates and proceed
+        const { showExitIntentIfNotSubscribed, ...safeUpdates } = updates;
+        const [updatedConfig] = await db
+          .update(popupConfigs)
+          .set({ ...safeUpdates, updatedAt: new Date() })
+          .where(eq(popupConfigs.storeId, storeId))
+          .returning();
+        return updatedConfig || undefined;
+      }
+      throw error;
+    }
   }
 
   // Subscribers

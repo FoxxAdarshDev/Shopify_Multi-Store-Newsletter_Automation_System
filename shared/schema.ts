@@ -64,6 +64,7 @@ export const popupConfigs = pgTable("popup_configs", {
   discountPercentage: integer("discount_percentage").notNull().default(15),
   displayTrigger: text("display_trigger").notNull().default("immediate"),
   animation: text("animation").notNull().default("slide-in"),
+  showExitIntentIfNotSubscribed: boolean("show_exit_intent_if_not_subscribed").default(false).notNull(),
   suppressAfterSubscription: boolean("suppress_after_subscription").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

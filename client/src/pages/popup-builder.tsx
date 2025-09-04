@@ -392,6 +392,19 @@ export default function PopupBuilder() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
+                    id="showExitIntentIfNotSubscribed"
+                    checked={config.showExitIntentIfNotSubscribed || false}
+                    onCheckedChange={(checked) => 
+                      handleConfigUpdate({ showExitIntentIfNotSubscribed: !!checked })
+                    }
+                    data-testid="checkbox-show-exit-intent-if-not-subscribed"
+                  />
+                  <Label htmlFor="showExitIntentIfNotSubscribed" className="text-sm">
+                    Show popup on exit intent if user didn't subscribe initially
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
                     id="suppressAfterSubscription"
                     checked={config.suppressAfterSubscription}
                     onCheckedChange={(checked) => 

@@ -418,6 +418,24 @@ export class PopupGeneratorService {
       default:
         setTimeout(showPopup, 1000);
     }
+    
+    // Additional exit intent if user didn't subscribe initially
+    if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
+      let exitIntentShown = false;
+      let hasInteracted = false;
+      
+      // Track if user has interacted with the page
+      document.addEventListener('click', function() { hasInteracted = true; });
+      document.addEventListener('scroll', function() { hasInteracted = true; });
+      
+      document.addEventListener('mouseleave', function(e) {
+        // Only show if user has interacted, hasn't subscribed, and popup hasn't been shown via exit intent
+        if (!exitIntentShown && hasInteracted && e.clientY <= 0 && !localStorage.getItem(STORAGE_KEY)) {
+          exitIntentShown = true;
+          showPopup();
+        }
+      });
+    }
   }
   
   // Initialize when DOM is ready
