@@ -1052,7 +1052,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                    html.includes(`script.setAttribute('data-integration-type'`) ||
                                    html.includes(`script.setAttribute("data-integration-type"`);
           
-          // Check for any script version/timestamp (for existence detection only)
+          // Check if script version EXACTLY MATCHES current generated version
+          const hasMatchingScriptVersion = currentValues.scriptVersion && (
+            html.includes(`script.setAttribute('data-script-version', '${currentValues.scriptVersion}')`) ||
+            html.includes(`script.setAttribute("data-script-version", "${currentValues.scriptVersion}")`) ||
+            html.includes(`data-script-version="${currentValues.scriptVersion}"`)
+          );
+          
+          // Check if generated timestamp EXACTLY MATCHES current timestamp
+          const hasMatchingGeneratedAt = currentValues.generatedAt && (
+            html.includes(`script.setAttribute('data-generated-at', '${currentValues.generatedAt}')`) ||
+            html.includes(`script.setAttribute("data-generated-at", "${currentValues.generatedAt}")`) ||
+            html.includes(`data-generated-at="${currentValues.generatedAt}"`)
+          );
+          
+          // Check for any script version/timestamp (for existence detection)
           const hasAnyScriptVersion = html.includes(`data-script-version`) ||
                                      html.includes(`script.setAttribute('data-script-version'`) ||
                                      html.includes(`script.setAttribute("data-script-version"`);
@@ -1061,19 +1075,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                    html.includes(`script.setAttribute('data-generated-at'`) ||
                                    html.includes(`script.setAttribute("data-generated-at"`);
           
-          // Check if the script URL matches the current domain (most important check)
-          const currentDomain = req.get('Host') || 'localhost:5000';
+          // Check if the script URL matches the current domain
           const hasCorrectScriptUrl = html.includes(`script.src = '${baseUrl}/js/newsletter-popup.js`) ||
                                      html.includes(`script.src='${baseUrl}/js/newsletter-popup.js`);
           
-          // PRACTICAL VALIDATION: Check core functional attributes that matter for operation
+          // STRICT VALIDATION: All attributes must exist AND version/timestamp must match current generation
           const hasBasicAttributes = hasStoreDomain && hasPopupConfig && hasIntegrationType;
-          const hasVersionInfo = hasAnyScriptVersion && hasAnyGeneratedAt;
-          const hasCorrectDomain = hasCorrectScriptUrl; // Most important - script must point to current app
+          const hasExactVersionMatch = hasMatchingScriptVersion && hasMatchingGeneratedAt; // Exact match required
+          const hasCorrectDomain = hasCorrectScriptUrl;
           
-          // Complete validation: script exists + store ID + all attributes + correct domain
-          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasVersionInfo && hasCorrectDomain;
-          const hasOutdatedScript = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasVersionInfo && !hasCorrectDomain;
+          // Complete validation: script exists + store ID + all attributes + EXACT version match + correct domain
+          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasExactVersionMatch && hasCorrectDomain;
+          
+          // Outdated script: has all basic attributes but version/timestamp doesn't match current generation
+          const hasOutdatedScript = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasAnyScriptVersion && hasAnyGeneratedAt && !hasExactVersionMatch;
           
           let validationLevel = 'incomplete';
           let message = '';
@@ -1092,7 +1107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message = 'Newsletter script not found';
           }
           
-          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version: ${hasAnyScriptVersion}, Generated at: ${hasAnyGeneratedAt}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
+          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Generated at match: ${hasMatchingGeneratedAt}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
           
           checkedUrls.push({
             url,
@@ -1103,7 +1118,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasIntegrationType,
             hasScriptVersion: hasAnyScriptVersion,
             hasGeneratedAt: hasAnyGeneratedAt,
-            hasCorrectDomain: hasCorrectDomain,
+            hasMatchingScriptVersion,
+            hasMatchingGeneratedAt,
+            hasCorrectDomain,
             validationLevel,
             message,
             success: isValidInstallation,
