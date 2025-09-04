@@ -153,6 +153,7 @@ export const updatePermissionsSchema = z.object({
 });
 export const insertStoreSchema = createInsertSchema(stores).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPopupConfigSchema = createInsertSchema(popupConfigs).omit({ id: true, createdAt: true, updatedAt: true });
+export const updatePopupConfigSchema = createInsertSchema(popupConfigs).omit({ id: true, storeId: true, createdAt: true, updatedAt: true }).partial();
 export const insertSubscriberSchema = createInsertSchema(subscribers).omit({ id: true, subscribedAt: true });
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true, createdAt: true, updatedAt: true });
 
@@ -168,6 +169,7 @@ export type Store = typeof stores.$inferSelect;
 export type InsertStore = z.infer<typeof insertStoreSchema>;
 export type PopupConfig = typeof popupConfigs.$inferSelect;
 export type InsertPopupConfig = z.infer<typeof insertPopupConfigSchema>;
+export type UpdatePopupConfig = z.infer<typeof updatePopupConfigSchema>;
 export type Subscriber = typeof subscribers.$inferSelect;
 export type InsertSubscriber = z.infer<typeof insertSubscriberSchema>;
 export type EmailSettings = typeof emailSettings.$inferSelect;

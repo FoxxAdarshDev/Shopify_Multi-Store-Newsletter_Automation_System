@@ -6,7 +6,7 @@ import { emailService } from "./services/email";
 import { shopifyService } from "./services/shopify";
 import { popupGeneratorService } from "./services/popup-generator";
 import { 
-  insertStoreSchema, insertPopupConfigSchema, insertSubscriberSchema, insertEmailSettingsSchema,
+  insertStoreSchema, insertPopupConfigSchema, updatePopupConfigSchema, insertSubscriberSchema, insertEmailSettingsSchema,
   loginSchema, resetPasswordSchema, setPasswordSchema, updatePermissionsSchema
 } from "@shared/schema";
 import { encrypt, decrypt } from "./utils/encryption";
@@ -378,7 +378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/stores/:storeId/popup", authenticateSession, requirePermission('manage_popups'), async (req: AuthRequest, res) => {
     try {
       const { storeId } = req.params;
-      const updates = insertPopupConfigSchema.parse(req.body);
+      const updates = updatePopupConfigSchema.parse(req.body);
       
       const config = await storage.updatePopupConfig(storeId, updates);
       if (!config) {
