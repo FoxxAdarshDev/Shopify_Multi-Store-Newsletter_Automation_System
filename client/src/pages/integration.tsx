@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, CheckCircle, Code } from "lucide-react";
+import { Download, Copy, CheckCircle, Code, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Store {
@@ -22,31 +22,39 @@ export default function Integration() {
   });
 
   const { data: integrationScript } = useQuery({
-    queryKey: ["/api/stores", selectedStoreId, "integration-script"],
+    queryKey: [`/api/stores/${selectedStoreId}/integration-script`],
     enabled: !!selectedStoreId,
   });
 
-  const handleDownloadFile = async () => {
+  const { data: installationStatus } = useQuery({
+    queryKey: [`/api/stores/${selectedStoreId}/verify-installation`],
+    enabled: !!selectedStoreId,
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  const handleVerifyInstallation = async () => {
+    if (!selectedStoreId) return;
+    
     try {
-      const response = await fetch("/api/integration-file");
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "webpushr-sw.js";
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const response = await fetch(`/api/stores/${selectedStoreId}/verify-installation`);
+      const result = await response.json();
       
-      toast({
-        title: "Success",
-        description: "Integration file downloaded successfully",
-      });
+      if (result.installed) {
+        toast({
+          title: "Success",
+          description: "Newsletter script is properly installed!",
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: result.message || "Script not detected on your site",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to download integration file",
+        description: "Failed to verify installation",
         variant: "destructive",
       });
     }
@@ -95,9 +103,14 @@ export default function Integration() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={handleDownloadFile} data-testid="button-download-file">
-            <Download className="h-4 w-4 mr-2" />
-            Download Integration File
+          <Button 
+            onClick={handleVerifyInstallation}
+            disabled={!selectedStoreId}
+            variant="outline"
+            data-testid="button-verify-install"
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Verify Installation
           </Button>
         </div>
       </div>

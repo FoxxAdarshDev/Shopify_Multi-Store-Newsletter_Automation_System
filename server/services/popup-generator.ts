@@ -1,20 +1,91 @@
 import { PopupConfig } from '@shared/schema';
 
 export class PopupGeneratorService {
-  generatePopupScript(storeId: string, config: PopupConfig): string {
-    const scriptContent = `
+  // Legacy method - kept for backward compatibility
+  generateScript(config: PopupConfig): string {
+    return this.getNewsletterScript();
+  }
+
+  generateIntegrationScript(storeId: string, shopifyUrl: string): string {
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://your-app-domain.com' // Replace with your actual domain
+      : 'http://localhost:5000';
+      
+    return `<!-- Foxx Newsletter Popup Integration Script -->
+<!-- Add this code to your theme.liquid file, just before the closing </body> tag -->
+<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = '${baseUrl}/js/newsletter-popup.js';
+  script.async = true;
+  script.setAttribute('data-store-id', '${storeId}');
+  script.setAttribute('data-popup-config', 'auto');
+  script.setAttribute('data-integration-type', 'shopify');
+  script.setAttribute('data-store-domain', '${new URL(shopifyUrl).hostname}');
+  document.head.appendChild(script);
+})();
+</script>`;
+  }
+
+  getNewsletterScript(): string {
+    return `/**
+ * Foxx Newsletter Popup Script
+ * Dynamic newsletter popup system with domain verification
+ * Version: 2.0.0
+ */
 (function() {
   'use strict';
   
+  // Get configuration from script tag
+  const scriptTag = document.currentScript || document.querySelector('script[data-store-id]');
+  if (!scriptTag) {
+    console.warn('Foxx Newsletter: Script tag with data-store-id not found');
+    return;
+  }
+  
+  const STORE_ID = scriptTag.getAttribute('data-store-id');
+  const STORE_DOMAIN = scriptTag.getAttribute('data-store-domain');
+  
+  if (!STORE_ID) {
+    console.error('Foxx Newsletter: Missing data-store-id attribute');
+    return;
+  }
+  
+  // Domain verification
+  if (STORE_DOMAIN && !window.location.hostname.includes(STORE_DOMAIN)) {
+    console.warn('Foxx Newsletter: Domain mismatch - script not authorized for this domain');
+    return;
+  }
+  
   // Configuration
-  const STORE_ID = '${storeId}';
-  const API_BASE = window.location.origin;
-  const POPUP_CONFIG = ${JSON.stringify(config)};
+  const API_BASE = '${process.env.NODE_ENV === 'production' ? 'https://your-app-domain.com' : 'http://localhost:5000'}';
+  const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
+  
+  let POPUP_CONFIG = null;
   
   // Check if popup was already shown and user subscribed
-  const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
   if (localStorage.getItem(STORAGE_KEY) === 'subscribed') {
     return;
+  }
+  
+  // Load configuration from API
+  async function loadConfig() {
+    try {
+      const response = await fetch(API_BASE + '/api/popup-config/' + STORE_ID);
+      if (!response.ok) {
+        throw new Error('Failed to load popup configuration');
+      }
+      POPUP_CONFIG = await response.json();
+      
+      if (!POPUP_CONFIG.isActive) {
+        console.log('Foxx Newsletter: Popup is disabled for this store');
+        return;
+      }
+      
+      initPopup();
+    } catch (error) {
+      console.error('Foxx Newsletter: Failed to load configuration', error);
+    }
   }
   
   // Create popup HTML
@@ -86,7 +157,7 @@ export class PopupGeneratorService {
             <h2 style="
               font-size: 24px;
               font-weight: bold;
-              color: #2563eb;
+              color: #0071b9;
               margin: 0 0 12px 0;
               line-height: 1.2;
             ">\${POPUP_CONFIG.title}</h2>
@@ -103,7 +174,7 @@ export class PopupGeneratorService {
             
             <button type="submit" style="
               width: 100%;
-              background: #2563eb;
+              background: #0071b9;
               color: white;
               border: none;
               padding: 14px;
@@ -112,7 +183,7 @@ export class PopupGeneratorService {
               font-weight: 600;
               cursor: pointer;
               transition: background-color 0.2s;
-            " onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+            " onmouseover="this.style.background='#005a94'" onmouseout="this.style.background='#0071b9'">
               \${POPUP_CONFIG.buttonText}
             </button>
           </form>
@@ -195,6 +266,10 @@ export class PopupGeneratorService {
   
   // Show popup
   function showPopup() {
+    if (localStorage.getItem(STORAGE_KEY) === 'subscribed') {
+      return;
+    }
+    
     const popupHTML = createPopupHTML();
     document.body.insertAdjacentHTML('beforeend', popupHTML);
     
@@ -230,15 +305,12 @@ export class PopupGeneratorService {
     }
     
     try {
-      const response = await fetch(API_BASE + '/api/subscribe', {
+      const response = await fetch(API_BASE + '/api/subscribe/' + STORE_ID, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          storeId: STORE_ID,
-          ...data
-        }),
+        body: JSON.stringify(data),
       });
       
       const result = await response.json();
@@ -253,7 +325,7 @@ export class PopupGeneratorService {
             <div style="
               width: 64px;
               height: 64px;
-              background: #10b981;
+              background: #00c68c;
               border-radius: 50%;
               display: flex;
               align-items: center;
@@ -262,12 +334,12 @@ export class PopupGeneratorService {
               color: white;
               font-size: 32px;
             ">✓</div>
-            <h3 style="color: #10b981; margin-bottom: 12px;">Thank You!</h3>
+            <h3 style="color: #00c68c; margin-bottom: 12px;">Thank You!</h3>
             <p style="color: #6b7280; margin-bottom: 20px;">
-              Please check your email for your exclusive discount code.
+              Please check your email for your exclusive \${result.discountPercentage}% discount code: <strong>\${result.discountCode}</strong>
             </p>
             <button onclick="document.getElementById('foxx-newsletter-backdrop').remove()" style="
-              background: #2563eb;
+              background: #0071b9;
               color: white;
               border: none;
               padding: 12px 24px;
@@ -278,30 +350,35 @@ export class PopupGeneratorService {
           </div>
         \`;
         
-        // Auto-close after 3 seconds
-        setTimeout(closePopup, 3000);
+        // Auto-close after 4 seconds
+        setTimeout(closePopup, 4000);
       } else {
         alert(result.message || 'Subscription failed. Please try again.');
       }
     } catch (error) {
-      console.error('Subscription error:', error);
+      console.error('Foxx Newsletter: Subscription error', error);
       alert('An error occurred. Please try again later.');
     }
   }
   
   // Trigger logic
   function shouldShowPopup() {
-    return !localStorage.getItem(STORAGE_KEY);
+    return !localStorage.getItem(STORAGE_KEY) && POPUP_CONFIG && POPUP_CONFIG.isActive;
   }
   
   function initPopup() {
     if (!shouldShowPopup()) return;
     
+    // Check for suppress after subscription
+    if (POPUP_CONFIG.suppressAfterSubscription && localStorage.getItem(STORAGE_KEY)) {
+      return;
+    }
+    
     const trigger = POPUP_CONFIG.displayTrigger;
     
     switch (trigger) {
       case 'immediate':
-        setTimeout(showPopup, 500);
+        setTimeout(showPopup, 1000);
         break;
       case 'after-5s':
         setTimeout(showPopup, 5000);
@@ -318,27 +395,26 @@ export class PopupGeneratorService {
         });
         break;
       case 'exit-intent':
+        let intentShown = false;
         document.addEventListener('mouseleave', function(e) {
-          if (e.clientY <= 0) {
+          if (!intentShown && e.clientY <= 0) {
+            intentShown = true;
             showPopup();
           }
         });
         break;
       default:
-        setTimeout(showPopup, 500);
+        setTimeout(showPopup, 1000);
     }
   }
   
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPopup);
+    document.addEventListener('DOMContentLoaded', loadConfig);
   } else {
-    initPopup();
+    loadConfig();
   }
-})();
-`;
-
-    return scriptContent;
+})();`;
   }
 
   generateIntegrationFile(): string {

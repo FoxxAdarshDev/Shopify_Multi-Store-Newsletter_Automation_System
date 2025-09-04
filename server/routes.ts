@@ -612,22 +612,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/stores/:storeId/shopify/script", authenticateSession, async (req: AuthRequest, res) => {
+  // Newsletter Script Generation
+  app.get("/api/stores/:storeId/integration-script", async (req: AuthRequest, res) => {
     try {
       const { storeId } = req.params;
+      
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
       
       const config = await storage.getPopupConfig(storeId);
       if (!config) {
         return res.status(404).json({ message: "Popup configuration not found" });
       }
       
-      const script = popupGeneratorService.generateScript(config);
+      const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
       
-      res.setHeader("Content-Type", "application/javascript");
+      res.setHeader("Content-Type", "text/plain");
       res.send(script);
     } catch (error) {
-      console.error("Generate script error:", error);
-      res.status(500).json({ message: "Failed to generate script" });
+      console.error("Generate integration script error:", error);
+      res.status(500).json({ message: "Failed to generate integration script" });
+    }
+  });
+
+  // Serve Newsletter Script
+  app.get("/js/newsletter-popup.js", async (req, res) => {
+    try {
+      const script = popupGeneratorService.getNewsletterScript();
+      res.setHeader("Content-Type", "application/javascript");
+      res.setHeader("Cache-Control", "public, max-age=300"); // 5 minute cache
+      res.send(script);
+    } catch (error) {
+      console.error("Serve newsletter script error:", error);
+      res.status(500).json({ message: "Failed to serve newsletter script" });
+    }
+  });
+
+  // API endpoint for popup configuration (public, used by script)
+  app.get("/api/popup-config/:storeId", async (req, res) => {
+    try {
+      const { storeId } = req.params;
+      const origin = req.get('origin') || req.get('referer');
+      
+      // Get store and verify domain
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      // Basic domain verification
+      if (origin && !origin.includes(new URL(store.shopifyUrl).hostname)) {
+        return res.status(403).json({ message: "Domain not authorized" });
+      }
+      
+      const config = await storage.getPopupConfig(storeId);
+      if (!config) {
+        return res.status(404).json({ message: "Popup configuration not found" });
+      }
+      
+      // Return safe configuration for public use
+      const publicConfig = {
+        id: config.id,
+        storeId: config.storeId,
+        title: config.title,
+        subtitle: config.subtitle,
+        buttonText: config.buttonText,
+        fields: config.fields,
+        emailValidation: config.emailValidation,
+        discountCode: config.discountCode,
+        discountPercentage: config.discountPercentage,
+        displayTrigger: config.displayTrigger,
+        animation: config.animation,
+        suppressAfterSubscription: config.suppressAfterSubscription,
+        isActive: config.isActive
+      };
+      
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET");
+      res.json(publicConfig);
+    } catch (error) {
+      console.error("Get public popup config error:", error);
+      res.status(500).json({ message: "Failed to fetch popup configuration" });
+    }
+  });
+
+  // Public subscriber endpoint (used by script)
+  app.post("/api/subscribe/:storeId", async (req, res) => {
+    try {
+      const { storeId } = req.params;
+      const origin = req.get('origin') || req.get('referer');
+      
+      // Get store and verify domain
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      // Basic domain verification
+      if (origin && !origin.includes(new URL(store.shopifyUrl).hostname)) {
+        return res.status(403).json({ message: "Domain not authorized" });
+      }
+      
+      const subscriberData = insertSubscriberSchema.parse({ ...req.body, storeId });
+      
+      // Check if subscriber already exists
+      const existingSubscriber = await storage.getSubscriberByEmail(storeId, subscriberData.email);
+      if (existingSubscriber && existingSubscriber.isActive) {
+        return res.status(400).json({ message: "Email already subscribed" });
+      }
+      
+      // Get popup config for discount info
+      const popupConfig = await storage.getPopupConfig(storeId);
+      const discountCode = popupConfig?.discountCode || "WELCOME15";
+      const discountPercentage = popupConfig?.discountPercentage || 15;
+      
+      let subscriber;
+      if (existingSubscriber && !existingSubscriber.isActive) {
+        // Reactivate existing subscriber
+        subscriber = await storage.updateSubscriber(existingSubscriber.id, {
+          isActive: true,
+          subscribedAt: new Date(),
+          unsubscribedAt: null,
+          discountCodeSent: discountCode
+        });
+      } else {
+        // Create new subscriber
+        subscriber = await storage.createSubscriber({
+          ...subscriberData,
+          discountCodeSent: discountCode
+        });
+      }
+      
+      // Send welcome email
+      if (store) {
+        await emailService.sendWelcomeEmail(
+          store.userId,
+          subscriber.email,
+          subscriber.name,
+          discountCode,
+          discountPercentage
+        );
+        
+        await emailService.sendAdminNotification(
+          store.userId,
+          subscriber.email,
+          store.name
+        );
+      }
+      
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
+      res.setHeader("Access-Control-Allow-Methods", "POST");
+      res.json({ 
+        message: "Successfully subscribed", 
+        discountCode,
+        discountPercentage 
+      });
+    } catch (error) {
+      console.error("Create subscriber error:", error);
+      res.status(400).json({ message: "Failed to create subscriber" });
+    }
+  });
+
+  // Script installation verification
+  app.get("/api/stores/:storeId/verify-installation", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const { storeId } = req.params;
+      
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      // Try to fetch the store's homepage and check for script
+      try {
+        const response = await fetch(store.shopifyUrl);
+        const html = await response.text();
+        const hasScript = html.includes('newsletter-popup.js') && 
+                         html.includes(`data-store-id="${storeId}"`);
+        
+        await storage.updateStore(storeId, { isVerified: hasScript });
+        
+        res.json({ 
+          installed: hasScript,
+          message: hasScript ? "Script is properly installed" : "Script not found on site"
+        });
+      } catch (fetchError) {
+        res.json({ 
+          installed: false,
+          message: "Could not verify installation - site may not be accessible"
+        });
+      }
+    } catch (error) {
+      console.error("Verify installation error:", error);
+      res.status(500).json({ message: "Failed to verify installation" });
     }
   });
 
