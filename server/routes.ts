@@ -795,6 +795,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
       
+      // Extract the generated script version and timestamp from the script
+      const scriptVersionMatch = script.match(/script\.setAttribute\('data-script-version',\s*'([^']+)'\)/);
+      const generatedAtMatch = script.match(/script\.setAttribute\('data-generated-at',\s*'([^']+)'\)/);
+      
+      if (scriptVersionMatch && generatedAtMatch) {
+        const scriptVersion = scriptVersionMatch[1];
+        const generatedAt = generatedAtMatch[1];
+        
+        // Store the current script version and timestamp in the database
+        await storage.updateStore(storeId, {
+          activeScriptVersion: scriptVersion,
+          activeScriptTimestamp: generatedAt
+        });
+      }
+      
       res.setHeader("Content-Type", "text/plain");
       res.send(script);
     } catch (error) {
@@ -1031,7 +1046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Get current script values to compare with installed version
           const baseUrl = req.get('Host') ? `${req.get('X-Forwarded-Proto') || 'https'}://${req.get('Host')}` : 'http://localhost:5000';
-          const currentValues = getCurrentScriptValues(storeId, store.shopifyUrl, baseUrl);
+          const currentValues = getCurrentScriptValues(storeId, store.shopifyUrl, baseUrl, store);
           
           // Check if the script has the store ID in the setAttribute call (since it's dynamically set)
           const hasStoreId = html.includes(`script.setAttribute('data-store-id', '${storeId}')`) || 
@@ -1191,7 +1206,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to get current script values for verification
-  function getCurrentScriptValues(storeId: string, shopifyUrl: string, baseUrl: string) {
+  function getCurrentScriptValues(storeId: string, shopifyUrl: string, baseUrl: string, store: any) {
+    // Use stored script version and timestamp if available
+    if (store.activeScriptVersion && store.activeScriptTimestamp) {
+      return {
+        scriptVersion: store.activeScriptVersion,
+        generatedAt: store.activeScriptTimestamp,
+        storeDomain: new URL(shopifyUrl).hostname
+      };
+    }
+    
+    // Fallback to generating new values if not stored (backward compatibility)
     const script = popupGeneratorService.generateIntegrationScript(storeId, shopifyUrl, baseUrl);
     
     // Extract values from the generated script
