@@ -75,32 +75,10 @@ export class PopupGeneratorService {
   
   let POPUP_CONFIG = null;
   
-  // Check if popup was already shown and user subscribed
-  const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
-  if (lastSubscribedEmail === 'subscribed') {
-    // Legacy format - clear it so popup can show again since we can't verify
-    localStorage.removeItem(STORAGE_KEY);
-    console.log('Foxx Newsletter: Cleared legacy localStorage, popup will show');
-  } else if (lastSubscribedEmail && lastSubscribedEmail.includes('@')) {
-    // New format with email - check if this email is still actively subscribed
-    try {
-      const checkResponse = await fetch(API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail));
-      if (checkResponse.ok) {
-        const result = await checkResponse.json();
-        if (result.isSubscribed) {
-          return; // Still subscribed, don't show popup
-        } else {
-          // No longer subscribed, clear localStorage and allow popup to show
-          localStorage.removeItem(STORAGE_KEY);
-          console.log('Foxx Newsletter: User no longer subscribed, popup will show');
-        }
-      }
-    } catch (error) {
-      console.log('Foxx Newsletter: Could not verify subscription status, showing popup');
-    }
-  }
+  // Modern approach: Always check server first, use localStorage as UX enhancement only
+  let shouldShowPopup = true;
   
-  // Load configuration from API
+  // Load configuration and check subscription status
   async function loadConfig() {
     try {
       const response = await fetch(API_BASE + '/api/popup-config/' + STORE_ID);
@@ -114,10 +92,70 @@ export class PopupGeneratorService {
         return;
       }
       
-      initPopup();
+      // Check if popup should be suppressed after subscription
+      if (POPUP_CONFIG.suppressAfterSubscription) {
+        await checkSubscriptionStatus();
+      }
+      
+      if (shouldShowPopup) {
+        initPopup();
+      }
     } catch (error) {
       console.error('Foxx Newsletter: Failed to load configuration', error);
     }
+  }
+  
+  // Check subscription status using multiple methods
+  async function checkSubscriptionStatus() {
+    // Method 1: Check localStorage for recent subscription (UX optimization)
+    const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
+    const lastSubscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
+    
+    // If subscribed recently (within 24 hours), don't show popup
+    if (lastSubscribedEmail && lastSubscribedTime) {
+      const timeDiff = Date.now() - parseInt(lastSubscribedTime);
+      const hoursAgo = timeDiff / (1000 * 60 * 60);
+      
+      if (hoursAgo < 24 && lastSubscribedEmail.includes('@')) {
+        console.log('Foxx Newsletter: Recently subscribed, checking server status...');
+        
+        // Verify with server
+        try {
+          const checkResponse = await fetch(API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail));
+          if (checkResponse.ok) {
+            const result = await checkResponse.json();
+            if (result.isSubscribed) {
+              shouldShowPopup = false;
+              console.log('Foxx Newsletter: User still subscribed, popup suppressed');
+              return;
+            } else {
+              // No longer subscribed, clear localStorage
+              localStorage.removeItem(STORAGE_KEY);
+              localStorage.removeItem(STORAGE_KEY + '_time');
+              console.log('Foxx Newsletter: User no longer subscribed, localStorage cleared');
+            }
+          }
+        } catch (error) {
+          console.log('Foxx Newsletter: Could not verify subscription status');
+        }
+      }
+    }
+    
+    // Method 2: Check for session-based suppression (popup shown this session)
+    const sessionKey = STORAGE_KEY + '_session';
+    if (sessionStorage.getItem(sessionKey)) {
+      shouldShowPopup = false;
+      console.log('Foxx Newsletter: Popup already shown this session');
+      return;
+    }
+    
+    console.log('Foxx Newsletter: Popup will show - no active subscription or session suppression found');
+  }
+  
+  // Close popup and prevent showing again this session
+  function closePopupWithSession() {
+    sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
+    closePopup();
   }
   
   // Create popup HTML
@@ -183,7 +221,7 @@ export class PopupGeneratorService {
             cursor: pointer;
             padding: 4px;
             line-height: 1;
-          ">×</button>
+          " onclick="closePopupWithSession()">×</button>
           
           <div style="text-align: center; margin-bottom: 24px;">
             <h2 style="
@@ -349,7 +387,12 @@ export class PopupGeneratorService {
       
       if (response.ok) {
         // Success
+        // Store email and timestamp for smart suppression
         localStorage.setItem(STORAGE_KEY, data.email);
+        localStorage.setItem(STORAGE_KEY + '_time', Date.now().toString());
+        
+        // Also set session flag to prevent showing again this session
+        sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
         
         // Show success message
         document.getElementById('foxx-newsletter-popup').innerHTML = \`
