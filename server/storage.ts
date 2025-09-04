@@ -221,13 +221,17 @@ export class DatabaseStorage implements IStorage {
       if (error instanceof Error && error.message.includes('show_exit_intent_if_not_subscribed')) {
         console.log('Using fallback query for missing column');
         const result = await db.execute(sql`
-          SELECT id, store_id, title, subtitle, button_text, fields, email_validation, 
-                 discount_code, discount_percentage, display_trigger, animation, 
-                 suppress_after_subscription, is_active, created_at, updated_at,
-                 false as show_exit_intent_if_not_subscribed
+          SELECT id, store_id as "storeId", title, subtitle, button_text as "buttonText", 
+                 fields, email_validation as "emailValidation", 
+                 discount_code as "discountCode", discount_percentage as "discountPercentage", 
+                 display_trigger as "displayTrigger", animation, 
+                 suppress_after_subscription as "suppressAfterSubscription", 
+                 is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt",
+                 false as "showExitIntentIfNotSubscribed"
           FROM popup_configs WHERE store_id = ${storeId}
         `);
-        return result.rows[0] as PopupConfig || undefined;
+        const rows = result.rows;
+        return rows.length > 0 ? rows[0] as PopupConfig : undefined;
       }
       throw error;
     }
@@ -249,15 +253,21 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       // Handle missing column gracefully
       if (error instanceof Error && error.message.includes('show_exit_intent_if_not_subscribed')) {
-        console.log('Using fallback update for missing column');
+        console.log('Using fallback update for missing column - removing new field');
         // Remove the new field from updates and proceed
-        const { showExitIntentIfNotSubscribed, ...safeUpdates } = updates;
+        const { showExitIntentIfNotSubscribed, ...safeUpdates } = updates as any;
+        
+        // Build the update object without the missing column
+        const updateData = { ...safeUpdates, updatedAt: new Date() };
+        
         const [updatedConfig] = await db
           .update(popupConfigs)
-          .set({ ...safeUpdates, updatedAt: new Date() })
+          .set(updateData)
           .where(eq(popupConfigs.storeId, storeId))
           .returning();
-        return updatedConfig || undefined;
+        
+        // Add the missing field back for the response with default value
+        return updatedConfig ? { ...updatedConfig, showExitIntentIfNotSubscribed: showExitIntentIfNotSubscribed || false } : undefined;
       }
       throw error;
     }
