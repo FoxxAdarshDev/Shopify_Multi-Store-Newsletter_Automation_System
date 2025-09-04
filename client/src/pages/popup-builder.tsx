@@ -34,6 +34,7 @@ interface PopupConfig {
   discountPercentage: number;
   displayTrigger: string;
   animation: string;
+  showExitIntentIfNotSubscribed?: boolean;
   suppressAfterSubscription: boolean;
   isActive: boolean;
 }

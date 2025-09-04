@@ -16,8 +16,18 @@ interface PopupConfig {
     company: boolean;
     address: boolean;
   };
+  emailValidation: {
+    companyEmailsOnly: boolean;
+    allowedDomains: string[];
+    blockedDomains: string[];
+  };
   discountCode: string;
   discountPercentage: number;
+  displayTrigger: string;
+  animation: string;
+  showExitIntentIfNotSubscribed?: boolean;
+  suppressAfterSubscription: boolean;
+  isActive: boolean;
 }
 
 interface PopupPreviewProps {
