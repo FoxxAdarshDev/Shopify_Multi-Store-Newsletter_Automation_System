@@ -70,7 +70,7 @@ export class PopupGeneratorService {
   }
   
   // Configuration
-  const API_BASE = '${process.env.API_BASE_URL?.replace(/\/$/, '') || ''}';
+  const API_BASE = '${process.env.API_BASE_URL}';
   const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
   
   let POPUP_CONFIG = null;
