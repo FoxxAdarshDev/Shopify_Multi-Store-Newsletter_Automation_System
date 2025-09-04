@@ -62,15 +62,26 @@ export default function Settings() {
   const normalizeShopifyUrl = (url: string) => {
     if (!url) return url;
     
-    // Remove protocol and trailing slash
-    url = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    
     // If it's just a store name (no dots), add .myshopify.com
     if (!url.includes('.')) {
       return `${url}.myshopify.com`;
     }
     
-    return url;
+    // If it's a .myshopify.com URL, normalize it (remove protocol, ensure .myshopify.com)
+    if (url.includes('.myshopify.com') || (!url.includes('http') && !url.includes('://'))) {
+      url = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      if (!url.endsWith('.myshopify.com') && !url.includes('.')) {
+        url = `${url}.myshopify.com`;
+      }
+      return url;
+    }
+    
+    // For custom domains, preserve the full URL with protocol
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    
+    return url.replace(/\/$/, ''); // Just remove trailing slash
   };
   const { toast } = useToast();
   const queryClient = useQueryClient();
