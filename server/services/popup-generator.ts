@@ -75,8 +75,12 @@ export class PopupGeneratorService {
   
   let POPUP_CONFIG = null;
   
-  // Modern approach: Always check server first, use localStorage as UX enhancement only
-  let shouldShowPopup = true;
+  // Prevent multiple script loading conflicts
+  if (window.foxxNewsletterLoaded) {
+    console.log('Foxx Newsletter: Script already loaded, skipping...');
+    return;
+  }
+  window.foxxNewsletterLoaded = true;
   
   // Load configuration and check subscription status
   async function loadConfig() {
@@ -105,6 +109,9 @@ export class PopupGeneratorService {
     }
   }
   
+  // Modern approach: Always check server first, use localStorage as UX enhancement only
+  let shouldShowPopup = true;
+
   // Check subscription status using multiple methods
   async function checkSubscriptionStatus() {
     // Method 1: Check localStorage for recent subscription (UX optimization)
@@ -153,10 +160,10 @@ export class PopupGeneratorService {
   }
   
   // Close popup and prevent showing again this session
-  function closePopupWithSession() {
+  window.closePopupWithSession = function() {
     sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
     closePopup();
-  }
+  };
   
   // Create popup HTML
   function createPopupHTML() {
@@ -501,11 +508,13 @@ export class PopupGeneratorService {
     }
   }
   
-  // Initialize when DOM is ready
+  // Initialize when DOM is ready with small delay
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadConfig);
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadConfig, 500);
+    });
   } else {
-    loadConfig();
+    setTimeout(loadConfig, 500);
   }
 })();`;
   }
