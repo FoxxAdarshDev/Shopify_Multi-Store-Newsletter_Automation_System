@@ -84,9 +84,12 @@ export default function Integration() {
       const response = await fetch(`/api/stores/${selectedStoreId}/verify-installation`);
       const result = await response.json();
       
-      // Force refresh the installation status query
+      // Force refresh both the installation status query and stores query
       queryClient.invalidateQueries({ 
         queryKey: [`/api/stores/${selectedStoreId}/verify-installation`] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/stores"] 
       });
       
       if (result.installed) {
@@ -200,10 +203,20 @@ export default function Integration() {
             </div>
             <div className="flex-1 mx-4 h-px bg-border"></div>
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-muted text-muted-foreground rounded-full flex items-center justify-center text-sm font-medium">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                currentStore?.isVerified 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-muted text-muted-foreground"
+              }`}>
                 3
               </div>
-              <span className="ml-3 text-sm text-muted-foreground">Verify Installation</span>
+              <span className={`ml-3 text-sm ${
+                currentStore?.isVerified 
+                  ? "font-medium text-foreground" 
+                  : "text-muted-foreground"
+              }`}>
+                Verify Installation
+              </span>
             </div>
           </div>
         </CardContent>
