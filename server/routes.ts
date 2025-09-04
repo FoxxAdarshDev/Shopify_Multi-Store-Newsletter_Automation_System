@@ -560,8 +560,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Build shopifyUrl from the separate fields or use the legacy field
       let finalShopifyUrl = shopifyUrl;
+      let finalShopifyStoreName = shopifyStoreName;
+      
       if (shopifyStoreName) {
-        finalShopifyUrl = `${shopifyStoreName}.myshopify.com`;
+        // If user provided a store name, ensure it has .myshopify.com
+        finalShopifyStoreName = shopifyStoreName.endsWith('.myshopify.com') 
+          ? shopifyStoreName 
+          : `${shopifyStoreName}.myshopify.com`;
+        finalShopifyUrl = finalShopifyStoreName;
       } else if (customDomain) {
         finalShopifyUrl = customDomain.startsWith('http') ? customDomain : `https://${customDomain}`;
       }
@@ -574,7 +580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('URL-only update detected, skipping Shopify verification');
         const updateData: any = {
           shopifyUrl: finalShopifyUrl,
-          shopifyStoreName: shopifyStoreName || null,
+          shopifyStoreName: finalShopifyStoreName || null,
           customDomain: customDomain || null,
           // Keep existing connection status if just updating URL
         };
@@ -621,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update store with Shopify info
       const store = await storage.updateStore(storeId, {
         shopifyUrl: finalShopifyUrl,
-        shopifyStoreName: shopifyStoreName || null,
+        shopifyStoreName: finalShopifyStoreName || null,
         customDomain: customDomain || null,
         shopifyAccessToken: encryptedToken,
         isConnected: true

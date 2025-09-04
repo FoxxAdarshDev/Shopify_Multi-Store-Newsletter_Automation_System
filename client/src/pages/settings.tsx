@@ -213,7 +213,9 @@ export default function Settings() {
   
   const handleUrlEdit = (storeId: string, currentStoreName: string) => {
     setEditingUrl(storeId);
-    setNewUrl(currentStoreName || '');
+    // Strip .myshopify.com from the stored name for editing
+    const storeName = currentStoreName ? currentStoreName.replace('.myshopify.com', '') : '';
+    setNewUrl(storeName);
     setUrlEditMode('myshopify');
   };
   
@@ -491,7 +493,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyStoreName || ''}
+                                    value={store.shopifyStoreName ? store.shopifyStoreName.replace('.myshopify.com', '') : ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
