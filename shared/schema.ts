@@ -118,11 +118,66 @@ export const userPreferences = pgTable("user_preferences", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  templateName: text("template_name").notNull().default("Welcome Email Template"),
+  subject: text("subject").notNull().default("Thank You for Registering – Here's Your 15% Discount!"),
+  headerLogo: text("header_logo").default("/assets/foxx-logo.png"),
+  headerText: text("header_text").default("Foxx Bioprocess"),
+  bodyContent: text("body_content").notNull().default(`Dear [First Name],
+
+Thank you for registering your email with Foxx Bioprocess. We're excited to have you as part of our community!
+
+As a token of our appreciation, here's a 15% discount code you can use on your next purchase through our website:
+
+[DISCOUNT_CODE]
+
+Simply apply this code at checkout on www.foxxbioprocess.com to enjoy your savings.
+
+We look forward to supporting your Single-Use Technology needs with the world's first and largest Bioprocess SUT library.
+
+Happy shopping!
+Warm regards,
+Team Foxx Bioprocess`),
+  footerText: text("footer_text").default("© 2024 Foxx Bioprocess. All rights reserved."),
+  socialMediaLinks: jsonb("social_media_links").default({
+    website: "https://www.foxxbioprocess.com",
+    linkedin: "",
+    twitter: "",
+    facebook: "",
+    instagram: ""
+  }),
+  primaryColor: text("primary_color").notNull().default("#0071b9"),
+  secondaryColor: text("secondary_color").notNull().default("#00c68c"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const emailClickTracking = pgTable("email_click_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subscriberEmail: text("subscriber_email").notNull(),
+  storeId: varchar("store_id").notNull().references(() => stores.id, { onDelete: "cascade" }),
+  trackingId: text("tracking_id").notNull().unique(),
+  originalUrl: text("original_url").notNull(),
+  utmSource: text("utm_source").notNull().default("newsletter"),
+  utmMedium: text("utm_medium").notNull().default("email"),
+  utmCampaign: text("utm_campaign").notNull().default("welcome-discount"),
+  clickedAt: timestamp("clicked_at"),
+  isClicked: boolean("is_clicked").default(false).notNull(),
+  clickCount: integer("click_count").default(0).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   stores: many(stores),
   emailSettings: many(emailSettings),
   userPreferences: many(userPreferences),
+  emailTemplates: many(emailTemplates),
 }));
 
 export const storesRelations = relations(stores, ({ one, many }) => ({
@@ -132,6 +187,7 @@ export const storesRelations = relations(stores, ({ one, many }) => ({
   }),
   popupConfig: one(popupConfigs),
   subscribers: many(subscribers),
+  emailClickTracking: many(emailClickTracking),
 }));
 
 export const popupConfigsRelations = relations(popupConfigs, ({ one }) => ({
@@ -162,6 +218,20 @@ export const userPreferencesRelations = relations(userPreferences, ({ one }) => 
   }),
 }));
 
+export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
+  user: one(users, {
+    fields: [emailTemplates.userId],
+    references: [users.id],
+  }),
+}));
+
+export const emailClickTrackingRelations = relations(emailClickTracking, ({ one }) => ({
+  store: one(stores, {
+    fields: [emailClickTracking.storeId],
+    references: [stores.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
 export const loginSchema = z.object({
@@ -185,6 +255,9 @@ export const insertSubscriberSchema = createInsertSchema(subscribers).omit({ id:
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, createdAt: true, updatedAt: true });
 export const updateUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, userId: true, createdAt: true, updatedAt: true }).partial();
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, createdAt: true, updatedAt: true });
+export const updateEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, userId: true, createdAt: true, updatedAt: true }).partial();
+export const insertEmailClickTrackingSchema = createInsertSchema(emailClickTracking).omit({ id: true, createdAt: true });
 
 // Types
 export type Session = typeof sessions.$inferSelect;
@@ -206,3 +279,8 @@ export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
 export type UserPreferences = typeof userPreferences.$inferSelect;
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 export type UpdateUserPreferences = z.infer<typeof updateUserPreferencesSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type UpdateEmailTemplate = z.infer<typeof updateEmailTemplateSchema>;
+export type EmailClickTracking = typeof emailClickTracking.$inferSelect;
+export type InsertEmailClickTracking = z.infer<typeof insertEmailClickTrackingSchema>;

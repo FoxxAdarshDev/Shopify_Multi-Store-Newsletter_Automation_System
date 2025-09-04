@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 import { storage } from '../storage';
 
 export interface EmailConfig {
@@ -30,7 +31,7 @@ export class EmailService {
   }
 
   async createTransporter(config: EmailConfig): Promise<nodemailer.Transporter> {
-    return nodemailer.createTransport({
+    return nodemailer.createTransporter({
       host: config.host,
       port: config.port,
       secure: config.port === 465,
@@ -40,8 +41,25 @@ export class EmailService {
       },
       tls: {
         rejectUnauthorized: false,
+        ciphers: 'SSLv3',
       },
+      // Enhanced deliverability settings
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 1000,
+      rateLimit: 5,
     });
+  }
+
+  private extractFirstNameFromEmail(email: string): string {
+    const prefix = email.split('@')[0];
+    // Handle common separators and capitalize first letter
+    const cleanName = prefix.replace(/[._-]/g, ' ')
+                            .split(' ')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                            .join(' ');
+    return cleanName || 'Valued Customer';
   }
 
   async sendWelcomeEmail(
@@ -49,7 +67,8 @@ export class EmailService {
     subscriberEmail: string,
     subscriberName: string | null,
     discountCode: string,
-    discountPercentage: number
+    discountPercentage: number,
+    storeId?: string
   ): Promise<boolean> {
     try {
       const config = await this.getEmailConfig(userId);
@@ -58,17 +77,88 @@ export class EmailService {
       }
 
       const transporter = await this.createTransporter(config);
+      
+      // Extract first name from email prefix if no name provided
+      const firstName = subscriberName || this.extractFirstNameFromEmail(subscriberEmail);
+      
+      // Get email template or use default
+      let template = await storage.getEmailTemplate(userId);
+      if (!template) {
+        // Create default template for user
+        template = await storage.createEmailTemplate({
+          userId,
+          templateName: 'Welcome Email Template',
+          subject: 'Thank You for Registering – Here\'s Your 15% Discount!',
+          headerLogo: '/assets/foxx-logo.png',
+          headerText: 'Foxx Bioprocess',
+          bodyContent: `Dear [First Name],
+
+Thank you for registering your email with Foxx Bioprocess. We're excited to have you as part of our community!
+
+As a token of our appreciation, here's a 15% discount code you can use on your next purchase through our website:
+
+[DISCOUNT_CODE]
+
+Simply apply this code at checkout on www.foxxbioprocess.com to enjoy your savings.
+
+We look forward to supporting your Single-Use Technology needs with the world's first and largest Bioprocess SUT library.
+
+Happy shopping!
+Warm regards,
+Team Foxx Bioprocess`,
+          footerText: '© 2024 Foxx Bioprocess. All rights reserved.',
+          socialMediaLinks: {
+            website: 'https://www.foxxbioprocess.com',
+            linkedin: '',
+            twitter: '',
+            facebook: '',
+            instagram: ''
+          },
+          primaryColor: '#0071b9',
+          secondaryColor: '#00c68c',
+          isActive: true
+        });
+      }
+      
+      // Create click tracking if storeId provided
+      let trackingUrl = 'https://www.foxxbioprocess.com';
+      if (storeId) {
+        const trackingId = crypto.randomBytes(16).toString('hex');
+        await storage.createEmailClickTracking({
+          subscriberEmail,
+          storeId,
+          trackingId,
+          originalUrl: 'https://www.foxxbioprocess.com',
+          utmSource: 'newsletter',
+          utmMedium: 'email',
+          utmCampaign: 'welcome-discount',
+          isClicked: false,
+          clickCount: 0
+        });
+        trackingUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/track/${trackingId}`;
+      }
 
       const mailOptions = {
         from: `"${config.fromName}" <${config.fromEmail}>`,
         to: subscriberEmail,
-        subject: `Welcome to ${config.fromName} - Your Exclusive ${discountPercentage}% Discount Code`,
-        html: this.generateWelcomeEmailTemplate(
-          subscriberName || 'Valued Customer',
+        subject: template.subject,
+        html: this.generateCustomWelcomeEmailTemplate(
+          firstName,
           discountCode,
           discountPercentage,
-          config.fromName
+          template,
+          trackingUrl
         ),
+        // Enhanced deliverability headers
+        headers: {
+          'X-Priority': '1',
+          'X-MSMail-Priority': 'High',
+          'Importance': 'high',
+          'List-Unsubscribe': `<mailto:unsubscribe@foxxbioprocess.com?subject=unsubscribe>`,
+          'List-ID': `<newsletter.foxxbioprocess.com>`,
+          'Precedence': 'bulk',
+          'X-Auto-Response-Suppress': 'OOF, DR, RN, NRN',
+        },
       };
 
       await transporter.sendMail(mailOptions);
@@ -77,6 +167,79 @@ export class EmailService {
       console.error('Failed to send welcome email:', error);
       return false;
     }
+  }
+
+  private generateCustomWelcomeEmailTemplate(
+    firstName: string,
+    discountCode: string,
+    discountPercentage: number,
+    template: any,
+    trackingUrl: string
+  ): string {
+    const socialLinks = template.socialMediaLinks || {};
+    
+    // Replace placeholders in body content
+    let bodyContent = template.bodyContent
+      .replace(/\[First Name\]/g, firstName)
+      .replace(/\[DISCOUNT_CODE\]/g, `<div style="background: ${template.primaryColor}; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 24px; font-weight: bold;">${discountCode}</div>`);
+      
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${template.subject}</title>
+        <style>
+          @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; padding: 10px !important; }
+            .content { padding: 20px !important; }
+          }
+        </style>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+        <div class="container" style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <!-- Header -->
+          <div style="background: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; border-bottom: 3px solid ${template.primaryColor};">
+            ${template.headerLogo ? `<img src="${template.headerLogo}" alt="${template.headerText}" style="max-height: 80px; margin-bottom: 20px;">` : ''}
+            <h1 style="color: ${template.primaryColor}; margin: 0; font-size: 28px;">${template.headerText}</h1>
+          </div>
+          
+          <!-- Main Content -->
+          <div class="content" style="background: white; padding: 40px; text-align: left;">
+            ${bodyContent.split('\n').map(line => `<p style="margin-bottom: 15px; font-size: 16px; line-height: 1.6;">${line}</p>`).join('')}
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${trackingUrl}?utm_source=newsletter&utm_medium=email&utm_campaign=welcome-discount" 
+                 style="display: inline-block; background: linear-gradient(135deg, ${template.primaryColor}, ${template.secondaryColor}); 
+                 color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; 
+                 font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                Visit Our Website
+              </a>
+            </div>
+          </div>
+          
+          <!-- Footer -->
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; text-align: center; border-top: 1px solid #e9ecef;">
+            <!-- Social Media Links -->
+            <div style="margin-bottom: 20px;">
+              ${socialLinks.website ? `<a href="${socialLinks.website}" style="display: inline-block; margin: 0 10px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">🌐 Website</a>` : ''}
+              ${socialLinks.linkedin ? `<a href="${socialLinks.linkedin}" style="display: inline-block; margin: 0 10px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">💼 LinkedIn</a>` : ''}
+              ${socialLinks.twitter ? `<a href="${socialLinks.twitter}" style="display: inline-block; margin: 0 10px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">🐦 Twitter</a>` : ''}
+              ${socialLinks.facebook ? `<a href="${socialLinks.facebook}" style="display: inline-block; margin: 0 10px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">📱 Facebook</a>` : ''}
+              ${socialLinks.instagram ? `<a href="${socialLinks.instagram}" style="display: inline-block; margin: 0 10px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">📷 Instagram</a>` : ''}
+            </div>
+            
+            <p style="color: #666; font-size: 12px; margin: 10px 0;">${template.footerText}</p>
+            <p style="color: #666; font-size: 12px; margin: 0;">
+              If you no longer wish to receive these emails, you can 
+              <a href="mailto:unsubscribe@foxxbioprocess.com?subject=Unsubscribe" style="color: ${template.primaryColor};">unsubscribe here</a>.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 
   async sendAdminNotification(
@@ -142,61 +305,7 @@ export class EmailService {
     }
   }
 
-  private generateWelcomeEmailTemplate(
-    customerName: string,
-    discountCode: string,
-    discountPercentage: number,
-    companyName: string
-  ): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to ${companyName}</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
-          <h1 style="color: #2563eb; margin-bottom: 20px;">Welcome to ${companyName}!</h1>
-          
-          <p style="font-size: 18px; margin-bottom: 30px;">
-            Hello ${customerName},
-          </p>
-          
-          <p style="margin-bottom: 30px;">
-            Thank you for subscribing to our newsletter! As promised, here's your exclusive discount code:
-          </p>
-          
-          <div style="background: #2563eb; color: white; padding: 20px; border-radius: 8px; margin: 30px 0;">
-            <h2 style="margin: 0; font-size: 24px;">${discountCode}</h2>
-            <p style="margin: 10px 0 0 0; font-size: 16px;">Save ${discountPercentage}% on your next order!</p>
-          </div>
-          
-          <p style="margin-bottom: 20px;">
-            This discount code is valid for one-time use and can be applied at checkout.
-          </p>
-          
-          <p style="margin-bottom: 30px;">
-            Stay tuned for exclusive product launches, special promotions, and bioprocess insights & updates!
-          </p>
-          
-          <div style="border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 30px;">
-            <p style="font-size: 14px; color: #6c757d; margin: 0;">
-              Best regards,<br>
-              The ${companyName} Team
-            </p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  private generateAdminNotificationTemplate(
-    subscriberEmail: string,
-    storeName: string
-  ): string {
+  private generateAdminNotificationTemplate(subscriberEmail: string, storeName: string): string {
     return `
       <!DOCTYPE html>
       <html>
@@ -206,15 +315,21 @@ export class EmailService {
         <title>New Newsletter Subscription</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: #f8f9fa; padding: 30px; border-radius: 10px;">
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
           <h1 style="color: #2563eb; margin-bottom: 20px;">New Newsletter Subscription</h1>
           
-          <p><strong>Store:</strong> ${storeName}</p>
-          <p><strong>Email:</strong> ${subscriberEmail}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          <p style="font-size: 18px; margin-bottom: 20px;">
+            You have a new newsletter subscriber for <strong>${storeName}</strong>:
+          </p>
           
-          <p style="margin-top: 30px;">
-            A new subscriber has joined your newsletter mailing list.
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+            <p style="margin: 0; font-size: 16px;">
+              <strong>Email:</strong> ${subscriberEmail}
+            </p>
+          </div>
+          
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            This is an automated notification from your newsletter management system.
           </p>
         </div>
       </body>
@@ -222,16 +337,11 @@ export class EmailService {
     `;
   }
 
-  private generatePasswordResetTemplate(
-    email: string,
-    resetUrl: string,
-    isNewMember: boolean
-  ): string {
-    const title = isNewMember ? 'Welcome to Newsletter Dashboard' : 'Password Reset Request';
-    const heading = isNewMember ? 'Set Your Password' : 'Reset Your Password';
+  private generatePasswordResetTemplate(email: string, resetUrl: string, isNewMember: boolean): string {
+    const title = isNewMember ? 'Welcome - Set Your Password' : 'Password Reset Request';
     const message = isNewMember 
-      ? 'You have been invited to access the Newsletter Dashboard. Click the link below to set your password and complete your account setup.'
-      : 'You requested a password reset for your Newsletter Dashboard account. Click the link below to reset your password.';
+      ? 'Welcome! Please click the button below to set your password and access your account.'
+      : 'You requested a password reset. Click the button below to reset your password.';
 
     return `
       <!DOCTYPE html>
@@ -243,7 +353,7 @@ export class EmailService {
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center;">
-          <h1 style="color: #2563eb; margin-bottom: 30px;">${heading}</h1>
+          <h1 style="color: #2563eb; margin-bottom: 20px;">${title}</h1>
           
           <p style="font-size: 16px; margin-bottom: 30px;">
             Hello,
@@ -253,22 +363,18 @@ export class EmailService {
             ${message}
           </p>
           
-          <div style="margin: 40px 0;">
-            <a href="${resetUrl}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-              ${isNewMember ? 'Set Password' : 'Reset Password'}
-            </a>
-          </div>
+          <a href="${resetUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0;">
+            ${isNewMember ? 'Set Password' : 'Reset Password'}
+          </a>
           
-          <p style="font-size: 14px; color: #6c757d; margin-top: 30px;">
-            This link will expire in 24 hours. If you didn't request this, please ignore this email.
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            If you didn't request this, please ignore this email. The link will expire in 1 hour.
           </p>
           
-          <div style="border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 30px;">
-            <p style="font-size: 14px; color: #6c757d; margin: 0;">
-              Best regards,<br>
-              Newsletter Dashboard Team
-            </p>
-          </div>
+          <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            If the button doesn't work, copy and paste this link into your browser:<br>
+            <span style="word-break: break-all;">${resetUrl}</span>
+          </p>
         </div>
       </body>
       </html>

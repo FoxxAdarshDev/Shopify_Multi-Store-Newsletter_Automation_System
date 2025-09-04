@@ -1,11 +1,14 @@
 import {
   users, stores, popupConfigs, subscribers, emailSettings, sessions, userPreferences,
+  emailTemplates, emailClickTracking,
   type User, type InsertUser, type Session,
   type Store, type InsertStore,
   type PopupConfig, type InsertPopupConfig,
   type Subscriber, type InsertSubscriber,
   type EmailSettings, type InsertEmailSettings,
-  type UserPreferences, type InsertUserPreferences
+  type UserPreferences, type InsertUserPreferences,
+  type EmailTemplate, type InsertEmailTemplate, type UpdateEmailTemplate,
+  type EmailClickTracking, type InsertEmailClickTracking
 } from "@shared/schema";
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
@@ -72,6 +75,17 @@ export interface IStorage {
   getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
   createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
   updateUserPreferences(userId: string, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
+
+  // Email Templates
+  getEmailTemplate(userId: string): Promise<EmailTemplate | undefined>;
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  updateEmailTemplate(userId: string, updates: UpdateEmailTemplate): Promise<EmailTemplate | undefined>;
+
+  // Email Click Tracking
+  createEmailClickTracking(tracking: InsertEmailClickTracking): Promise<EmailClickTracking>;
+  recordEmailClick(trackingId: string, ipAddress?: string, userAgent?: string): Promise<void>;
+  getEmailClickStats(storeId: string): Promise<{clickRate: number; totalEmails: number; totalClicks: number}>;
+  getEmailClicksByStore(storeId: string): Promise<EmailClickTracking[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -406,6 +420,81 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userPreferences.userId, userId))
       .returning();
     return updatedPreferences || undefined;
+  }
+
+  // Email Templates
+  async getEmailTemplate(userId: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(emailTemplates)
+      .where(eq(emailTemplates.userId, userId));
+    return template || undefined;
+  }
+
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [newTemplate] = await db
+      .insert(emailTemplates)
+      .values(template)
+      .returning();
+    return newTemplate;
+  }
+
+  async updateEmailTemplate(userId: string, updates: UpdateEmailTemplate): Promise<EmailTemplate | undefined> {
+    const updateData = { ...updates, updatedAt: new Date() };
+    const [updatedTemplate] = await db
+      .update(emailTemplates)
+      .set(updateData)
+      .where(eq(emailTemplates.userId, userId))
+      .returning();
+    return updatedTemplate || undefined;
+  }
+
+  // Email Click Tracking
+  async createEmailClickTracking(tracking: InsertEmailClickTracking): Promise<EmailClickTracking> {
+    const [newTracking] = await db
+      .insert(emailClickTracking)
+      .values(tracking)
+      .returning();
+    return newTracking;
+  }
+
+  async recordEmailClick(trackingId: string, ipAddress?: string, userAgent?: string): Promise<void> {
+    await db
+      .update(emailClickTracking)
+      .set({
+        clickedAt: new Date(),
+        isClicked: true,
+        clickCount: sql`${emailClickTracking.clickCount} + 1`,
+        ipAddress,
+        userAgent,
+      })
+      .where(eq(emailClickTracking.trackingId, trackingId));
+  }
+
+  async getEmailClickStats(storeId: string): Promise<{clickRate: number; totalEmails: number; totalClicks: number}> {
+    const [stats] = await db
+      .select({
+        totalEmails: count(emailClickTracking.id),
+        totalClicks: count(sql`CASE WHEN ${emailClickTracking.isClicked} = true THEN 1 END`),
+      })
+      .from(emailClickTracking)
+      .where(eq(emailClickTracking.storeId, storeId));
+    
+    const clickRate = stats.totalEmails > 0 ? (stats.totalClicks / stats.totalEmails) * 100 : 0;
+    
+    return {
+      clickRate: Number(clickRate.toFixed(2)),
+      totalEmails: stats.totalEmails,
+      totalClicks: stats.totalClicks,
+    };
+  }
+
+  async getEmailClicksByStore(storeId: string): Promise<EmailClickTracking[]> {
+    return await db
+      .select()
+      .from(emailClickTracking)
+      .where(eq(emailClickTracking.storeId, storeId))
+      .orderBy(desc(emailClickTracking.createdAt));
   }
 }
 

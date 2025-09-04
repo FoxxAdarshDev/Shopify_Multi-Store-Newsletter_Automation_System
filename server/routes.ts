@@ -445,7 +445,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subscriber.email,
           subscriber.name,
           discountCode,
-          discountPercentage
+          discountPercentage,
+          storeId
         );
         
         // Send admin notification
