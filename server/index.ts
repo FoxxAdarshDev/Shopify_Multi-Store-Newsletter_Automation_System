@@ -1,8 +1,31 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Configure CORS to allow requests from Shopify stores
+app.use(cors({
+  origin: [
+    // Allow requests from Replit development environment
+    /^https:\/\/.*\.replit\.dev$/,
+    // Allow requests from any .myshopify.com subdomain
+    /^https:\/\/.*\.myshopify\.com$/,
+    // Allow requests from foxxbioprocess.com
+    "https://foxxbioprocess.com",
+    "https://www.foxxbioprocess.com",
+    // Allow localhost for development
+    "http://localhost:3000",
+    "http://localhost:5000",
+    // Allow any custom domain that might be used
+    /^https:\/\/.*$/
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
