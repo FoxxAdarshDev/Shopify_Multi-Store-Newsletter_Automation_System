@@ -1079,16 +1079,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hasCorrectScriptUrl = html.includes(`script.src = '${baseUrl}/js/newsletter-popup.js`) ||
                                      html.includes(`script.src='${baseUrl}/js/newsletter-popup.js`);
           
-          // STRICT VALIDATION: All attributes must exist AND version/timestamp must match current generation
+          // PRACTICAL VALIDATION: All attributes must exist AND script version must match current generation
           const hasBasicAttributes = hasStoreDomain && hasPopupConfig && hasIntegrationType;
-          const hasExactVersionMatch = hasMatchingScriptVersion && hasMatchingGeneratedAt; // Exact match required
+          const hasCorrectVersion = hasMatchingScriptVersion; // Only check script version, not timestamp
           const hasCorrectDomain = hasCorrectScriptUrl;
           
-          // Complete validation: script exists + store ID + all attributes + EXACT version match + correct domain
-          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasExactVersionMatch && hasCorrectDomain;
+          // Complete validation: script exists + store ID + all attributes + correct version + correct domain
+          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasCorrectVersion && hasCorrectDomain;
           
-          // Outdated script: has all basic attributes but version/timestamp doesn't match current generation
-          const hasOutdatedScript = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasAnyScriptVersion && hasAnyGeneratedAt && !hasExactVersionMatch;
+          // Outdated script: has all basic attributes but script version doesn't match current generation
+          const hasOutdatedScript = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasAnyScriptVersion && !hasCorrectVersion;
           
           let validationLevel = 'incomplete';
           let message = '';
@@ -1107,7 +1107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message = 'Newsletter script not found';
           }
           
-          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Generated at match: ${hasMatchingGeneratedAt}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
+          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
           
           checkedUrls.push({
             url,
