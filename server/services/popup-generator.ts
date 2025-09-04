@@ -70,7 +70,7 @@ export class PopupGeneratorService {
   }
   
   // Configuration
-  const API_BASE = '${process.env.API_BASE_URL}';
+  const API_BASE = '${process.env.API_BASE_URL?.replace(/\/$/, '') || ''}';
   const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
   
   let POPUP_CONFIG = null;
@@ -83,7 +83,7 @@ export class PopupGeneratorService {
   // Load configuration from API
   async function loadConfig() {
     try {
-      const response = await fetch(API_BASE.replace(/\/$/, '') + '/api/popup-config/' + STORE_ID);
+      const response = await fetch(API_BASE + '/api/popup-config/' + STORE_ID);
       if (!response.ok) {
         throw new Error('Failed to load popup configuration');
       }
