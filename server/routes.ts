@@ -867,23 +867,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      // Try to fetch the store's homepage and check for script
-      try {
-        const response = await fetch(store.shopifyUrl);
-        const html = await response.text();
-        const hasScript = html.includes('newsletter-popup.js') && 
-                         html.includes(`data-store-id="${storeId}"`);
-        
-        await storage.updateStore(storeId, { isVerified: hasScript });
-        
+      // Try multiple URLs to verify installation
+      const urlsToCheck = [];
+      
+      // Add the main shopify URL
+      if (store.shopifyUrl) {
+        urlsToCheck.push(store.shopifyUrl);
+      }
+      
+      // Add custom domain if available
+      if (store.customDomain) {
+        urlsToCheck.push(store.customDomain);
+      }
+      
+      // Add .myshopify.com URL if we have the store name
+      if (store.shopifyStoreName) {
+        urlsToCheck.push(`https://${store.shopifyStoreName}.myshopify.com`);
+      }
+      
+      console.log(`Checking script installation for store ${storeId} on URLs:`, urlsToCheck);
+      
+      let foundOnAnyUrl = false;
+      let lastError = null;
+      let checkedUrls = [];
+      
+      for (const url of urlsToCheck) {
+        try {
+          console.log(`Checking ${url}...`);
+          const response = await fetch(url, { 
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+          
+          if (!response.ok) {
+            console.log(`${url} returned ${response.status}`);
+            continue;
+          }
+          
+          const html = await response.text();
+          const hasNewsletterScript = html.includes('newsletter-popup.js');
+          const hasStoreId = html.includes(`data-store-id="${storeId}"`);
+          
+          console.log(`${url} - Newsletter script found: ${hasNewsletterScript}, Store ID found: ${hasStoreId}`);
+          
+          checkedUrls.push({
+            url,
+            hasNewsletterScript,
+            hasStoreId,
+            success: hasNewsletterScript && hasStoreId
+          });
+          
+          if (hasNewsletterScript && hasStoreId) {
+            foundOnAnyUrl = true;
+            console.log(`Script verified successfully on ${url}`);
+            break;
+          }
+        } catch (fetchError) {
+          const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+          console.log(`Error checking ${url}:`, errorMessage);
+          lastError = fetchError;
+          checkedUrls.push({
+            url,
+            error: errorMessage
+          });
+        }
+      }
+      
+      await storage.updateStore(storeId, { isVerified: foundOnAnyUrl });
+      
+      if (foundOnAnyUrl) {
         res.json({ 
-          installed: hasScript,
-          message: hasScript ? "Script is properly installed" : "Script not found on site"
+          installed: true,
+          message: "Script is properly installed",
+          checkedUrls
         });
-      } catch (fetchError) {
+      } else {
         res.json({ 
           installed: false,
-          message: "Could not verify installation - site may not be accessible"
+          message: urlsToCheck.length === 0 
+            ? "No URLs configured to check" 
+            : "Script not found on any configured URL",
+          checkedUrls,
+          debug: {
+            storeId,
+            urlsChecked: urlsToCheck,
+            lastError: lastError instanceof Error ? lastError.message : 'Unknown error occurred'
+          }
         });
       }
     } catch (error) {
