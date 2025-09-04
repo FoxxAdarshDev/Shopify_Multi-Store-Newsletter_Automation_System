@@ -93,20 +93,6 @@ export class PopupGeneratorService {
   // Load configuration and check subscription status
   async function loadConfig() {
     try {
-      // FIRST: Check if script installation is verified before loading popup
-      const verificationResponse = await fetch(API_BASE + '/api/stores/' + STORE_ID + '/verify-installation');
-      if (verificationResponse.ok) {
-        const verification = await verificationResponse.json();
-        if (!verification.installed || verification.validationLevel !== 'complete') {
-          console.log('Foxx Newsletter: Script not verified, popup blocked. Status:', verification.validationLevel);
-          return;
-        }
-        console.log('Foxx Newsletter: Script verification passed, loading popup configuration');
-      } else {
-        console.log('Foxx Newsletter: Could not verify script installation, popup blocked');
-        return;
-      }
-      
       const response = await fetch(API_BASE + '/api/popup-config/' + STORE_ID);
       if (!response.ok) {
         throw new Error('Failed to load popup configuration');
@@ -117,6 +103,13 @@ export class PopupGeneratorService {
         console.log('Foxx Newsletter: Popup is disabled for this store');
         return;
       }
+      
+      // Check if script installation is verified before loading popup
+      if (!POPUP_CONFIG.isVerified || !POPUP_CONFIG.hasActiveScript) {
+        console.log('Foxx Newsletter: Script not verified or no active script version, popup blocked');
+        return;
+      }
+      console.log('Foxx Newsletter: Script verification passed, loading popup configuration');
       
       // Check if popup should be suppressed after subscription
       if (POPUP_CONFIG.suppressAfterSubscription) {
