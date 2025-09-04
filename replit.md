@@ -76,3 +76,74 @@ The schema supports multi-tenant architecture where users can manage multiple Sh
 - **Form Handling**: React Hook Form with Zod validation schemas
 
 The application is designed for deployment on platforms supporting Node.js with PostgreSQL, with environment-based configuration for database connections and external service integrations.
+
+## Database Management
+
+### Adding New Database Fields
+
+When adding new fields to existing database tables, follow this process:
+
+#### 1. Update Schema Definition
+First, update the table schema in `shared/schema.ts`:
+```typescript
+export const popupConfigs = pgTable("popup_configs", {
+  // existing fields...
+  newField: boolean("new_field_name").default(false).notNull(),
+});
+```
+
+#### 2. Database Migration Approaches
+
+**Primary Method: Drizzle Kit Push**
+```bash
+npm run db:push --force
+```
+- Configured in `drizzle.config.ts` with SSL settings for Replit PostgreSQL
+- May fail with SSL/TLS connection issues in some environments
+
+**Fallback Method: Direct SQL Approach**
+If `npm run db:push` fails, use direct SQL through existing database connection:
+
+```javascript
+// Create temporary script using existing db connection
+import { db } from './server/db.ts';
+import { sql } from 'drizzle-orm';
+
+await db.execute(sql`
+  ALTER TABLE table_name 
+  ADD COLUMN new_field_name BOOLEAN DEFAULT false NOT NULL
+`);
+```
+
+**Why Other Approaches Fail:**
+- External psql/SQL tools fail due to SSL/TLS requirements
+- Drizzle Kit may have connection issues with Replit's PostgreSQL setup
+- Direct database connection through app's existing connection works reliably
+
+#### 3. Handle Missing Columns Gracefully
+
+Update storage layer to handle missing columns during transition:
+```typescript
+async getConfig() {
+  try {
+    return await db.select().from(table);
+  } catch (error) {
+    if (error.message.includes('column does not exist')) {
+      // Use fallback query with default values
+      return await db.execute(sql`
+        SELECT *, false as new_field FROM table
+      `);
+    }
+    throw error;
+  }
+}
+```
+
+#### 4. Verification Process
+1. Check current table structure
+2. Add the missing column  
+3. Verify column exists in database
+4. Test application with new field
+5. Remove fallback code once confirmed working
+
+This approach ensures zero-downtime database updates and maintains application stability during schema changes.
