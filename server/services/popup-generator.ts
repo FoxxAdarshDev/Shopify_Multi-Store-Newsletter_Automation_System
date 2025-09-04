@@ -76,8 +76,25 @@ export class PopupGeneratorService {
   let POPUP_CONFIG = null;
   
   // Check if popup was already shown and user subscribed
-  if (localStorage.getItem(STORAGE_KEY) === 'subscribed') {
-    return;
+  const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
+  if (lastSubscribedEmail && lastSubscribedEmail !== 'subscribed') {
+    // Check if this email is still actively subscribed in the database
+    try {
+      const checkResponse = await fetch(API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail));
+      if (checkResponse.ok) {
+        const result = await checkResponse.json();
+        if (result.isSubscribed) {
+          return; // Still subscribed, don't show popup
+        } else {
+          // No longer subscribed, clear localStorage and allow popup to show
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    } catch (error) {
+      console.log('Foxx Newsletter: Could not verify subscription status, showing popup');
+    }
+  } else if (lastSubscribedEmail === 'subscribed') {
+    return; // Legacy check for old localStorage format
   }
   
   // Load configuration from API
@@ -329,7 +346,7 @@ export class PopupGeneratorService {
       
       if (response.ok) {
         // Success
-        localStorage.setItem(STORAGE_KEY, 'subscribed');
+        localStorage.setItem(STORAGE_KEY, data.email);
         
         // Show success message
         document.getElementById('foxx-newsletter-popup').innerHTML = \`

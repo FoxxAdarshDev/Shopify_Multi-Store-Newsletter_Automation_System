@@ -876,6 +876,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if email is actively subscribed (used by popup script)
+  app.get("/api/stores/:storeId/check-subscription/:email", async (req, res) => {
+    try {
+      const { storeId, email } = req.params;
+      
+      // Get store to verify request
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ isSubscribed: false });
+      }
+      
+      // Check if subscriber exists and is active
+      const subscriber = await storage.getSubscriberByEmail(storeId, email);
+      const isActivelySubscribed = subscriber && subscriber.isActive;
+      
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET");
+      res.json({ isSubscribed: !!isActivelySubscribed });
+    } catch (error) {
+      console.error("Check subscription error:", error);
+      res.json({ isSubscribed: false });
+    }
+  });
+
   // Public subscriber endpoint (used by script)
   app.post("/api/subscribe/:storeId", async (req, res) => {
     try {
