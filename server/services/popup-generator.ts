@@ -164,6 +164,42 @@ export class PopupGeneratorService {
   // Modern approach: Always check server first, use localStorage as UX enhancement only
   let shouldShowPopup = true;
 
+  // Background cleanup: Check if sessionStorage should be cleared (independent of popup showing)
+  async function backgroundCleanupCheck() {
+    const sessionKey = STORAGE_KEY + '_session';
+    const sessionSuppression = sessionStorage.getItem(sessionKey);
+    
+    // If sessionStorage exists, check if user is still subscribed
+    if (sessionSuppression) {
+      const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
+      
+      // If no localStorage but sessionStorage exists, check any known email patterns
+      if (!lastSubscribedEmail) {
+        // Clear sessionStorage if no corresponding localStorage (likely already cleaned up)
+        sessionStorage.removeItem(sessionKey);
+        console.log('Foxx Newsletter: Orphaned sessionStorage cleared');
+        return;
+      }
+      
+      // If localStorage exists, verify with server
+      try {
+        const checkUrl = API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail);
+        const checkResponse = await fetch(checkUrl);
+        if (checkResponse.ok) {
+          const result = await checkResponse.json();
+          
+          if (!result.isSubscribed) {
+            // User no longer subscribed, clear sessionStorage
+            sessionStorage.removeItem(sessionKey);
+            console.log('Foxx Newsletter: User unsubscribed, sessionStorage cleared');
+          }
+        }
+      } catch (error) {
+        console.log('Foxx Newsletter: Background cleanup check failed');
+      }
+    }
+  }
+
   // Check subscription status using multiple methods
   async function checkSubscriptionStatus() {
     // Method 1: Check localStorage for recent subscription (UX optimization)
@@ -710,10 +746,16 @@ export class PopupGeneratorService {
   // Initialize when DOM is ready with small delay
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(loadConfig, 500);
+      setTimeout(() => {
+        backgroundCleanupCheck(); // Check and clean up sessionStorage first
+        loadConfig();
+      }, 500);
     });
   } else {
-    setTimeout(loadConfig, 500);
+    setTimeout(() => {
+      backgroundCleanupCheck(); // Check and clean up sessionStorage first
+      loadConfig();
+    }, 500);
   }
 })();`;
   }
