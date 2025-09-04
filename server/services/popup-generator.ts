@@ -23,8 +23,11 @@ export class PopupGeneratorService {
     
     console.log('Script baseUrl determined:', scriptBaseUrl);
     
-    // Generate unique parameter for cache busting and uniqueness
-    const uniqueId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    // Generate consistent ID based on store for verification purposes
+    // Use store ID hash + current date (changes daily but stable during day for verification)
+    const dateStamp = new Date().toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
+    const storeHash = storeId.split('-')[0]; // Use first part of store UUID
+    const uniqueId = `${storeHash}_${dateStamp}_v1`; // Consistent within same day
     const timestamp = Date.now();
       
     return `<!-- Foxx Newsletter Popup Integration Script -->
