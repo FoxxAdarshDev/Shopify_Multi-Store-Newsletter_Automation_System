@@ -60,11 +60,16 @@ function AuthenticatedRouter() {
             <Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/dashboard" component={Dashboard} />
+            <Route path="/store/:storeId/dashboard" component={Dashboard} />
             <Route path="/stores" component={Stores} />
             <Route path="/popup-builder" component={PopupBuilder} />
+            <Route path="/store/:storeId/popup-builder" component={PopupBuilder} />
             <Route path="/subscribers" component={Subscribers} />
+            <Route path="/store/:storeId/subscribers" component={Subscribers} />
             <Route path="/integration" component={Integration} />
+            <Route path="/store/:storeId/integration" component={Integration} />
             <Route path="/settings" component={Settings} />
+            <Route path="/store/:storeId/settings" component={Settings} />
             
             {/* Admin only routes */}
             {user?.role === 'admin' && (

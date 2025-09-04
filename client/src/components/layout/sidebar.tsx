@@ -26,13 +26,13 @@ interface NavigationItem {
   adminOnly?: boolean;
 }
 
-const navigation: NavigationItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+const getNavigation = (selectedStoreId: string | null): NavigationItem[] => [
+  { name: "Dashboard", href: selectedStoreId ? `/store/${selectedStoreId}/dashboard` : "/dashboard", icon: BarChart3 },
   { name: "Store Management", href: "/stores", icon: Store, permission: "manage_stores" },
-  { name: "Popup Builder", href: "/popup-builder", icon: Layout, permission: "manage_popups" },
-  { name: "Subscribers", href: "/subscribers", icon: Users, permission: "view_subscribers" },
-  { name: "Integration", href: "/integration", icon: Code, permission: "manage_integrations" },
-  { name: "Settings", href: "/settings", icon: Settings, permission: "manage_email_settings" },
+  { name: "Popup Builder", href: selectedStoreId ? `/store/${selectedStoreId}/popup-builder` : "/popup-builder", icon: Layout, permission: "manage_popups" },
+  { name: "Subscribers", href: selectedStoreId ? `/store/${selectedStoreId}/subscribers` : "/subscribers", icon: Users, permission: "view_subscribers" },
+  { name: "Integration", href: selectedStoreId ? `/store/${selectedStoreId}/integration` : "/integration", icon: Code, permission: "manage_integrations" },
+  { name: "Settings", href: selectedStoreId ? `/store/${selectedStoreId}/settings` : "/settings", icon: Settings, permission: "manage_email_settings" },
   { name: "Member Management", href: "/admin/members", icon: Shield, adminOnly: true },
 ];
 
@@ -45,8 +45,9 @@ export default function Sidebar() {
     return null;
   }
 
+  const navigation = getNavigation(selectedStoreId);
   // Filter navigation based on permissions
-  const visibleNavigation = navigation.filter((item) => {
+  const visibleNavigation = (navigation || []).filter((item) => {
     if (item.adminOnly && user.role !== 'admin') {
       return false;
     }

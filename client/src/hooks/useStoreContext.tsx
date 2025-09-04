@@ -1,9 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation, useParams } from 'wouter';
 
 interface Store {
   id: string;
   name: string;
+  shopifyUrl: string;
+  shopifyAccessToken?: string;
+  isConnected: boolean;
+  isVerified: boolean;
 }
 
 interface StoreContextType {
@@ -17,25 +22,50 @@ const StoreContext = createContext<StoreContextType | null>(null);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
+  const [location, setLocation] = useLocation();
+  const params = useParams<{ storeId: string }>();
   
   const { data: stores = [] } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
   });
 
-  // Auto-select the first store or the most recently created one
+  // Auto-select based on URL parameter or first store
   useEffect(() => {
-    if (stores.length > 0 && !selectedStoreId) {
-      // Select the first store (most recent due to ordering)
+    if (params?.storeId && stores.find(s => s.id === params.storeId)) {
+      // URL has valid store ID, use it
+      setSelectedStoreId(params.storeId);
+    } else if (stores.length > 0 && !selectedStoreId) {
+      // No URL store ID, select the first store
       setSelectedStoreId(stores[0].id);
     }
-  }, [stores, selectedStoreId]);
+  }, [stores, selectedStoreId, params?.storeId]);
 
   const selectedStore = stores.find(store => store.id === selectedStoreId) || null;
+
+  // Enhanced setSelectedStoreId that updates URL
+  const handleStoreChange = (storeId: string) => {
+    setSelectedStoreId(storeId);
+    
+    // Update URL to include store context
+    if (location === '/' || location === '/dashboard') {
+      setLocation(`/store/${storeId}/dashboard`);
+    } else if (location.startsWith('/store/')) {
+      // Replace store ID in existing store-specific route
+      const pathAfterStore = location.split('/').slice(3).join('/');
+      setLocation(`/store/${storeId}/${pathAfterStore}`);
+    } else {
+      // Convert general route to store-specific route
+      const page = location.substring(1); // Remove leading slash
+      if (['popup-builder', 'subscribers', 'integration', 'settings'].includes(page)) {
+        setLocation(`/store/${storeId}/${page}`);
+      }
+    }
+  };
 
   return (
     <StoreContext.Provider value={{
       selectedStoreId,
-      setSelectedStoreId,
+      setSelectedStoreId: handleStoreChange,
       stores,
       selectedStore
     }}>

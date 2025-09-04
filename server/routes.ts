@@ -599,8 +599,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "WELCOME15"
       );
       
-      // Update verification status
-      await storage.updateStore(storeId, { isVerified: discountExists });
+      // Update verification and connection status
+      await storage.updateStore(storeId, { 
+        isVerified: discountExists,
+        isConnected: true  // If we can verify, connection is working
+      });
       
       res.json({ 
         verified: discountExists,
