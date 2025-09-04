@@ -301,13 +301,23 @@ export class PopupGeneratorService {
           background: white;
           border-radius: 12px;
           padding: 32px;
-          width: 90%;
-          max-width: 480px;
+          width: 95%;
+          max-width: 600px;
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           position: relative;
           animation: foxxSlideIn 0.3s ease-out;
+          
+          /* Responsive design */
+          @media (min-width: 768px) {
+            width: 85%;
+            max-width: 700px;
+          }
+          @media (min-width: 1024px) {
+            width: 75%;
+            max-width: 800px;
+          }
         ">
           <button id="foxx-close-btn" style="
             position: absolute;
@@ -593,15 +603,24 @@ export class PopupGeneratorService {
         document.getElementById('foxx-newsletter-popup').innerHTML = \`
           <div style="
             text-align: center; 
-            padding: 48px 36px; 
+            padding: 64px 48px; 
             position: relative;
-            background: linear-gradient(135deg, #0071b9 0%, #00c68c 50%, #0071b9 100%);
-            border-radius: 24px;
-            box-shadow: 0 25px 50px rgba(0, 113, 185, 0.25), 0 0 0 1px rgba(255,255,255,0.1);
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #2563eb 100%);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px rgba(30, 64, 175, 0.3), 0 0 0 1px rgba(255,255,255,0.15);
             color: white;
-            max-width: 480px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: none;
+            margin: 0;
             overflow: hidden;
+            
+            /* Responsive padding */
+            @media (min-width: 768px) {
+              padding: 80px 64px;
+            }
+            @media (min-width: 1024px) {
+              padding: 96px 80px;
+            }
           ">
             <!-- Glassmorphism overlay -->
             <div style="

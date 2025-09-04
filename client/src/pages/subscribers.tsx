@@ -18,6 +18,9 @@ interface Subscriber {
   email: string;
   name: string | null;
   company: string | null;
+  phone?: string | null;
+  address?: string | null;
+  sessionId?: string | null;
   discountCodeSent: string | null;
   discountCodeUsed: boolean;
   isActive: boolean;
@@ -44,6 +47,19 @@ export default function Subscribers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Set up real-time polling for new subscriptions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (selectedStoreId) {
+        queryClient.invalidateQueries({
+          queryKey: ["/api/stores", selectedStoreId, "subscribers"]
+        });
+      }
+    }, 15000); // Check for updates every 15 seconds
+    
+    return () => clearInterval(interval);
+  }, [selectedStoreId, queryClient]);
+  
   // Set default store when stores are loaded
   React.useEffect(() => {
     if (stores.length > 0 && !selectedStoreId) {
@@ -54,6 +70,8 @@ export default function Subscribers() {
   const { data: subscribers = [], isLoading } = useQuery<Subscriber[]>({
     queryKey: ["/api/stores", selectedStoreId, "subscribers"],
     enabled: !!selectedStoreId,
+    refetchInterval: 10000, // Refetch every 10 seconds to catch new subscriptions
+    refetchOnWindowFocus: true, // Refetch when user comes back to the tab
   });
   
   const deleteSubscriberMutation = useMutation({

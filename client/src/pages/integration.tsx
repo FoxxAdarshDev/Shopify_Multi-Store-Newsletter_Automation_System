@@ -43,7 +43,8 @@ export default function Integration() {
   const { data: installationStatus } = useQuery({
     queryKey: [`/api/stores/${selectedStoreId}/verify-installation`],
     enabled: !!selectedStoreId,
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: 15000, // Check every 15 seconds for faster updates
+    refetchOnWindowFocus: true, // Refetch when user comes back to the tab
   });
 
   const handleDownloadFile = async () => {
