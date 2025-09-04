@@ -22,6 +22,18 @@ interface EmailSettings {
   isConfigured: boolean;
 }
 
+interface UserPreferences {
+  id?: string;
+  adminNotificationEmail: string;
+  enableAnalytics: boolean;
+  sendWelcomeEmail: boolean;
+  enableDoubleOptIn: boolean;
+  validateDiscountCode: boolean;
+  notifyOnSubscriptions: boolean;
+  dailySubscriberSummary: boolean;
+  alertOnUnsubscribeRate: boolean;
+}
+
 interface Store {
   id: string;
   name: string;
@@ -40,6 +52,16 @@ export default function Settings() {
     fromEmail: "updates@foxxbioprocess.com",
     fromName: "Foxx Bioprocess",
     isConfigured: false,
+  });
+  const [preferencesForm, setPreferencesForm] = useState<UserPreferences>({
+    adminNotificationEmail: "admin@foxxbioprocess.com",
+    enableAnalytics: true,
+    sendWelcomeEmail: true,
+    enableDoubleOptIn: false,
+    validateDiscountCode: true,
+    notifyOnSubscriptions: true,
+    dailySubscriberSummary: false,
+    alertOnUnsubscribeRate: true,
   });
   const [shopifyCollapsed, setShopifyCollapsed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -89,6 +111,10 @@ export default function Settings() {
     queryKey: ["/api/email-settings"],
   });
 
+  const { data: userPreferences, isLoading: preferencesLoading } = useQuery<UserPreferences>({
+    queryKey: ["/api/user-preferences"],
+  });
+
   // Handle emailSettings data updates
   useEffect(() => {
     if (emailSettings) {
@@ -96,12 +122,19 @@ export default function Settings() {
     }
   }, [emailSettings]);
 
+  // Handle userPreferences data updates
+  useEffect(() => {
+    if (userPreferences) {
+      setPreferencesForm(userPreferences);
+    }
+  }, [userPreferences]);
+
   const { data: stores = [] } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
   });
 
   const saveEmailMutation = useMutation({
-    mutationFn: (data: EmailSettings) => apiRequest("/api/email-settings", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: EmailSettings) => apiRequest("/api/email-settings", { method: "PUT", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
       toast({
@@ -113,6 +146,24 @@ export default function Settings() {
       toast({
         title: "Error",
         description: "Failed to save email settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const savePreferencesMutation = useMutation({
+    mutationFn: (data: UserPreferences) => apiRequest("/api/user-preferences", { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user-preferences"] });
+      toast({
+        title: "Success", 
+        description: "Settings saved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
         variant: "destructive",
       });
     },
@@ -140,6 +191,23 @@ export default function Settings() {
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveEmailMutation.mutate(emailForm);
+  };
+
+  const handleSaveAllSettings = () => {
+    savePreferencesMutation.mutate(preferencesForm);
+  };
+
+  const handleResetToDefaults = () => {
+    setPreferencesForm({
+      adminNotificationEmail: "admin@foxxbioprocess.com",
+      enableAnalytics: true,
+      sendWelcomeEmail: true,
+      enableDoubleOptIn: false,
+      validateDiscountCode: true,
+      notifyOnSubscriptions: true,
+      dailySubscriberSummary: false,
+      alertOnUnsubscribeRate: true,
+    });
   };
 
   const handleShopifyTest = (storeId: string, shopifyUrl: string, accessToken: string) => {
@@ -263,7 +331,7 @@ export default function Settings() {
     setNewToken('');
   };
 
-  if (emailLoading) {
+  if (emailLoading || preferencesLoading) {
     return (
       <div className="p-6 space-y-6">
         <h2 className="text-xl font-semibold text-foreground">Settings</h2>
@@ -687,25 +755,45 @@ export default function Settings() {
             <h3 className="text-lg font-semibold text-foreground mb-4">General Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Checkbox id="analytics" defaultChecked data-testid="checkbox-analytics" />
+                <Checkbox 
+                  id="analytics" 
+                  checked={preferencesForm.enableAnalytics}
+                  onCheckedChange={(checked) => setPreferencesForm({ ...preferencesForm, enableAnalytics: !!checked })}
+                  data-testid="checkbox-analytics" 
+                />
                 <Label htmlFor="analytics" className="text-sm">
                   Enable popup analytics tracking
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="welcome-email" defaultChecked data-testid="checkbox-welcome-email" />
+                <Checkbox 
+                  id="welcome-email" 
+                  checked={preferencesForm.sendWelcomeEmail}
+                  onCheckedChange={(checked) => setPreferencesForm({ ...preferencesForm, sendWelcomeEmail: !!checked })}
+                  data-testid="checkbox-welcome-email" 
+                />
                 <Label htmlFor="welcome-email" className="text-sm">
                   Send welcome email after subscription
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="double-optin" data-testid="checkbox-double-optin" />
+                <Checkbox 
+                  id="double-optin" 
+                  checked={preferencesForm.enableDoubleOptIn}
+                  onCheckedChange={(checked) => setPreferencesForm({ ...preferencesForm, enableDoubleOptIn: !!checked })}
+                  data-testid="checkbox-double-optin" 
+                />
                 <Label htmlFor="double-optin" className="text-sm">
                   Enable double opt-in confirmation
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="validate-discount" defaultChecked data-testid="checkbox-validate-discount" />
+                <Checkbox 
+                  id="validate-discount" 
+                  checked={preferencesForm.validateDiscountCode}
+                  onCheckedChange={(checked) => setPreferencesForm({ ...preferencesForm, validateDiscountCode: !!checked })}
+                  data-testid="checkbox-validate-discount" 
+                />
                 <Label htmlFor="validate-discount" className="text-sm">
                   Validate discount code usage via Shopify API
                 </Label>
@@ -724,24 +812,40 @@ export default function Settings() {
                 <Input
                   id="adminEmail"
                   type="email"
-                  defaultValue="admin@foxxbioprocess.com"
+                  value={preferencesForm.adminNotificationEmail}
+                  onChange={(e) => setPreferencesForm({ ...preferencesForm, adminNotificationEmail: e.target.value })}
                   data-testid="input-admin-email"
                 />
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="notify-subscriptions" defaultChecked data-testid="checkbox-notify-subscriptions" />
+                <Checkbox 
+                  id="notify-subscriptions" 
+                  checked={preferencesForm.notifyOnSubscriptions}
+                  onCheckedChange={(checked) => setPreferencesForm({ ...preferencesForm, notifyOnSubscriptions: !!checked })}
+                  data-testid="checkbox-notify-subscriptions" 
+                />
                 <Label htmlFor="notify-subscriptions" className="text-sm">
                   Notify on new subscriptions
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="daily-summary" data-testid="checkbox-daily-summary" />
+                <Checkbox 
+                  id="daily-summary" 
+                  checked={preferencesForm.dailySubscriberSummary}
+                  onCheckedChange={(checked) => setPreferencesForm({ ...preferencesForm, dailySubscriberSummary: !!checked })}
+                  data-testid="checkbox-daily-summary" 
+                />
                 <Label htmlFor="daily-summary" className="text-sm">
                   Daily subscriber summary
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="unsubscribe-alert" defaultChecked data-testid="checkbox-unsubscribe-alert" />
+                <Checkbox 
+                  id="unsubscribe-alert" 
+                  checked={preferencesForm.alertOnUnsubscribeRate}
+                  onCheckedChange={(checked) => setPreferencesForm({ ...preferencesForm, alertOnUnsubscribeRate: !!checked })}
+                  data-testid="checkbox-unsubscribe-alert" 
+                />
                 <Label htmlFor="unsubscribe-alert" className="text-sm">
                   Alert on high unsubscribe rate
                 </Label>
@@ -756,14 +860,18 @@ export default function Settings() {
       <div className="flex justify-end space-x-3 pt-6">
         <Button
           variant="outline"
+          onClick={handleResetToDefaults}
+          disabled={savePreferencesMutation.isPending}
           data-testid="button-reset-defaults"
         >
           Reset to Defaults
         </Button>
         <Button
+          onClick={handleSaveAllSettings}
+          disabled={savePreferencesMutation.isPending}
           data-testid="button-save-settings"
         >
-          Save Settings
+          {savePreferencesMutation.isPending ? "Saving..." : "Save Settings"}
         </Button>
       </div>
     </div>

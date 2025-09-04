@@ -552,6 +552,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Preferences routes
+  app.get("/api/user-preferences", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const preferences = await storage.getUserPreferences(userId);
+      
+      if (!preferences) {
+        // Return default preferences if none exist
+        const defaults = {
+          adminNotificationEmail: "admin@foxxbioprocess.com",
+          enableAnalytics: true,
+          sendWelcomeEmail: true,
+          enableDoubleOptIn: false,
+          validateDiscountCode: true,
+          notifyOnSubscriptions: true,
+          dailySubscriberSummary: false,
+          alertOnUnsubscribeRate: true,
+        };
+        return res.json(defaults);
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Get user preferences error:", error);
+      res.status(500).json({ message: "Failed to fetch user preferences" });
+    }
+  });
+
+  app.put("/api/user-preferences", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const preferencesData = { ...req.body, userId };
+      
+      const existingPreferences = await storage.getUserPreferences(userId);
+      
+      let preferences;
+      if (existingPreferences) {
+        preferences = await storage.updateUserPreferences(userId, preferencesData);
+      } else {
+        preferences = await storage.createUserPreferences(preferencesData);
+      }
+      
+      if (!preferences) {
+        return res.status(500).json({ message: "Failed to save user preferences" });
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Update user preferences error:", error);
+      res.status(400).json({ message: "Failed to update user preferences" });
+    }
+  });
+
   // Shopify integration
   app.post("/api/stores/:storeId/shopify/connect", authenticateSession, requirePermission('manage_integrations'), async (req: AuthRequest, res) => {
     try {

@@ -1,10 +1,11 @@
 import {
-  users, stores, popupConfigs, subscribers, emailSettings, sessions,
+  users, stores, popupConfigs, subscribers, emailSettings, sessions, userPreferences,
   type User, type InsertUser, type Session,
   type Store, type InsertStore,
   type PopupConfig, type InsertPopupConfig,
   type Subscriber, type InsertSubscriber,
-  type EmailSettings, type InsertEmailSettings
+  type EmailSettings, type InsertEmailSettings,
+  type UserPreferences, type InsertUserPreferences
 } from "@shared/schema";
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
@@ -65,6 +66,11 @@ export interface IStorage {
   getEmailSettings(userId: string): Promise<EmailSettings | undefined>;
   createEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
   updateEmailSettings(userId: string, updates: Partial<EmailSettings>): Promise<EmailSettings | undefined>;
+
+  // User Preferences  
+  getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
+  createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
+  updateUserPreferences(userId: string, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -363,6 +369,26 @@ export class DatabaseStorage implements IStorage {
       .where(eq(emailSettings.userId, userId))
       .returning();
     return updatedSettings || undefined;
+  }
+
+  // User Preferences
+  async getUserPreferences(userId: string): Promise<UserPreferences | undefined> {
+    const [preferences] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
+    return preferences || undefined;
+  }
+
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const [newPreferences] = await db.insert(userPreferences).values(preferences).returning();
+    return newPreferences;
+  }
+
+  async updateUserPreferences(userId: string, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
+    const [updatedPreferences] = await db
+      .update(userPreferences)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userPreferences.userId, userId))
+      .returning();
+    return updatedPreferences || undefined;
   }
 }
 

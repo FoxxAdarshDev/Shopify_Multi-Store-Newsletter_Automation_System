@@ -100,10 +100,26 @@ export const emailSettings = pgTable("email_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const userPreferences = pgTable("user_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  adminNotificationEmail: text("admin_notification_email").notNull().default("admin@foxxbioprocess.com"),
+  enableAnalytics: boolean("enable_analytics").default(true).notNull(),
+  sendWelcomeEmail: boolean("send_welcome_email").default(true).notNull(),
+  enableDoubleOptIn: boolean("enable_double_opt_in").default(false).notNull(),
+  validateDiscountCode: boolean("validate_discount_code").default(true).notNull(),
+  notifyOnSubscriptions: boolean("notify_on_subscriptions").default(true).notNull(),
+  dailySubscriberSummary: boolean("daily_subscriber_summary").default(false).notNull(),
+  alertOnUnsubscribeRate: boolean("alert_on_unsubscribe_rate").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   stores: many(stores),
   emailSettings: many(emailSettings),
+  userPreferences: many(userPreferences),
 }));
 
 export const storesRelations = relations(stores, ({ one, many }) => ({
@@ -136,6 +152,13 @@ export const emailSettingsRelations = relations(emailSettings, ({ one }) => ({
   }),
 }));
 
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
 export const loginSchema = z.object({
@@ -157,6 +180,8 @@ export const insertPopupConfigSchema = createInsertSchema(popupConfigs).omit({ i
 export const updatePopupConfigSchema = createInsertSchema(popupConfigs).omit({ id: true, storeId: true, createdAt: true, updatedAt: true }).partial();
 export const insertSubscriberSchema = createInsertSchema(subscribers).omit({ id: true, subscribedAt: true });
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, createdAt: true, updatedAt: true });
+export const updateUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, userId: true, createdAt: true, updatedAt: true }).partial();
 
 // Types
 export type Session = typeof sessions.$inferSelect;
@@ -175,3 +200,6 @@ export type Subscriber = typeof subscribers.$inferSelect;
 export type InsertSubscriber = z.infer<typeof insertSubscriberSchema>;
 export type EmailSettings = typeof emailSettings.$inferSelect;
 export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
+export type UpdateUserPreferences = z.infer<typeof updateUserPreferencesSchema>;
