@@ -500,6 +500,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Store-specific subscriber delete endpoint
+  app.delete("/api/stores/:storeId/subscribers/:id", authenticateSession, requirePermission('manage_subscribers'), async (req: AuthRequest, res) => {
+    try {
+      const { storeId, id } = req.params;
+      
+      // First verify the subscriber belongs to this store
+      const subscriber = await storage.getSubscriber(id);
+      if (!subscriber) {
+        return res.status(404).json({ message: "Subscriber not found" });
+      }
+      
+      if (subscriber.storeId !== storeId) {
+        return res.status(403).json({ message: "Subscriber does not belong to this store" });
+      }
+      
+      const updatedSubscriber = await storage.updateSubscriber(id, {
+        isActive: false,
+        unsubscribedAt: new Date()
+      });
+      
+      if (!updatedSubscriber) {
+        return res.status(404).json({ message: "Subscriber not found" });
+      }
+      
+      res.json({ message: "Subscriber unsubscribed successfully" });
+    } catch (error) {
+      console.error("Store-specific unsubscribe error:", error);
+      res.status(500).json({ message: "Failed to unsubscribe" });
+    }
+  });
+
   // Email settings
   app.get("/api/email-settings", authenticateSession, requirePermission('manage_email_settings'), async (req: AuthRequest, res) => {
     try {

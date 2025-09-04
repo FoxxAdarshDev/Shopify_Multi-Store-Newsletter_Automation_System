@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,12 @@ interface Store {
 }
 
 export default function Subscribers() {
-  const [selectedStoreId, setSelectedStoreId] = useState<string>("all");
+  const { data: stores = [] } = useQuery<Store[]>({
+    queryKey: ["/api/stores"],
+  });
+  
+  // Set default store to first store instead of "all"
+  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedSubscribers, setSelectedSubscribers] = useState<string[]>([]);
@@ -37,25 +43,29 @@ export default function Subscribers() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const { data: stores = [] } = useQuery<Store[]>({
-    queryKey: ["/api/stores"],
-  });
+  
+  // Set default store when stores are loaded
+  React.useEffect(() => {
+    if (stores.length > 0 && !selectedStoreId) {
+      setSelectedStoreId(stores[0].id);
+    }
+  }, [stores, selectedStoreId]);
 
   const { data: subscribers = [], isLoading } = useQuery<Subscriber[]>({
-    queryKey: ["/api/stores", selectedStoreId !== "all" ? selectedStoreId : stores[0]?.id, "subscribers"],
-    enabled: selectedStoreId !== "all" ? !!selectedStoreId : stores.length > 0,
+    queryKey: ["/api/stores", selectedStoreId, "subscribers"],
+    enabled: !!selectedStoreId,
   });
   
   const deleteSubscriberMutation = useMutation({
     mutationFn: async (subscriberId: string) => {
-      return apiRequest(`/api/subscribers/${subscriberId}`, {
+      // Make it store-specific by using the store context
+      return apiRequest(`/api/stores/${selectedStoreId}/subscribers/${subscriberId}`, {
         method: "DELETE",
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["/api/stores", selectedStoreId !== "all" ? selectedStoreId : stores[0]?.id, "subscribers"]
+        queryKey: ["/api/stores", selectedStoreId, "subscribers"]
       });
       toast({
         title: "Success",
@@ -163,7 +173,6 @@ export default function Subscribers() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Stores</SelectItem>
                   {stores.map((store) => (
                     <SelectItem key={store.id} value={store.id}>
                       {store.name}
