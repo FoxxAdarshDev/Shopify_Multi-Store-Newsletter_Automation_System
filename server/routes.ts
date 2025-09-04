@@ -569,9 +569,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? shopifyStoreName 
           : `${shopifyStoreName}.myshopify.com`;
         finalShopifyUrl = finalShopifyStoreName;
+        console.log(`Processing shopify store name: "${shopifyStoreName}" -> "${finalShopifyStoreName}"`);
       } else if (customDomain) {
         finalCustomDomain = customDomain;
         finalShopifyUrl = customDomain.startsWith('http') ? customDomain : `https://${customDomain}`;
+        console.log(`Processing custom domain: "${customDomain}" -> "${finalShopifyUrl}"`);
       }
       
       // Check if this is just a URL update (when accessToken is empty)

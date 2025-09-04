@@ -493,7 +493,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyStoreName ? store.shopifyStoreName.replace('.myshopify.com', '') : ''}
+                                    value={store.shopifyStoreName || ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
