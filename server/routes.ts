@@ -836,7 +836,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve Newsletter Script
   app.get("/js/newsletter-popup.js", async (req, res) => {
     try {
-      const script = popupGeneratorService.getNewsletterScript();
+      // Determine the base URL for API calls
+      const baseUrl = req.get('Host') ? `${req.get('X-Forwarded-Proto') || 'https'}://${req.get('Host')}` : 'http://localhost:5000';
+      const script = popupGeneratorService.getNewsletterScript(baseUrl);
       res.setHeader("Content-Type", "application/javascript");
       res.setHeader("Cache-Control", "public, max-age=300"); // 5 minute cache
       res.send(script);

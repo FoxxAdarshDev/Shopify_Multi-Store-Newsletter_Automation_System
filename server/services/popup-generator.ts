@@ -71,7 +71,20 @@ export class PopupGeneratorService {
 </script>`;
   }
 
-  getNewsletterScript(): string {
+  getNewsletterScript(baseUrl?: string): string {
+    // Determine base URL for API calls
+    let apiBaseUrl = baseUrl;
+    if (!apiBaseUrl) {
+      // For Replit environment
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        apiBaseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else if (process.env.NODE_ENV === 'production') {
+        apiBaseUrl = 'https://your-app-domain.com';
+      } else {
+        apiBaseUrl = 'http://localhost:5000';
+      }
+    }
+    
     return `/**
  * Foxx Newsletter Popup Script
  * Dynamic newsletter popup system with domain verification
@@ -102,7 +115,7 @@ export class PopupGeneratorService {
   }
   
   // Configuration
-  const API_BASE = '${process.env.API_BASE_URL}';
+  const API_BASE = '${apiBaseUrl}';
   const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
   
   let POPUP_CONFIG = null;
