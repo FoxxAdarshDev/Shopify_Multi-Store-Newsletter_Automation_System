@@ -558,9 +558,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { storeId } = req.params;
       const { shopifyUrl, shopifyStoreName, customDomain, accessToken } = req.body;
       
-      // Build shopifyUrl from the separate fields or use the legacy field
+      // Determine which field is being updated to set the primary shopifyUrl
       let finalShopifyUrl = shopifyUrl;
-      let finalShopifyStoreName = shopifyStoreName;
+      let finalShopifyStoreName = null;
+      let finalCustomDomain = null;
       
       if (shopifyStoreName) {
         // If user provided a store name, ensure it has .myshopify.com
@@ -569,6 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : `${shopifyStoreName}.myshopify.com`;
         finalShopifyUrl = finalShopifyStoreName;
       } else if (customDomain) {
+        finalCustomDomain = customDomain;
         finalShopifyUrl = customDomain.startsWith('http') ? customDomain : `https://${customDomain}`;
       }
       
@@ -578,10 +580,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isUrlOnlyUpdate) {
         // Just update the URL without verifying connection
         console.log('URL-only update detected, skipping Shopify verification');
+        
+        // Get current store to preserve existing values
+        const currentStore = await storage.getStore(storeId);
+        if (!currentStore) {
+          return res.status(404).json({ message: "Store not found" });
+        }
+        
         const updateData: any = {
           shopifyUrl: finalShopifyUrl,
-          shopifyStoreName: finalShopifyStoreName || null,
-          customDomain: customDomain || null,
+          // Only update the field that was actually sent, preserve the other
+          shopifyStoreName: finalShopifyStoreName || currentStore.shopifyStoreName,
+          customDomain: finalCustomDomain || currentStore.customDomain,
           // Keep existing connection status if just updating URL
         };
         const store = await storage.updateStore(storeId, updateData);
@@ -624,11 +634,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { encrypt } = await import('../utils/encryption.js');
       const encryptedToken = encrypt(sanitizedAccessToken);
       
+      // Get current store to preserve existing values
+      const currentStore = await storage.getStore(storeId);
+      if (!currentStore) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
       // Update store with Shopify info
       const store = await storage.updateStore(storeId, {
         shopifyUrl: finalShopifyUrl,
-        shopifyStoreName: finalShopifyStoreName || null,
-        customDomain: customDomain || null,
+        // Only update the field that was actually sent, preserve the other
+        shopifyStoreName: finalShopifyStoreName || currentStore.shopifyStoreName,
+        customDomain: finalCustomDomain || currentStore.customDomain,
         shopifyAccessToken: encryptedToken,
         isConnected: true
       });
