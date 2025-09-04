@@ -857,6 +857,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CORS preflight for popup config endpoint
+  app.options("/api/popup-config/:storeId", async (req, res) => {
+    const origin = req.get('origin') || req.get('referer');
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.status(200).send();
+  });
+
   // Script installation verification
   app.get("/api/stores/:storeId/verify-installation", authenticateSession, async (req: AuthRequest, res) => {
     try {
@@ -899,8 +908,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const html = await response.text();
           const hasNewsletterScript = html.includes('newsletter-popup.js');
-          const hasStoreId = html.includes(`data-store-id="${storeId}"`);
-          const hasStoreDomain = html.includes(`data-store-domain="`);
+          
+          // Check if the script has the store ID in the setAttribute call (since it's dynamically set)
+          const hasStoreId = html.includes(`script.setAttribute('data-store-id', '${storeId}')`) || 
+                            html.includes(`script.setAttribute("data-store-id", "${storeId}")`) ||
+                            html.includes(`data-store-id="${storeId}"`);
+          
+          // Check if script has store domain in setAttribute call  
+          const hasStoreDomain = html.includes(`script.setAttribute('data-store-domain'`) || 
+                                 html.includes(`script.setAttribute("data-store-domain"`) ||
+                                 html.includes(`data-store-domain="`);
           
           // Script is valid if it has the newsletter script AND either store ID or store domain
           const isValidInstallation = hasNewsletterScript && (hasStoreId || hasStoreDomain);
