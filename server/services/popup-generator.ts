@@ -23,12 +23,10 @@ export class PopupGeneratorService {
     
     console.log('Script baseUrl determined:', scriptBaseUrl);
     
-    // Generate consistent ID based on store for verification purposes
-    // Use store ID hash + current date (changes daily but stable during day for verification)
-    const dateStamp = new Date().toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
-    const storeHash = storeId.split('-')[0]; // Use first part of store UUID
-    const uniqueId = `${storeHash}_${dateStamp}_v1`; // Consistent within same day
+    // Generate unique ID for each script generation for strict verification
     const timestamp = Date.now();
+    const storeHash = storeId.split('-')[0]; // Use first part of store UUID
+    const uniqueId = `${storeHash}_${timestamp}_${Math.random().toString(36).substring(2, 7)}`;
       
     return `<!-- Foxx Newsletter Popup Integration Script -->
 <!-- Add this code to your theme.liquid file, just before the closing </body> tag -->
@@ -95,6 +93,20 @@ export class PopupGeneratorService {
   // Load configuration and check subscription status
   async function loadConfig() {
     try {
+      // FIRST: Check if script installation is verified before loading popup
+      const verificationResponse = await fetch(API_BASE + '/api/stores/' + STORE_ID + '/verify-installation');
+      if (verificationResponse.ok) {
+        const verification = await verificationResponse.json();
+        if (!verification.installed || verification.validationLevel !== 'complete') {
+          console.log('Foxx Newsletter: Script not verified, popup blocked. Status:', verification.validationLevel);
+          return;
+        }
+        console.log('Foxx Newsletter: Script verification passed, loading popup configuration');
+      } else {
+        console.log('Foxx Newsletter: Could not verify script installation, popup blocked');
+        return;
+      }
+      
       const response = await fetch(API_BASE + '/api/popup-config/' + STORE_ID);
       if (!response.ok) {
         throw new Error('Failed to load popup configuration');

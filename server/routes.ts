@@ -1079,9 +1079,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hasCorrectScriptUrl = html.includes(`script.src = '${baseUrl}/js/newsletter-popup.js`) ||
                                      html.includes(`script.src='${baseUrl}/js/newsletter-popup.js`);
           
-          // PRACTICAL VALIDATION: All attributes must exist AND script version must match current generation
+          // STRICT VALIDATION: All attributes must exist AND BOTH script version AND timestamp must match exactly
           const hasBasicAttributes = hasStoreDomain && hasPopupConfig && hasIntegrationType;
-          const hasCorrectVersion = hasMatchingScriptVersion; // Only check script version, not timestamp
+          const hasCorrectVersion = hasMatchingScriptVersion && hasMatchingGeneratedAt; // Check BOTH version AND timestamp
           const hasCorrectDomain = hasCorrectScriptUrl;
           
           // Complete validation: script exists + store ID + all attributes + correct version + correct domain
@@ -1107,7 +1107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message = 'Newsletter script not found';
           }
           
-          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
+          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Timestamp match: ${hasMatchingGeneratedAt}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
           
           checkedUrls.push({
             url,
