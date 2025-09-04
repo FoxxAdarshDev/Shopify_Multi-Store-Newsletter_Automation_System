@@ -903,7 +903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
-      res.json(script);
+      res.send(script);
     } catch (error) {
       console.error("Generate integration script error:", error);
       res.status(500).json({ message: "Failed to generate integration script" });

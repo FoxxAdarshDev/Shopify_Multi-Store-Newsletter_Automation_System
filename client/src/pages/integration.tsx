@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Copy, CheckCircle, Code, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Store {
   id: string;
@@ -33,7 +34,8 @@ export default function Integration() {
   const currentStore = stores.find(store => store.id === selectedStoreId);
 
   const { data: integrationScript } = useQuery<string>({
-    queryKey: [`/api/stores/${selectedStoreId}/integration-script`],
+    queryKey: [`integration-script-${selectedStoreId}`],
+    queryFn: () => selectedStoreId ? apiRequest(`/api/stores/${selectedStoreId}/integration-script`) : Promise.reject('No store selected'),
     enabled: !!selectedStoreId,
   });
 
