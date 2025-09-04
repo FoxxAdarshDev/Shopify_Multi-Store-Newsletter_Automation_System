@@ -194,7 +194,9 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       setEditingUrl(null);
+      setEditingDomain(null); // Also clear custom domain editing state
       setNewUrl('');
+      setNewDomain(''); // Also clear custom domain input
       toast({
         title: "Success",
         description: "Store URL updated successfully",
