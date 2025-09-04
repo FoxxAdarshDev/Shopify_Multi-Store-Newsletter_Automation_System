@@ -22,18 +22,25 @@ export class PopupGeneratorService {
     }
     
     console.log('Script baseUrl determined:', scriptBaseUrl);
+    
+    // Generate unique parameter for cache busting and uniqueness
+    const uniqueId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    const timestamp = Date.now();
       
     return `<!-- Foxx Newsletter Popup Integration Script -->
 <!-- Add this code to your theme.liquid file, just before the closing </body> tag -->
+<!-- Generated: ${new Date().toISOString()} | Unique ID: ${uniqueId} -->
 <script>
 (function() {
   var script = document.createElement('script');
-  script.src = '${scriptBaseUrl}/js/newsletter-popup.js';
+  script.src = '${scriptBaseUrl}/js/newsletter-popup.js?v=${timestamp}&id=${uniqueId}';
   script.async = true;
   script.setAttribute('data-store-id', '${storeId}');
   script.setAttribute('data-popup-config', 'auto');
   script.setAttribute('data-integration-type', 'shopify');
   script.setAttribute('data-store-domain', '${new URL(shopifyUrl).hostname}');
+  script.setAttribute('data-script-version', '${uniqueId}');
+  script.setAttribute('data-generated-at', '${timestamp}');
   document.head.appendChild(script);
 })();
 </script>`;
