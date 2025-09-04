@@ -1029,15 +1029,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const html = await response.text();
           const hasNewsletterScript = html.includes('newsletter-popup.js');
           
+          // Get current script values to compare with installed version
+          const baseUrl = req.get('Host') ? `${req.get('X-Forwarded-Proto') || 'https'}://${req.get('Host')}` : 'http://localhost:5000';
+          const currentValues = getCurrentScriptValues(storeId, store.shopifyUrl, baseUrl);
+          
           // Check if the script has the store ID in the setAttribute call (since it's dynamically set)
           const hasStoreId = html.includes(`script.setAttribute('data-store-id', '${storeId}')`) || 
                             html.includes(`script.setAttribute("data-store-id", "${storeId}")`) ||
                             html.includes(`data-store-id="${storeId}"`);
           
-          // Check if script has store domain in setAttribute call  
-          const hasStoreDomain = html.includes(`script.setAttribute('data-store-domain'`) || 
-                                 html.includes(`script.setAttribute("data-store-domain"`) ||
-                                 html.includes(`data-store-domain="`);
+          // Check if script has store domain and MATCHES current value
+          const hasStoreDomain = html.includes(`script.setAttribute('data-store-domain', '${currentValues.storeDomain}')`) || 
+                                 html.includes(`script.setAttribute("data-store-domain", "${currentValues.storeDomain}")`) ||
+                                 html.includes(`data-store-domain="${currentValues.storeDomain}"`);
           
           // Check for additional script attributes to ensure it's our complete script
           const hasPopupConfig = html.includes(`data-popup-config`) || 
@@ -1048,23 +1052,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                    html.includes(`script.setAttribute('data-integration-type'`) ||
                                    html.includes(`script.setAttribute("data-integration-type"`);
           
-          const hasScriptVersion = html.includes(`data-script-version`) ||
-                                  html.includes(`script.setAttribute('data-script-version'`) ||
-                                  html.includes(`script.setAttribute("data-script-version"`);
+          // Check if script version MATCHES current generated version
+          const hasMatchingScriptVersion = currentValues.scriptVersion && (
+            html.includes(`script.setAttribute('data-script-version', '${currentValues.scriptVersion}')`) ||
+            html.includes(`script.setAttribute("data-script-version", "${currentValues.scriptVersion}")`) ||
+            html.includes(`data-script-version="${currentValues.scriptVersion}"`)
+          );
           
-          const hasGeneratedAt = html.includes(`data-generated-at`) ||
-                                html.includes(`script.setAttribute('data-generated-at'`) ||
-                                html.includes(`script.setAttribute("data-generated-at"`);
+          // Check if generated timestamp MATCHES current timestamp
+          const hasMatchingGeneratedAt = currentValues.generatedAt && (
+            html.includes(`script.setAttribute('data-generated-at', '${currentValues.generatedAt}')`) ||
+            html.includes(`script.setAttribute("data-generated-at", "${currentValues.generatedAt}")`) ||
+            html.includes(`data-generated-at="${currentValues.generatedAt}"`)
+          );
           
-          // STRICT VALIDATION: Require all new attributes for proper installation
+          // Check for any script version/timestamp (for existence detection)
+          const hasAnyScriptVersion = html.includes(`data-script-version`) ||
+                                     html.includes(`script.setAttribute('data-script-version'`) ||
+                                     html.includes(`script.setAttribute("data-script-version"`);
+          
+          const hasAnyGeneratedAt = html.includes(`data-generated-at`) ||
+                                   html.includes(`script.setAttribute('data-generated-at'`) ||
+                                   html.includes(`script.setAttribute("data-generated-at"`);
+          
+          // STRICT VALIDATION: Require all attributes to match current values
           const hasBasicAttributes = hasStoreDomain && hasPopupConfig && hasIntegrationType;
-          const hasVersionInfo = hasScriptVersion && hasGeneratedAt;
+          const hasMatchingVersionInfo = hasMatchingScriptVersion && hasMatchingGeneratedAt;
           
-          // Complete validation required: newsletter script + store ID + all core attributes + version info
-          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasVersionInfo;
-          const validationLevel = isValidInstallation ? 'complete' : 'incomplete';
+          // Complete validation: script exists + store ID + all attributes + EXACT version/timestamp match
+          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasMatchingVersionInfo;
+          const hasOutdatedScript = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasAnyScriptVersion && hasAnyGeneratedAt && !hasMatchingVersionInfo;
           
-          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version: ${hasScriptVersion}, Generated at: ${hasGeneratedAt} | Validation: ${validationLevel}`);
+          let validationLevel = 'incomplete';
+          let message = '';
+          
+          if (isValidInstallation) {
+            validationLevel = 'complete';
+            message = 'Script is up-to-date and properly installed';
+          } else if (hasOutdatedScript) {
+            validationLevel = 'outdated';
+            message = 'Script is installed but outdated - please update to latest version';
+          } else if (hasNewsletterScript) {
+            validationLevel = 'incomplete';
+            message = 'Script found but missing required attributes';
+          } else {
+            validationLevel = 'missing';
+            message = 'Newsletter script not found';
+          }
+          
+          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Generated at match: ${hasMatchingGeneratedAt} | Validation: ${validationLevel}`);
           
           checkedUrls.push({
             url,
@@ -1073,10 +1109,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasStoreDomain,
             hasPopupConfig,
             hasIntegrationType,
-            hasScriptVersion,
-            hasGeneratedAt,
+            hasScriptVersion: hasAnyScriptVersion,
+            hasGeneratedAt: hasAnyGeneratedAt,
+            hasMatchingScriptVersion,
+            hasMatchingGeneratedAt,
             validationLevel,
-            success: isValidInstallation
+            message,
+            success: isValidInstallation,
+            currentValues,
+            isOutdated: hasOutdatedScript
           });
           
           if (isValidInstallation) {
@@ -1097,11 +1138,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateStore(storeId, { isVerified: foundOnAnyUrl });
       
+      // Check if any URL has an outdated script
+      const hasOutdatedScript = checkedUrls.some(result => result.isOutdated);
+      const successfulResult = checkedUrls.find(result => result.success);
+      const outdatedResult = checkedUrls.find(result => result.isOutdated);
+      
       if (foundOnAnyUrl) {
         res.json({ 
           installed: true,
-          message: "Script is properly installed",
+          message: "Script is properly installed and up-to-date",
           checkedUrls
+        });
+      } else if (hasOutdatedScript) {
+        res.json({ 
+          installed: false,
+          isOutdated: true,
+          message: "Script is installed but outdated - please update to the latest version",
+          checkedUrls,
+          debug: {
+            storeId,
+            urlsChecked: urlsToCheck,
+            outdatedScriptFound: true,
+            lastError: lastError instanceof Error ? lastError.message : 'No current error'
+          }
         });
       } else {
         res.json({ 
@@ -1122,6 +1181,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to verify installation" });
     }
   });
+
+  // Helper function to get current script values for verification
+  function getCurrentScriptValues(storeId: string, shopifyUrl: string, baseUrl: string) {
+    const script = popupGeneratorService.generateIntegrationScript(storeId, shopifyUrl, baseUrl);
+    
+    // Extract values from the generated script
+    const scriptVersionMatch = script.match(/script\.setAttribute\('data-script-version',\s*'([^']+)'\)/);
+    const generatedAtMatch = script.match(/script\.setAttribute\('data-generated-at',\s*'([^']+)'\)/);
+    const storeDomainMatch = script.match(/script\.setAttribute\('data-store-domain',\s*'([^']+)'\)/);
+    
+    return {
+      scriptVersion: scriptVersionMatch ? scriptVersionMatch[1] : null,
+      generatedAt: generatedAtMatch ? generatedAtMatch[1] : null,
+      storeDomain: storeDomainMatch ? storeDomainMatch[1] : null
+    };
+  }
 
   // Integration Script Generation
   app.get("/api/stores/:storeId/integration-script", authenticateSession, async (req: AuthRequest, res) => {
@@ -1152,10 +1227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         baseUrl = 'http://localhost:5000';
       }
       
-      console.log('Domain detection using SCRIPTENV:', { 
-        scriptEnv,
-        final_baseUrl: baseUrl 
-      });
+      console.log('Script baseUrl determined:', baseUrl);
       
       const script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl, baseUrl);
       res.send(script);
