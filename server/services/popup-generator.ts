@@ -170,13 +170,13 @@ export class PopupGeneratorService {
     const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
     const lastSubscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
     
-    // If subscribed recently (within 24 hours), don't show popup
+    // If subscribed recently (within 24 hours), verify with server
     if (lastSubscribedEmail && lastSubscribedTime) {
       const timeDiff = Date.now() - parseInt(lastSubscribedTime);
       const hoursAgo = timeDiff / (1000 * 60 * 60);
       
       if (hoursAgo < 24 && lastSubscribedEmail.includes('@')) {
-        // Verify with server
+        // Always verify with server when localStorage exists
         try {
           const checkUrl = API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail);
           const checkResponse = await fetch(checkUrl);
@@ -187,10 +187,11 @@ export class PopupGeneratorService {
               shouldShowPopup = false;
               return;
             } else {
-              // No longer subscribed, clear localStorage
+              // No longer subscribed, clear ALL storage (localStorage + sessionStorage)
               localStorage.removeItem(STORAGE_KEY);
               localStorage.removeItem(STORAGE_KEY + '_time');
-              console.log('Foxx Newsletter: User no longer subscribed, localStorage cleared');
+              sessionStorage.removeItem(STORAGE_KEY + '_session');
+              console.log('Foxx Newsletter: User no longer subscribed, all storage cleared');
             }
           }
         } catch (error) {
@@ -202,13 +203,15 @@ export class PopupGeneratorService {
       }
     }
     
-    // Method 2: Check for session-based suppression (popup shown this session)
-    const sessionKey = STORAGE_KEY + '_session';
-    const sessionSuppression = sessionStorage.getItem(sessionKey);
-    
-    if (sessionSuppression) {
-      shouldShowPopup = false;
-      return;
+    // Method 2: Check for session-based suppression (only if no localStorage check was performed)
+    if (!lastSubscribedEmail) {
+      const sessionKey = STORAGE_KEY + '_session';
+      const sessionSuppression = sessionStorage.getItem(sessionKey);
+      
+      if (sessionSuppression) {
+        shouldShowPopup = false;
+        return;
+      }
     }
   }
   

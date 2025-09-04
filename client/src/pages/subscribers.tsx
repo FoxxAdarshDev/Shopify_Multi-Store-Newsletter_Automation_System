@@ -250,7 +250,13 @@ export default function Subscribers() {
                       />
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Session ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Name
@@ -284,8 +290,14 @@ export default function Subscribers() {
                           data-testid={`checkbox-subscriber-${subscriber.id}`}
                         />
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {subscriber.id.substring(0, 8)}...
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         {subscriber.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {subscriber.sessionId ? subscriber.sessionId.substring(0, 12) + '...' : '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                         {subscriber.name || "—"}
