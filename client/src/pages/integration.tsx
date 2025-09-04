@@ -13,7 +13,7 @@ interface Store {
 }
 
 export default function Integration() {
-  const { id: storeId } = useParams<{ id: string }>();
+  const { storeId } = useParams<{ storeId: string }>();
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [copiedScript, setCopiedScript] = useState(false);
   const { toast } = useToast();
