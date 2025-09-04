@@ -867,22 +867,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Store not found" });
       }
       
-      // Try multiple URLs to verify installation
+      // Only check the main domain (custom domain takes priority over shopifyUrl)
       const urlsToCheck = [];
       
-      // Add the main shopify URL
-      if (store.shopifyUrl) {
-        urlsToCheck.push(store.shopifyUrl);
-      }
-      
-      // Add custom domain if available
+      // Priority: custom domain first, then shopify URL
       if (store.customDomain) {
         urlsToCheck.push(store.customDomain);
-      }
-      
-      // Add .myshopify.com URL if we have the store name
-      if (store.shopifyStoreName) {
-        urlsToCheck.push(`https://${store.shopifyStoreName}.myshopify.com`);
+      } else if (store.shopifyUrl) {
+        urlsToCheck.push(store.shopifyUrl);
       }
       
       console.log(`Checking script installation for store ${storeId} on URLs:`, urlsToCheck);
@@ -908,17 +900,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const html = await response.text();
           const hasNewsletterScript = html.includes('newsletter-popup.js');
           const hasStoreId = html.includes(`data-store-id="${storeId}"`);
+          const hasStoreDomain = html.includes(`data-store-domain="`);
           
-          console.log(`${url} - Newsletter script found: ${hasNewsletterScript}, Store ID found: ${hasStoreId}`);
+          // Script is valid if it has the newsletter script AND either store ID or store domain
+          const isValidInstallation = hasNewsletterScript && (hasStoreId || hasStoreDomain);
+          
+          console.log(`${url} - Newsletter script found: ${hasNewsletterScript}, Store ID found: ${hasStoreId}, Store domain found: ${hasStoreDomain}`);
           
           checkedUrls.push({
             url,
             hasNewsletterScript,
             hasStoreId,
-            success: hasNewsletterScript && hasStoreId
+            hasStoreDomain,
+            success: isValidInstallation
           });
           
-          if (hasNewsletterScript && hasStoreId) {
+          if (isValidInstallation) {
             foundOnAnyUrl = true;
             console.log(`Script verified successfully on ${url}`);
             break;
