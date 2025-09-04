@@ -1039,16 +1039,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                  html.includes(`script.setAttribute("data-store-domain"`) ||
                                  html.includes(`data-store-domain="`);
           
-          // Script is valid if it has the newsletter script AND either store ID or store domain
-          const isValidInstallation = hasNewsletterScript && (hasStoreId || hasStoreDomain);
+          // Check for additional script attributes to ensure it's our complete script
+          const hasPopupConfig = html.includes(`data-popup-config`) || 
+                                html.includes(`script.setAttribute('data-popup-config'`) ||
+                                html.includes(`script.setAttribute("data-popup-config"`);
           
-          console.log(`${url} - Newsletter script found: ${hasNewsletterScript}, Store ID found: ${hasStoreId}, Store domain found: ${hasStoreDomain}`);
+          const hasIntegrationType = html.includes(`data-integration-type`) ||
+                                   html.includes(`script.setAttribute('data-integration-type'`) ||
+                                   html.includes(`script.setAttribute("data-integration-type"`);
+          
+          const hasScriptVersion = html.includes(`data-script-version`) ||
+                                  html.includes(`script.setAttribute('data-script-version'`) ||
+                                  html.includes(`script.setAttribute("data-script-version"`);
+          
+          const hasGeneratedAt = html.includes(`data-generated-at`) ||
+                                html.includes(`script.setAttribute('data-generated-at'`) ||
+                                html.includes(`script.setAttribute("data-generated-at"`);
+          
+          // Script is valid if it has the newsletter script AND store ID AND at least one other key attribute
+          const hasRequiredAttributes = hasStoreId && (hasStoreDomain || hasPopupConfig || hasIntegrationType);
+          const isValidInstallation = hasNewsletterScript && hasRequiredAttributes;
+          
+          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version: ${hasScriptVersion}, Generated at: ${hasGeneratedAt}`);
           
           checkedUrls.push({
             url,
             hasNewsletterScript,
             hasStoreId,
             hasStoreDomain,
+            hasPopupConfig,
+            hasIntegrationType,
+            hasScriptVersion,
+            hasGeneratedAt,
             success: isValidInstallation
           });
           
