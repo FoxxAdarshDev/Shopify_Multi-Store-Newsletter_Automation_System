@@ -451,12 +451,12 @@ export class PopupGeneratorService {
   }
   
   // Trigger logic
-  function shouldShowPopup() {
+  function canShowPopup() {
     return !localStorage.getItem(STORAGE_KEY) && POPUP_CONFIG && POPUP_CONFIG.isActive;
   }
   
   function initPopup() {
-    if (!shouldShowPopup()) return;
+    if (!canShowPopup()) return;
     
     // Check for suppress after subscription
     if (POPUP_CONFIG.suppressAfterSubscription && localStorage.getItem(STORAGE_KEY)) {
