@@ -200,13 +200,23 @@ export default function Settings() {
   
   const handleUrlEdit = (storeId: string, currentUrl: string) => {
     setEditingUrl(storeId);
-    setNewUrl(currentUrl?.replace('.myshopify.com', '').replace('https://', '').replace('http://', '') || '');
+    // Only populate if it's actually a .myshopify.com URL
+    if (currentUrl?.endsWith('.myshopify.com')) {
+      setNewUrl(currentUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', ''));
+    } else {
+      setNewUrl(''); // Empty for non-.myshopify.com URLs
+    }
     setUrlEditMode('myshopify');
   };
   
   const handleDomainEdit = (storeId: string, currentUrl: string) => {
     setEditingDomain(storeId);
-    setNewDomain(currentUrl || '');
+    // Only populate if it's NOT a .myshopify.com URL
+    if (currentUrl?.endsWith('.myshopify.com')) {
+      setNewDomain(''); // Empty for .myshopify.com URLs
+    } else {
+      setNewDomain(currentUrl || '');
+    }
     setUrlEditMode('domain');
   };
   
