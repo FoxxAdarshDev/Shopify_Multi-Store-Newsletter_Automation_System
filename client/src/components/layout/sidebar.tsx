@@ -74,14 +74,21 @@ export default function Sidebar() {
         
         {/* Store Selector */}
         <div className="mt-4">
-          <Select value={selectedStoreId || ''} onValueChange={setSelectedStoreId}>
+          <Select value={selectedStoreId || ''} onValueChange={(value) => {
+            if (value === 'add-new') {
+              setLocation('/onboarding');
+            } else if (value === 'setup') {
+              setLocation('/settings');
+            } else {
+              setSelectedStoreId(value);
+            }
+          }}>
             <SelectTrigger className="w-full">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
                 <SelectValue placeholder="Select Store">
                   {selectedStore?.name || 'Select Store'}
                 </SelectValue>
-                <ChevronDown className="h-4 w-4 ml-auto" />
               </div>
             </SelectTrigger>
             <SelectContent>
@@ -96,14 +103,14 @@ export default function Sidebar() {
                   </div>
                 </SelectItem>
               ))}
-              <SelectItem value="add-new" onSelect={() => setLocation('/onboarding')}>
+              <SelectItem value="add-new">
                 <div className="flex items-center text-blue-600">
                   <Plus className="w-4 h-4 mr-2" />
                   Add New Site
                 </div>
               </SelectItem>
               <div className="border-t pt-1">
-                <SelectItem value="setup" onSelect={() => setLocation('/settings')}>
+                <SelectItem value="setup">
                   <div className="flex items-center">
                     <SettingsIcon className="w-4 h-4 mr-2" />
                     Setup
