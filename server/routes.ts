@@ -1548,20 +1548,31 @@ Team Foxx Bioprocess`,
     }
   });
 
-  // Email Click Tracking Route
+  // Email Click Tracking Route - Store-specific tracking
   app.get("/track/:trackingId", async (req, res) => {
     try {
       const { trackingId } = req.params;
       const ipAddress = req.ip || req.connection.remoteAddress;
       const userAgent = req.get('User-Agent');
 
-      // Record the click
-      await storage.recordEmailClick(trackingId, ipAddress, userAgent);
+      console.log('Track click for trackingId:', trackingId, 'from IP:', ipAddress);
 
-      // Redirect to the original URL with UTM parameters
-      const originalUrl = 'https://www.foxxbioprocess.com';
-      const redirectUrl = `${originalUrl}?utm_source=newsletter&utm_medium=email&utm_campaign=welcome-discount&tracking_id=${trackingId}`;
+      // Get the tracking record to verify it exists and get store-specific data
+      const trackingRecord = await storage.getEmailClickTracking(trackingId);
+      if (!trackingRecord) {
+        console.log('Tracking record not found for:', trackingId);
+        return res.redirect(302, 'https://www.foxxbioprocess.com');
+      }
+
+      // Record the click with store context
+      await storage.recordEmailClick(trackingId, ipAddress, userAgent);
+      console.log('Click recorded for store:', trackingRecord.storeId);
+
+      // Use the original URL from the database and add UTM parameters
+      const baseUrl = trackingRecord.originalUrl;
+      const redirectUrl = `${baseUrl}?utm_source=${trackingRecord.utmSource}&utm_medium=${trackingRecord.utmMedium}&utm_campaign=${trackingRecord.utmCampaign}&tracking_id=${trackingId}`;
       
+      console.log('Redirecting to store-specific URL:', redirectUrl);
       res.redirect(302, redirectUrl);
     } catch (error) {
       console.error("Email click tracking error:", error);

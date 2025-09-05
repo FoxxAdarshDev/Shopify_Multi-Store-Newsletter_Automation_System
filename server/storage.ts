@@ -496,6 +496,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(emailClickTracking.storeId, storeId))
       .orderBy(desc(emailClickTracking.createdAt));
   }
+
+  async getEmailClickTracking(trackingId: string): Promise<EmailClickTracking | undefined> {
+    const [tracking] = await db
+      .select()
+      .from(emailClickTracking)
+      .where(eq(emailClickTracking.trackingId, trackingId))
+      .limit(1);
+    return tracking;
+  }
 }
 
 export const storage = new DatabaseStorage();
