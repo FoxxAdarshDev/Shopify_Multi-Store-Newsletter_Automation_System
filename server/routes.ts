@@ -1468,7 +1468,13 @@ Team Foxx Bioprocess`,
   app.post("/api/email-template/preview", authenticateSession, async (req: AuthRequest, res) => {
     try {
       const templateForm = req.body;
-      const html = emailService.generatePreviewEmail(templateForm);
+      
+      // Get current domain for logo URL
+      const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');
+      const host = req.get('Host');
+      const baseUrl = host ? `${protocol}://${host}` : 'http://localhost:5000';
+      
+      const html = emailService.generatePreviewEmail(templateForm, baseUrl);
       res.json({ html });
     } catch (error) {
       console.error("Generate email preview error:", error);

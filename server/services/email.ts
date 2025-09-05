@@ -201,7 +201,7 @@ Team Foxx Bioprocess`,
         <div class="container" style="max-width: 600px; margin: 0 auto; padding: 20px;">
           <!-- Header -->
           <div style="background: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; border-bottom: 3px solid ${template.primaryColor};">
-            ${template.headerLogo ? `<img src="${template.headerLogo}" alt="${template.headerText}" style="max-height: 80px; margin-bottom: 20px;">` : ''}
+            ${template.headerLogo ? `<img src="${template.headerLogo}" alt="${template.headerText}" style="max-height: 80px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">` : ''}
             <h1 style="color: ${template.primaryColor}; margin: 0; font-size: 28px;">${template.headerText}</h1>
           </div>
           
@@ -242,17 +242,25 @@ Team Foxx Bioprocess`,
     `;
   }
 
-  generatePreviewEmail(templateForm: any): string {
+  generatePreviewEmail(templateForm: any, baseUrl: string = 'http://localhost:5000'): string {
     // Sample data for preview
     const firstName = "John Smith";
     const discountCode = templateForm.discountCode || "WELCOME15";
     const trackingUrl = "https://www.foxxbioprocess.com";
     
+    // Fix logo path for email preview - use the current domain
+    const updatedTemplate = {
+      ...templateForm,
+      headerLogo: templateForm.headerLogo === "/assets/foxx-logo.png" 
+        ? `${baseUrl}/attached_assets/foxx-logo.png` 
+        : templateForm.headerLogo
+    };
+    
     return this.generateCustomWelcomeEmailTemplate(
       firstName,
       discountCode,
       templateForm.discountPercentage || 15,
-      templateForm,
+      updatedTemplate,
       trackingUrl
     );
   }
