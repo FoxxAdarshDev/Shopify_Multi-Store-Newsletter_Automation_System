@@ -147,8 +147,16 @@ export class DatabaseStorage implements IStorage {
     const resetToken = this.generateResetToken();
     const resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     
+    // Extract username from email (before @ symbol)
+    const username = email.split('@')[0];
+    
+    // Create temporary password that will be changed during setup
+    const tempPassword = 'TEMP_' + resetToken.substring(0, 16);
+    
     return await this.createUser({
       email,
+      username,
+      password: tempPassword,
       role: 'member',
       isActive: false,
       isEmailVerified: false,

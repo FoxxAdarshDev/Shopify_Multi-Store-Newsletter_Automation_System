@@ -33,11 +33,12 @@ type CreateMemberData = z.infer<typeof createMemberSchema>;
 
 const AVAILABLE_PERMISSIONS = {
   'manage_stores': 'Manage Stores',
-  'manage_popups': 'Manage Popups',
+  'manage_popups': 'Manage Popups', 
   'view_subscribers': 'View Subscribers',
   'manage_subscribers': 'Manage Subscribers',
   'manage_email_settings': 'Manage Email Settings',
   'manage_integrations': 'Manage Integrations',
+  'delete_data': 'Delete Stores/Data',
 };
 
 export default function Members() {

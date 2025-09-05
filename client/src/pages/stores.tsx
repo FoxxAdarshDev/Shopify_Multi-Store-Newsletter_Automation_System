@@ -8,6 +8,7 @@ import { Plus, Settings, Eye, Trash2, Store as StoreIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AddStoreModal from "@/components/modals/add-store-modal";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Store {
   id: string;
@@ -25,6 +26,7 @@ export default function Stores() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { hasPermission } = useAuth();
 
   const { data: stores = [], isLoading } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
@@ -49,6 +51,15 @@ export default function Stores() {
   });
 
   const handleDeleteStore = (storeId: string) => {
+    if (!hasPermission('delete_data')) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete stores",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (confirm("Are you sure you want to delete this store? This action cannot be undone.")) {
       deleteStoreMutation.mutate(storeId);
     }
@@ -169,16 +180,18 @@ export default function Stores() {
                       <Eye className="h-4 w-4 mr-1" />
                       Preview
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteStore(store.id)}
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                      data-testid={`button-delete-${store.id}`}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
+                    {hasPermission('delete_data') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteStore(store.id)}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        data-testid={`button-delete-${store.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Remove
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-border">

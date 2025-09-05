@@ -15,8 +15,10 @@ export const sessions = pgTable(
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull(),
+  password: text("password").notNull(),
   email: text("email").notNull().unique(),
-  password: text("password"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   role: text("role").notNull().default("member"), // 'admin' or 'member'
   isActive: boolean("is_active").default(true).notNull(),
   isEmailVerified: boolean("is_email_verified").default(false).notNull(),
@@ -24,7 +26,6 @@ export const users = pgTable("users", {
   resetTokenExpiry: timestamp("reset_token_expiry"),
   lastLoginAt: timestamp("last_login_at"),
   permissions: jsonb("permissions").default({}), // For member permissions control
-  createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
