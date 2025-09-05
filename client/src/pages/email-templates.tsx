@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,7 @@ Team Foxx Bioprocess`,
   });
 
   const [previewHtml, setPreviewHtml] = useState("");
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   const { data: template, isLoading } = useQuery<EmailTemplate>({
     queryKey: ["/api/email-template"],
@@ -99,8 +100,19 @@ Team Foxx Bioprocess`,
         primaryColor: template.primaryColor,
         secondaryColor: template.secondaryColor
       });
+      // Auto-generate preview when template loads
+      setTimeout(() => generatePreviewMutation.mutate(), 100);
     }
   }, [template]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [debounceTimer]);
 
   const updateTemplateMutation = useMutation({
     mutationFn: async (updatedTemplate: Partial<EmailTemplate>) => {
@@ -152,11 +164,23 @@ Team Foxx Bioprocess`,
     generatePreviewMutation.mutate();
   };
 
+  const debouncedPreview = useCallback(() => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    const timer = setTimeout(() => {
+      generatePreviewMutation.mutate();
+    }, 500); // Wait 500ms after user stops typing
+    setDebounceTimer(timer);
+  }, [debounceTimer, generatePreviewMutation]);
+
   const handleInputChange = (field: string, value: any) => {
     setTemplateForm(prev => ({
       ...prev,
       [field]: value
     }));
+    // Auto-generate preview with debounce
+    debouncedPreview();
   };
 
   const handleSocialLinkChange = (platform: string, url: string) => {
@@ -167,6 +191,8 @@ Team Foxx Bioprocess`,
         [platform]: url
       }
     }));
+    // Auto-generate preview with debounce
+    debouncedPreview();
   };
 
   if (isLoading) {
