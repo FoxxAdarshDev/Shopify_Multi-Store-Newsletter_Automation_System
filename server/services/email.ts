@@ -178,6 +178,13 @@ Team Foxx Bioprocess`,
   ): string {
     const socialLinks = template.socialMediaLinks || {};
     
+    // Convert relative logo URL to full URL for email
+    const apiBaseUrl = process.env.API_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+    let headerLogoUrl = template.headerLogo;
+    if (headerLogoUrl && headerLogoUrl.startsWith('/')) {
+      headerLogoUrl = `${apiBaseUrl}${headerLogoUrl}`;
+    }
+    
     // Replace placeholders in body content
     let bodyContent = template.bodyContent
       .replace(/\[First Name\]/g, firstName)
@@ -201,7 +208,7 @@ Team Foxx Bioprocess`,
         <div class="container" style="max-width: 600px; margin: 0 auto; padding: 20px;">
           <!-- Header -->
           <div style="background: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; border-bottom: 3px solid ${template.primaryColor};">
-            ${template.headerLogo ? `<img src="${template.headerLogo}" alt="${template.headerText}" style="max-height: 80px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">` : ''}
+            ${headerLogoUrl ? `<img src="${headerLogoUrl}" alt="${template.headerText}" style="max-height: 80px; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto;">` : ''}
             <h1 style="color: ${template.primaryColor}; margin: 0; font-size: 28px;">${template.headerText}</h1>
           </div>
           
@@ -253,8 +260,9 @@ Team Foxx Bioprocess`,
     
     // Convert relative logo URL to full URL for preview
     const updatedTemplate = { ...templateForm };
-    if (updatedTemplate.headerLogo === "/assets/foxx-logo.png" || updatedTemplate.headerLogo === "/assets/images/foxx-logo.png") {
-      updatedTemplate.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
+    if (updatedTemplate.headerLogo && updatedTemplate.headerLogo.startsWith('/')) {
+      // If it's a relative path (starts with /), prepend the domain
+      updatedTemplate.headerLogo = `${apiBaseUrl}${updatedTemplate.headerLogo}`;
     }
     
     return this.generateCustomWelcomeEmailTemplate(

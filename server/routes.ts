@@ -1428,11 +1428,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Email template API baseUrl determined:', apiBaseUrl);
       
       if (!template) {
-        // Return default template if none exists with detected domain (only for new templates)
+        // Return default template if none exists - store only path, not full URL
         const defaultTemplate = {
           templateName: "Welcome Email Template",
           subject: "Thank You for Registering – Here's Your 15% Discount!",
-          headerLogo: `${apiBaseUrl}/assets/images/foxx-logo.png`,
+          headerLogo: "/assets/images/foxx-logo.png",
           headerText: "Foxx Bioprocess",
           bodyContent: `Dear [First Name],
 
