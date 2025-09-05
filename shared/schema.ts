@@ -151,6 +151,7 @@ Happy shopping!
 Warm regards,
 Team Foxx Bioprocess`),
   footerText: text("footer_text").default("© 2024 Foxx Bioprocess. All rights reserved."),
+  footerNote: text("footer_note").default("You have received this mail because your e-mail ID is registered with us. This is a system-generated e-mail, please don't reply to this message."),
   socialMediaLinks: jsonb("social_media_links").default({
     website: "https://www.foxxbioprocess.com",
     linkedin: "",

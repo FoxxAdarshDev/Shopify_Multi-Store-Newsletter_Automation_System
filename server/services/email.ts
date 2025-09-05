@@ -305,17 +305,14 @@ Team Foxx Bioprocess`,
             </div>
             
             <!-- Company Address -->
-            ${(template.companyAddress || template.companyCity || template.companyState || template.companyZipCode || template.companyCountry) ? `
+            ${template.companyAddress ? `
               <div style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 8px; color: #666; font-size: 13px; line-height: 1.4;">
-                ${template.companyAddress ? `<div style="margin-bottom: 5px;">${template.companyAddress}</div>` : ''}
-                ${(template.companyCity || template.companyState || template.companyZipCode) ? `<div style="margin-bottom: 5px;">
-                  ${template.companyCity ? template.companyCity : ''}${template.companyCity && (template.companyState || template.companyZipCode) ? ', ' : ''}${template.companyState ? template.companyState : ''}${template.companyState && template.companyZipCode ? ' ' : ''}${template.companyZipCode ? template.companyZipCode : ''}
-                </div>` : ''}
-                ${template.companyCountry ? `<div>${template.companyCountry}</div>` : ''}
+                <div>${template.companyAddress}</div>
               </div>
             ` : ''}
             
             <p style="color: #666; font-size: 12px; margin: 10px 0;">${template.footerText}</p>
+            ${template.footerNote ? `<p style="color: #999; font-size: 11px; margin: 10px 0; font-style: italic;">${template.footerNote}</p>` : ''}
           </div>
         </div>
       </body>

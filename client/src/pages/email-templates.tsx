@@ -23,6 +23,7 @@ interface EmailTemplate {
   headerText: string | null;
   bodyContent: string;
   footerText: string | null;
+  footerNote?: string | null;
   socialMediaLinks: {
     website?: string;
     linkedin?: string;
@@ -81,6 +82,7 @@ Happy shopping!
 Warm regards,
 Team Foxx Bioprocess`,
     footerText: "© 2024 Foxx Bioprocess. All rights reserved.",
+    footerNote: "You have received this mail because your e-mail ID is registered with us. This is a system-generated e-mail, please don't reply to this message.",
     socialMediaLinks: {
       website: "https://www.foxxbioprocess.com",
       linkedin: "",
@@ -126,6 +128,7 @@ Team Foxx Bioprocess`,
         headerText: template.headerText || "Foxx Bioprocess",
         bodyContent: template.bodyContent || "",
         footerText: template.footerText || "© 2024 Foxx Bioprocess. All rights reserved.",
+        footerNote: template.footerNote ?? "You have received this mail because your e-mail ID is registered with us. This is a system-generated e-mail, please don't reply to this message.",
         socialMediaLinks: {
           website: template.socialMediaLinks?.website ?? "https://www.foxxbioprocess.com",
           linkedin: template.socialMediaLinks?.linkedin ?? "",
@@ -465,6 +468,21 @@ Team Foxx Bioprocess`,
                     onChange={(e) => handleInputChange("footerText", e.target.value)}
                     data-testid="input-footer-text"
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="footer-note">Footer Note</Label>
+                  <Textarea
+                    id="footer-note"
+                    value={templateForm.footerNote}
+                    onChange={(e) => handleInputChange("footerNote", e.target.value)}
+                    rows={3}
+                    placeholder="You have received this mail because your e-mail ID is registered with us. This is a system-generated e-mail, please don't reply to this message."
+                    data-testid="textarea-footer-note"
+                  />
+                  <div className="text-xs text-muted-foreground mt-1">
+                    This note will appear at the bottom of the email footer, typically for unsubscribe/compliance information.
+                  </div>
                 </div>
               </TabsContent>
 
