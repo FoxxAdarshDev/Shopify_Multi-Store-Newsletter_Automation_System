@@ -1447,9 +1447,8 @@ Team Foxx Bioprocess`,
     try {
       const templateData = req.body;
       
-      // Convert relative logo URL to full URL using REPLIT_DEV_DOMAIN
-      const replicateDomain = process.env.REPLIT_DEV_DOMAIN;
-      const apiBaseUrl = replicateDomain ? `https://${replicateDomain}` : (process.env.API_BASE_URL || 'http://localhost:5000');
+      // Convert relative logo URL to full URL using API_BASE_URL
+      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
       if (templateData.headerLogo === "/assets/foxx-logo.png" || templateData.headerLogo === "/assets/images/foxx-logo.png") {
         templateData.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
       }
@@ -1478,9 +1477,8 @@ Team Foxx Bioprocess`,
     try {
       const templateForm = req.body;
       
-      // Use REPLIT_DEV_DOMAIN environment variable for logo assets
-      const replicateDomain = process.env.REPLIT_DEV_DOMAIN;
-      const baseUrl = replicateDomain ? `https://${replicateDomain}` : (process.env.API_BASE_URL || 'http://localhost:5000');
+      // Use API_BASE_URL environment variable for logo assets
+      const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
       
       const html = emailService.generatePreviewEmail(templateForm, baseUrl);
       res.json({ html });

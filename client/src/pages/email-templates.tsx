@@ -41,7 +41,7 @@ export default function EmailTemplates() {
   const [templateForm, setTemplateForm] = useState({
     templateName: "Welcome Email Template",
     subject: "Thank You for Registering – Here's Your 15% Discount!",
-    headerLogo: "/assets/images/foxx-logo.png",
+    headerLogo: `${window.location.origin}/assets/images/foxx-logo.png`,
     headerText: "Foxx Bioprocess",
     bodyContent: `Dear [First Name],
 
@@ -83,10 +83,15 @@ Team Foxx Bioprocess`,
 
   useEffect(() => {
     if (template) {
+      // Create full URL for logo display
+      const currentDomain = window.location.origin;
+      const logoUrl = template.headerLogo || "/assets/images/foxx-logo.png";
+      const fullLogoUrl = logoUrl.startsWith('http') ? logoUrl : `${currentDomain}${logoUrl}`;
+      
       setTemplateForm({
         templateName: template.templateName,
         subject: template.subject,
-        headerLogo: template.headerLogo || "/assets/images/foxx-logo.png",
+        headerLogo: fullLogoUrl,
         headerText: template.headerText || "Foxx Bioprocess",
         bodyContent: template.bodyContent,
         footerText: template.footerText || "© 2024 Foxx Bioprocess. All rights reserved.",
