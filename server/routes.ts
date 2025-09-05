@@ -1547,6 +1547,53 @@ Team Foxx Bioprocess`,
     }
   });
 
+  // Email Click Tracking Route
+  app.get("/track/:trackingId", async (req, res) => {
+    try {
+      const { trackingId } = req.params;
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('User-Agent');
+
+      // Record the click
+      await storage.recordEmailClick(trackingId, ipAddress, userAgent);
+
+      // Redirect to the original URL with UTM parameters
+      const originalUrl = 'https://www.foxxbioprocess.com';
+      const redirectUrl = `${originalUrl}?utm_source=newsletter&utm_medium=email&utm_campaign=welcome-discount&tracking_id=${trackingId}`;
+      
+      res.redirect(302, redirectUrl);
+    } catch (error) {
+      console.error("Email click tracking error:", error);
+      // Fallback redirect to main website
+      res.redirect(302, 'https://www.foxxbioprocess.com');
+    }
+  });
+
+  // Get detailed email click analytics for a store
+  app.get("/api/stores/:storeId/email-analytics", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const { storeId } = req.params;
+      
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Get detailed click tracking data
+      const clickData = await storage.getEmailClicksByStore(storeId);
+      const stats = await storage.getEmailClickStats(storeId);
+
+      res.json({
+        stats,
+        clickData
+      });
+    } catch (error) {
+      console.error("Get email analytics error:", error);
+      res.status(500).json({ message: "Failed to fetch email analytics" });
+    }
+  });
+
   // Serve the newsletter popup JavaScript file
 
   const httpServer = createServer(app);

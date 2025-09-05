@@ -135,7 +135,9 @@ Team Foxx Bioprocess`,
           isClicked: false,
           clickCount: 0
         });
-        trackingUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/track/${trackingId}`;
+        // Get the current domain from environment or use Replit domain
+        const baseUrl = process.env.API_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+        trackingUrl = `${baseUrl}/track/${trackingId}`;
       }
 
       const mailOptions = {
@@ -225,7 +227,7 @@ Team Foxx Bioprocess`,
             ${bodyContent.split('\n').map((line: string) => `<p style="margin-bottom: 15px; font-size: 16px; line-height: 1.6;">${line}</p>`).join('')}
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${trackingUrl}?utm_source=newsletter&utm_medium=email&utm_campaign=welcome-discount" 
+              <a href="${trackingUrl}" 
                  style="display: inline-block; background: linear-gradient(135deg, ${template.primaryColor}, ${template.secondaryColor}); 
                  color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; 
                  font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">

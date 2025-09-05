@@ -7,9 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Eye, Save, Palette, Link, Image } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Mail, Eye, Save, Palette, Link, Image, BarChart3 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 interface EmailTemplate {
   id: string;
@@ -34,9 +37,27 @@ interface EmailTemplate {
   updatedAt: string;
 }
 
+interface EmailClickData {
+  id: string;
+  subscriberEmail: string;
+  storeId: string;
+  trackingId: string;
+  originalUrl: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  clickedAt: string | null;
+  isClicked: boolean;
+  clickCount: number;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
 export default function EmailTemplates() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedStore } = useStoreContext();
 
   const [templateForm, setTemplateForm] = useState({
     templateName: "Welcome Email Template",
@@ -81,6 +102,15 @@ Team Foxx Bioprocess`,
 
   const { data: clickStats } = useQuery<{clickRate: number; totalEmails: number; totalClicks: number}>({
     queryKey: ["/api/email-click-stats"],
+  });
+
+  // Query for detailed analytics data
+  const { data: detailedAnalytics, isLoading: analyticsLoading } = useQuery<{
+    stats: {clickRate: number; totalEmails: number; totalClicks: number};
+    clickData: EmailClickData[];
+  }>({
+    queryKey: [`/api/stores/${selectedStore?.id}/email-analytics`],
+    enabled: !!selectedStore?.id,
   });
 
   useEffect(() => {
@@ -237,31 +267,123 @@ Team Foxx Bioprocess`,
 
       {/* Analytics Stats */}
       {clickStats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary" data-testid="text-click-rate">
-                {clickStats.clickRate}%
-              </div>
-              <div className="text-sm text-muted-foreground">Click Rate</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold" data-testid="text-total-emails">
-                {clickStats.totalEmails}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Emails Sent</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600" data-testid="text-total-clicks">
-                {clickStats.totalClicks}
-              </div>
-              <div className="text-sm text-muted-foreground">Total Clicks</div>
-            </CardContent>
-          </Card>
+        <div className="space-y-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-primary" data-testid="text-click-rate">
+                  {clickStats.clickRate}%
+                </div>
+                <div className="text-sm text-muted-foreground">Click Rate</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold" data-testid="text-total-emails">
+                  {clickStats.totalEmails}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Emails Sent</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-2xl font-bold text-green-600" data-testid="text-total-clicks">
+                  {clickStats.totalClicks}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Clicks</div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Detailed Analytics Button */}
+          <div className="flex justify-center">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center space-x-2" data-testid="button-detailed-analytics">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>View Detailed Analytics</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Email Analytics Details</DialogTitle>
+                </DialogHeader>
+                
+                {analyticsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="text-muted-foreground">Loading analytics...</div>
+                  </div>
+                ) : detailedAnalytics?.clickData ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-3 gap-4">
+                      <Card>
+                        <CardContent className="p-3 text-center">
+                          <div className="text-lg font-bold text-primary">
+                            {detailedAnalytics.stats.clickRate}%
+                          </div>
+                          <div className="text-xs text-muted-foreground">Click Rate</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-3 text-center">
+                          <div className="text-lg font-bold">
+                            {detailedAnalytics.stats.totalEmails}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Emails Sent</div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-3 text-center">
+                          <div className="text-lg font-bold text-green-600">
+                            {detailedAnalytics.stats.totalClicks}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Total Clicks</div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Individual Email Details</h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Sent Date</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Clicked Date</TableHead>
+                            <TableHead>Click Count</TableHead>
+                            <TableHead>IP Address</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {detailedAnalytics.clickData.map((email) => (
+                            <TableRow key={email.id} data-testid={`row-email-${email.subscriberEmail}`}>
+                              <TableCell className="font-medium">{email.subscriberEmail}</TableCell>
+                              <TableCell>{new Date(email.createdAt).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <Badge variant={email.isClicked ? "default" : "secondary"}>
+                                  {email.isClicked ? "Clicked" : "Sent"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {email.clickedAt ? new Date(email.clickedAt).toLocaleDateString() : "-"}
+                              </TableCell>
+                              <TableCell>{email.clickCount}</TableCell>
+                              <TableCell className="text-xs">{email.ipAddress || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No email data available
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       )}
 
