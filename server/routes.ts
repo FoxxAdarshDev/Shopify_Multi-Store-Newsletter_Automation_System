@@ -1402,7 +1402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const defaultTemplate = {
           templateName: "Welcome Email Template",
           subject: "Thank You for Registering – Here's Your 15% Discount!",
-          headerLogo: "/assets/foxx-logo.png",
+          headerLogo: "/assets/images/foxx-logo.png",
           headerText: "Foxx Bioprocess",
           bodyContent: `Dear [First Name],
 
@@ -1447,8 +1447,8 @@ Team Foxx Bioprocess`,
       
       // Convert relative logo URL to full URL using API_BASE_URL
       const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
-      if (templateData.headerLogo === "/assets/foxx-logo.png") {
-        templateData.headerLogo = `${apiBaseUrl}/attached_assets/foxx-logo.png`;
+      if (templateData.headerLogo === "/assets/foxx-logo.png" || templateData.headerLogo === "/assets/images/foxx-logo.png") {
+        templateData.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
       }
       
       // Check if template exists

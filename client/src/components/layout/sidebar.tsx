@@ -2,7 +2,8 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useStoreContext } from "@/hooks/useStoreContext";
-import foxxLogo from "@assets/foxx-logo.png";
+// Use the public assets path for logo
+const foxxLogo = "/assets/images/foxx-logo.png";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   BarChart3, 
