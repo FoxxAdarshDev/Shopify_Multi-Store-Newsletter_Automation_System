@@ -263,10 +263,10 @@ Team Foxx Bioprocess`,
     // Sample data for preview
     const firstName = "John Smith";
     const discountCode = templateForm.discountCode || "WELCOME15";
-    const trackingUrl = "https://www.foxxbioprocess.com";
-    
+    // Show preview tracking URL so users can see what the actual email looks like
     // Use API_BASE_URL or provided baseUrl for logo assets
     const apiBaseUrl = baseUrl || process.env.API_BASE_URL || 'http://localhost:5000';
+    const trackingUrl = `${apiBaseUrl}/track/preview-tracking-id-example`;
     
     // Convert relative logo URL to full URL for preview
     const updatedTemplate = { ...templateForm };
