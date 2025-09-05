@@ -124,6 +124,26 @@ Team Foxx Bioprocess`,
       let trackingUrl = 'https://www.foxxbioprocess.com';
       console.log('sendWelcomeEmail: storeId provided:', storeId);
       if (storeId) {
+        // Fetch store information to get the correct domain
+        const store = await storage.getStore(storeId);
+        if (!store) {
+          console.error('sendWelcomeEmail: Store not found for ID:', storeId);
+          // Use fallback URL if store not found
+          trackingUrl = 'https://www.foxxbioprocess.com';
+        } else {
+
+        // Determine the correct store URL - prioritize customDomain, fallback to shopifyStoreName
+        let storeUrl = 'https://www.foxxbioprocess.com'; // fallback
+        if (store.customDomain) {
+          storeUrl = store.customDomain.startsWith('http') ? store.customDomain : `https://${store.customDomain}`;
+        } else if (store.shopifyStoreName) {
+          storeUrl = `https://${store.shopifyStoreName}`;
+        } else if (store.shopifyUrl) {
+          storeUrl = store.shopifyUrl;
+        }
+        
+        console.log('sendWelcomeEmail: Using store-specific URL:', storeUrl);
+
         // Generate store-specific tracking ID for better debugging and organization
         const randomId = crypto.randomBytes(12).toString('hex');
         const storePrefix = storeId.slice(0, 8); // First 8 chars of store ID
@@ -135,7 +155,7 @@ Team Foxx Bioprocess`,
             subscriberEmail,
             storeId,
             trackingId,
-            originalUrl: 'https://www.foxxbioprocess.com',
+            originalUrl: storeUrl, // Use the store-specific URL
             utmSource: 'newsletter',
             utmMedium: 'email',
             utmCampaign: 'welcome-discount',
@@ -149,8 +169,9 @@ Team Foxx Bioprocess`,
           console.log('sendWelcomeEmail: Generated tracking URL:', trackingUrl);
         } catch (error) {
           console.error('sendWelcomeEmail: Failed to create tracking record:', error);
-          // Fallback to direct URL if tracking fails
-          trackingUrl = 'https://www.foxxbioprocess.com';
+          // Fallback to store-specific URL if tracking fails  
+          trackingUrl = storeUrl;
+        }
         }
       } else {
         console.log('sendWelcomeEmail: No storeId provided, using direct URL');
