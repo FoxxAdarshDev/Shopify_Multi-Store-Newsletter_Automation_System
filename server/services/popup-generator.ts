@@ -11,8 +11,11 @@ export class PopupGeneratorService {
     let scriptBaseUrl = baseUrl;
     
     if (!scriptBaseUrl) {
-      // For Replit environment
-      if (process.env.REPLIT_DEV_DOMAIN) {
+      // Check for API_BASE_URL environment variable first
+      if (process.env.API_BASE_URL) {
+        scriptBaseUrl = process.env.API_BASE_URL;
+      } else if (process.env.REPLIT_DEV_DOMAIN) {
+        // For Replit environment
         scriptBaseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
       } else if (process.env.NODE_ENV === 'production') {
         scriptBaseUrl = 'https://your-app-domain.com';
@@ -36,8 +39,11 @@ export class PopupGeneratorService {
     let scriptBaseUrl = baseUrl;
     
     if (!scriptBaseUrl) {
-      // For Replit environment
-      if (process.env.REPLIT_DEV_DOMAIN) {
+      // Check for API_BASE_URL environment variable first
+      if (process.env.API_BASE_URL) {
+        scriptBaseUrl = process.env.API_BASE_URL;
+      } else if (process.env.REPLIT_DEV_DOMAIN) {
+        // For Replit environment
         scriptBaseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
       } else if (process.env.NODE_ENV === 'production') {
         scriptBaseUrl = 'https://your-app-domain.com';
@@ -75,8 +81,11 @@ export class PopupGeneratorService {
     // Determine base URL for API calls
     let apiBaseUrl = baseUrl;
     if (!apiBaseUrl) {
-      // For Replit environment
-      if (process.env.REPLIT_DEV_DOMAIN) {
+      // Check for API_BASE_URL environment variable first
+      if (process.env.API_BASE_URL) {
+        apiBaseUrl = process.env.API_BASE_URL;
+      } else if (process.env.REPLIT_DEV_DOMAIN) {
+        // For Replit environment
         apiBaseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
       } else if (process.env.NODE_ENV === 'production') {
         apiBaseUrl = 'https://your-app-domain.com';
