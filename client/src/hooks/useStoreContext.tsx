@@ -38,7 +38,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // No URL store ID, select the first store
       setSelectedStoreId(stores[0].id);
     }
-  }, [stores, selectedStoreId, params?.storeId]);
+  }, [stores, params?.storeId]); // Remove selectedStoreId dependency to prevent loop
 
   const selectedStore = stores.find(store => store.id === selectedStoreId) || null;
 
@@ -56,8 +56,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       // Convert general route to store-specific route
       const page = location.substring(1); // Remove leading slash
-      if (['popup-builder', 'subscribers', 'integration', 'settings'].includes(page)) {
+      if (['popup-builder', 'subscribers', 'integration', 'settings', 'email-templates'].includes(page)) {
         setLocation(`/store/${storeId}/${page}`);
+      } else {
+        // Default to dashboard for any other page
+        setLocation(`/store/${storeId}/dashboard`);
       }
     }
   };
