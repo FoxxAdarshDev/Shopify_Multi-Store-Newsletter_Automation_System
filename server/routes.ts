@@ -1445,6 +1445,12 @@ Team Foxx Bioprocess`,
     try {
       const templateData = req.body;
       
+      // Convert relative logo URL to full URL using API_BASE_URL
+      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+      if (templateData.headerLogo === "/assets/foxx-logo.png") {
+        templateData.headerLogo = `${apiBaseUrl}/attached_assets/foxx-logo.png`;
+      }
+      
       // Check if template exists
       const existingTemplate = await storage.getEmailTemplate(req.user!.id);
       
