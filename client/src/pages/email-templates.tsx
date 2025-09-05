@@ -41,7 +41,7 @@ export default function EmailTemplates() {
   const [templateForm, setTemplateForm] = useState({
     templateName: "Welcome Email Template",
     subject: "Thank You for Registering – Here's Your 15% Discount!",
-    headerLogo: `${window.location.origin}/assets/images/foxx-logo.png`,
+    headerLogo: "/assets/images/foxx-logo.png", // Will be updated with backend domain detection
     headerText: "Foxx Bioprocess",
     bodyContent: `Dear [First Name],
 
@@ -83,15 +83,12 @@ Team Foxx Bioprocess`,
 
   useEffect(() => {
     if (template) {
-      // Create full URL for logo display
-      const currentDomain = window.location.origin;
-      const logoUrl = template.headerLogo || "/assets/images/foxx-logo.png";
-      const fullLogoUrl = logoUrl.startsWith('http') ? logoUrl : `${currentDomain}${logoUrl}`;
-      
+      // Backend now provides the full URL with correct domain detection
+      // No need to modify it on frontend
       setTemplateForm({
         templateName: template.templateName,
         subject: template.subject,
-        headerLogo: fullLogoUrl,
+        headerLogo: template.headerLogo || "/assets/images/foxx-logo.png", // Use the full URL provided by backend
         headerText: template.headerText || "Foxx Bioprocess",
         bodyContent: template.bodyContent,
         footerText: template.footerText || "© 2024 Foxx Bioprocess. All rights reserved.",

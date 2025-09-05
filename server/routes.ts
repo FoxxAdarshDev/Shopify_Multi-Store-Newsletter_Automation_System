@@ -1402,14 +1402,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Utility function to detect current domain (same logic as popup generator)
+  function detectApiBaseUrl(): string {
+    // Check for API_BASE_URL environment variable first
+    if (process.env.API_BASE_URL) {
+      return process.env.API_BASE_URL;
+    } else if (process.env.REPLIT_DEV_DOMAIN) {
+      // For Replit environment
+      return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    } else if (process.env.NODE_ENV === 'production') {
+      return 'https://your-app-domain.com';
+    } else {
+      return 'http://localhost:5000';
+    }
+  }
+
   // Email Templates Management
   app.get("/api/email-template", authenticateSession, async (req: AuthRequest, res) => {
     try {
       const template = await storage.getEmailTemplate(req.user!.id);
+      
+      // Always detect the current domain using the same logic as integration script
+      const apiBaseUrl = detectApiBaseUrl();
+      console.log('Email template API baseUrl determined:', apiBaseUrl);
+      
       if (!template) {
-        // Return default template if none exists
-        const replicateDomain = process.env.REPLIT_DEV_DOMAIN;
-        const apiBaseUrl = replicateDomain ? `https://${replicateDomain}` : (process.env.API_BASE_URL || 'http://localhost:5000');
+        // Return default template if none exists with detected domain
         const defaultTemplate = {
           templateName: "Welcome Email Template",
           subject: "Thank You for Registering – Here's Your 15% Discount!",
@@ -1444,7 +1462,14 @@ Team Foxx Bioprocess`,
         };
         res.json(defaultTemplate);
       } else {
-        res.json(template);
+        // Update headerLogo in existing template to use current detected domain
+        const responseTemplate = {
+          ...template,
+          headerLogo: template.headerLogo?.startsWith('http') 
+            ? template.headerLogo 
+            : `${apiBaseUrl}${template.headerLogo || '/assets/images/foxx-logo.png'}`
+        };
+        res.json(responseTemplate);
       }
     } catch (error) {
       console.error("Get email template error:", error);
@@ -1456,10 +1481,16 @@ Team Foxx Bioprocess`,
     try {
       const templateData = req.body;
       
-      // Convert relative logo URL to full URL using API_BASE_URL
-      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+      // Use the same domain detection logic as GET endpoint
+      const apiBaseUrl = detectApiBaseUrl();
+      console.log('Email template PUT API baseUrl determined:', apiBaseUrl);
+      
+      // Convert relative logo URL to full URL using detected base URL
       if (templateData.headerLogo === "/assets/foxx-logo.png" || templateData.headerLogo === "/assets/images/foxx-logo.png") {
         templateData.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
+      } else if (templateData.headerLogo && !templateData.headerLogo.startsWith('http')) {
+        // Handle any other relative URLs
+        templateData.headerLogo = `${apiBaseUrl}${templateData.headerLogo}`;
       }
       
       // Check if template exists
@@ -1486,8 +1517,9 @@ Team Foxx Bioprocess`,
     try {
       const templateForm = req.body;
       
-      // Use API_BASE_URL environment variable for logo assets
-      const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+      // Use the same domain detection logic for consistent URL generation
+      const baseUrl = detectApiBaseUrl();
+      console.log('Email template preview API baseUrl determined:', baseUrl);
       
       const html = emailService.generatePreviewEmail(templateForm, baseUrl);
       res.json({ html });
