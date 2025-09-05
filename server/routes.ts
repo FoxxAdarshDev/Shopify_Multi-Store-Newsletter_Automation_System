@@ -1469,10 +1469,8 @@ Team Foxx Bioprocess`,
     try {
       const templateForm = req.body;
       
-      // Get current domain for logo URL
-      const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');
-      const host = req.get('Host');
-      const baseUrl = host ? `${protocol}://${host}` : 'http://localhost:5000';
+      // Use API_BASE_URL environment variable for logo assets
+      const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
       
       const html = emailService.generatePreviewEmail(templateForm, baseUrl);
       res.json({ html });

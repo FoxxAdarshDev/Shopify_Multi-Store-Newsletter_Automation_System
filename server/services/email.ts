@@ -242,17 +242,20 @@ Team Foxx Bioprocess`,
     `;
   }
 
-  generatePreviewEmail(templateForm: any, baseUrl: string = 'http://localhost:5000'): string {
+  generatePreviewEmail(templateForm: any, baseUrl?: string): string {
     // Sample data for preview
     const firstName = "John Smith";
     const discountCode = templateForm.discountCode || "WELCOME15";
     const trackingUrl = "https://www.foxxbioprocess.com";
     
-    // Fix logo path for email preview - use the current domain
+    // Use API_BASE_URL or provided baseUrl for logo assets
+    const apiBaseUrl = baseUrl || process.env.API_BASE_URL || 'http://localhost:5000';
+    
+    // Fix logo path for email preview - use the API base URL
     const updatedTemplate = {
       ...templateForm,
       headerLogo: templateForm.headerLogo === "/assets/foxx-logo.png" 
-        ? `${baseUrl}/attached_assets/foxx-logo.png` 
+        ? `${apiBaseUrl}/attached_assets/foxx-logo.png` 
         : templateForm.headerLogo
     };
     
