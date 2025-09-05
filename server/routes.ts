@@ -799,10 +799,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if we should use existing script version or generate new one
       const shouldGenerateNew = regenerate === 'true' || !store.activeScriptVersion || !store.activeScriptTimestamp;
       
+      // Auto-detect current domain from request
+      const protocol = req.get('X-Forwarded-Proto') || req.protocol || 'https';
+      const host = req.get('X-Forwarded-Host') || req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+
       let script;
       if (shouldGenerateNew) {
         // Generate new script with new version/timestamp
-        script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl);
+        script = popupGeneratorService.generateIntegrationScript(storeId, store.shopifyUrl, baseUrl);
         
         // Extract and store the new script version and timestamp
         const scriptVersionMatch = script.match(/script\.setAttribute\('data-script-version',\s*'([^']+)'\)/);
@@ -823,7 +828,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storeId, 
           store.shopifyUrl, 
           store.activeScriptVersion || 'v1.0.0',
-          store.activeScriptTimestamp || new Date().toISOString()
+          store.activeScriptTimestamp || new Date().toISOString(),
+          baseUrl
         );
       }
       
@@ -838,8 +844,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve Newsletter Script
   app.get("/js/newsletter-popup.js", async (req, res) => {
     try {
-      // Determine the base URL for API calls
-      const baseUrl = req.get('Host') ? `${req.get('X-Forwarded-Proto') || 'https'}://${req.get('Host')}` : 'http://localhost:5000';
+      // Auto-detect current domain from request
+      const protocol = req.get('X-Forwarded-Proto') || req.protocol || 'https';
+      const host = req.get('X-Forwarded-Host') || req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      
       const script = popupGeneratorService.getNewsletterScript(baseUrl);
       res.setHeader("Content-Type", "application/javascript");
       res.setHeader("Cache-Control", "public, max-age=300"); // 5 minute cache
@@ -1515,17 +1524,6 @@ Team Foxx Bioprocess`,
   });
 
   // Serve the newsletter popup JavaScript file
-  app.get("/js/newsletter-popup.js", (req, res) => {
-    try {
-      const script = popupGeneratorService.getNewsletterScript();
-      res.setHeader('Content-Type', 'application/javascript');
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-      res.send(script);
-    } catch (error) {
-      console.error("Serve newsletter script error:", error);
-      res.status(500).send('// Error loading newsletter script');
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;
