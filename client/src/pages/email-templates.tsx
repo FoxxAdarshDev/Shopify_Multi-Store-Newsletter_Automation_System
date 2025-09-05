@@ -90,12 +90,12 @@ Team Foxx Bioprocess`,
         headerText: template.headerText || "Foxx Bioprocess",
         bodyContent: template.bodyContent,
         footerText: template.footerText || "© 2024 Foxx Bioprocess. All rights reserved.",
-        socialMediaLinks: template.socialMediaLinks || {
-          website: "https://www.foxxbioprocess.com",
-          linkedin: "",
-          twitter: "",
-          facebook: "",
-          instagram: ""
+        socialMediaLinks: {
+          website: template.socialMediaLinks?.website || "https://www.foxxbioprocess.com",
+          linkedin: template.socialMediaLinks?.linkedin || "",
+          twitter: template.socialMediaLinks?.twitter || "",
+          facebook: template.socialMediaLinks?.facebook || "",
+          instagram: template.socialMediaLinks?.instagram || ""
         },
         primaryColor: template.primaryColor,
         secondaryColor: template.secondaryColor

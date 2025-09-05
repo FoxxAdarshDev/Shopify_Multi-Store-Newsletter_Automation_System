@@ -822,8 +822,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         script = popupGeneratorService.generateIntegrationScriptWithVersion(
           storeId, 
           store.shopifyUrl, 
-          store.activeScriptVersion,
-          store.activeScriptTimestamp
+          store.activeScriptVersion || 'v1.0.0',
+          store.activeScriptTimestamp || new Date().toISOString()
         );
       }
       
@@ -1399,10 +1399,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const template = await storage.getEmailTemplate(req.user!.id);
       if (!template) {
         // Return default template if none exists
+        const replicateDomain = process.env.REPLIT_DEV_DOMAIN;
+        const apiBaseUrl = replicateDomain ? `https://${replicateDomain}` : (process.env.API_BASE_URL || 'http://localhost:5000');
         const defaultTemplate = {
           templateName: "Welcome Email Template",
           subject: "Thank You for Registering – Here's Your 15% Discount!",
-          headerLogo: "/assets/images/foxx-logo.png",
+          headerLogo: `${apiBaseUrl}/assets/images/foxx-logo.png`,
           headerText: "Foxx Bioprocess",
           bodyContent: `Dear [First Name],
 
@@ -1445,8 +1447,9 @@ Team Foxx Bioprocess`,
     try {
       const templateData = req.body;
       
-      // Convert relative logo URL to full URL using API_BASE_URL
-      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+      // Convert relative logo URL to full URL using REPLIT_DEV_DOMAIN
+      const replicateDomain = process.env.REPLIT_DEV_DOMAIN;
+      const apiBaseUrl = replicateDomain ? `https://${replicateDomain}` : (process.env.API_BASE_URL || 'http://localhost:5000');
       if (templateData.headerLogo === "/assets/foxx-logo.png" || templateData.headerLogo === "/assets/images/foxx-logo.png") {
         templateData.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
       }
@@ -1475,8 +1478,9 @@ Team Foxx Bioprocess`,
     try {
       const templateForm = req.body;
       
-      // Use API_BASE_URL environment variable for logo assets
-      const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+      // Use REPLIT_DEV_DOMAIN environment variable for logo assets
+      const replicateDomain = process.env.REPLIT_DEV_DOMAIN;
+      const baseUrl = replicateDomain ? `https://${replicateDomain}` : (process.env.API_BASE_URL || 'http://localhost:5000');
       
       const html = emailService.generatePreviewEmail(templateForm, baseUrl);
       res.json({ html });
