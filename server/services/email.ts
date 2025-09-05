@@ -295,84 +295,11 @@ Team Foxx Bioprocess`,
           <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; text-align: center; border-top: 1px solid #e9ecef;">
             <!-- Social Media Links -->
             <div style="margin-bottom: 20px;">
-              <!--[if mso]>
-              <table border="0" cellspacing="0" cellpadding="0" align="center">
-                <tr>
-              <![endif]-->
-              ${socialLinks.website ? `
-              <!--[if mso]>
-                <td align="center" style="padding: 5px;">
-                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${socialLinks.website}" 
-                               style="height:30px;v-text-anchor:middle;width:90px;" arcsize="67%" 
-                               fillcolor="${template.primaryColor}" strokecolor="${template.primaryColor}">
-                    <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Website</center>
-                  </v:roundrect>
-                </td>
-              <![endif]-->
-              <!--[if !mso]><!-->
-              <a href="${socialLinks.website}" style="display: inline-block; margin: 5px 15px; background: ${template.primaryColor}; color: white; padding: 8px 16px; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: bold;">
-                🌐 Website</a>
-              <!--<![endif]-->` : ''}
-              ${socialLinks.linkedin ? `
-              <!--[if mso]>
-                <td align="center" style="padding: 5px;">
-                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${socialLinks.linkedin}" 
-                               style="height:30px;v-text-anchor:middle;width:90px;" arcsize="67%" 
-                               fillcolor="#0077B5" strokecolor="#0077B5">
-                    <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">LinkedIn</center>
-                  </v:roundrect>
-                </td>
-              <![endif]-->
-              <!--[if !mso]><!-->
-              <a href="${socialLinks.linkedin}" style="display: inline-block; margin: 5px 15px; background: #0077B5; color: white; padding: 8px 16px; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: bold;">
-                💼 LinkedIn</a>
-              <!--<![endif]-->` : ''}
-              ${socialLinks.twitter ? `
-              <!--[if mso]>
-                <td align="center" style="padding: 5px;">
-                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${socialLinks.twitter}" 
-                               style="height:30px;v-text-anchor:middle;width:90px;" arcsize="67%" 
-                               fillcolor="#1DA1F2" strokecolor="#1DA1F2">
-                    <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Twitter</center>
-                  </v:roundrect>
-                </td>
-              <![endif]-->
-              <!--[if !mso]><!-->
-              <a href="${socialLinks.twitter}" style="display: inline-block; margin: 5px 15px; background: #1DA1F2; color: white; padding: 8px 16px; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: bold;">
-                🐦 Twitter</a>
-              <!--<![endif]-->` : ''}
-              ${socialLinks.facebook ? `
-              <!--[if mso]>
-                <td align="center" style="padding: 5px;">
-                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${socialLinks.facebook}" 
-                               style="height:30px;v-text-anchor:middle;width:90px;" arcsize="67%" 
-                               fillcolor="#1877F2" strokecolor="#1877F2">
-                    <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Facebook</center>
-                  </v:roundrect>
-                </td>
-              <![endif]-->
-              <!--[if !mso]><!-->
-              <a href="${socialLinks.facebook}" style="display: inline-block; margin: 5px 15px; background: #1877F2; color: white; padding: 8px 16px; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: bold;">
-                📘 Facebook</a>
-              <!--<![endif]-->` : ''}
-              ${socialLinks.instagram ? `
-              <!--[if mso]>
-                <td align="center" style="padding: 5px;">
-                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${socialLinks.instagram}" 
-                               style="height:30px;v-text-anchor:middle;width:90px;" arcsize="67%" 
-                               fillcolor="#E4405F" strokecolor="#E4405F">
-                    <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">Instagram</center>
-                  </v:roundrect>
-                </td>
-              <![endif]-->
-              <!--[if !mso]><!-->
-              <a href="${socialLinks.instagram}" style="display: inline-block; margin: 5px 15px; background: #E4405F; color: white; padding: 8px 16px; text-decoration: none; border-radius: 20px; font-size: 14px; font-weight: bold;">
-                📷 Instagram</a>
-              <!--<![endif]-->` : ''}
-              <!--[if mso]>
-                </tr>
-              </table>
-              <![endif]-->
+              ${socialLinks.website ? `<a href="${socialLinks.website}" style="display: inline-block; margin: 0 15px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">Website</a>` : ''}
+              ${socialLinks.linkedin ? `<a href="${socialLinks.linkedin}" style="display: inline-block; margin: 0 15px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">LinkedIn</a>` : ''}
+              ${socialLinks.twitter ? `<a href="${socialLinks.twitter}" style="display: inline-block; margin: 0 15px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">Twitter</a>` : ''}
+              ${socialLinks.facebook ? `<a href="${socialLinks.facebook}" style="display: inline-block; margin: 0 15px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">Facebook</a>` : ''}
+              ${socialLinks.instagram ? `<a href="${socialLinks.instagram}" style="display: inline-block; margin: 0 15px; color: ${template.primaryColor}; text-decoration: none; font-weight: bold;">Instagram</a>` : ''}
             </div>
             
             <!-- Company Address -->
