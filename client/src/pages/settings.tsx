@@ -47,7 +47,7 @@ interface Store {
 
 export default function Settings() {
   const [emailForm, setEmailForm] = useState<EmailSettings>({
-    smtpHost: "smtp.gmail.com",
+    smtpHost: "smtp.office365.com",
     smtpPort: 587,
     fromEmail: "updates@foxxbioprocess.com",
     fromName: "Foxx Bioprocess",

@@ -150,11 +150,11 @@ export default function Members() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="members-title">Member Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-semibold" style={{ color: '#0071b9' }} data-testid="members-title">Member Management</h1>
+          <p className="text-sm text-muted-foreground">
             Manage team members and their permissions
           </p>
         </div>

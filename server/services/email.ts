@@ -31,6 +31,8 @@ export class EmailService {
   }
 
   async createTransporter(config: EmailConfig): Promise<nodemailer.Transporter> {
+    const isOffice365 = config.host.includes('office365') || config.host.includes('outlook');
+    
     return nodemailer.createTransport({
       host: config.host,
       port: config.port,
@@ -41,14 +43,21 @@ export class EmailService {
       },
       tls: {
         rejectUnauthorized: false,
-        ciphers: 'SSLv3',
+        // Office 365 compatible TLS settings
+        ciphers: isOffice365 ? 'SSLv3' : 'SSLv3',
+        servername: isOffice365 ? config.host : undefined,
       },
-      // Enhanced deliverability settings
+      // Enhanced deliverability settings for Office 365
       pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
+      maxConnections: isOffice365 ? 3 : 5,
+      maxMessages: isOffice365 ? 50 : 100,
       rateDelta: 1000,
-      rateLimit: 5,
+      rateLimit: isOffice365 ? 3 : 5,
+      // Office 365 specific settings
+      requireTLS: true,
+      connectionTimeout: 60000,
+      greetingTimeout: 30000,
+      socketTimeout: 60000,
     });
   }
 
@@ -397,6 +406,19 @@ Team Foxx Bioprocess`,
         to: email,
         subject: isNewMember ? 'Welcome - Set Your Password' : 'Password Reset Request',
         html: this.generatePasswordResetTemplate(email, resetUrl, isNewMember),
+        // Enhanced headers for better deliverability
+        headers: {
+          'X-Mailer': 'Foxx Bioprocess Newsletter System',
+          'X-Priority': '1',
+          'Importance': 'high',
+          'List-Unsubscribe': `<mailto:${config.fromEmail}?subject=Unsubscribe>`,
+        },
+        // Enable DKIM if available
+        dkim: {
+          domainName: config.fromEmail.split('@')[1],
+          keySelector: 'default',
+          privateKey: process.env.DKIM_PRIVATE_KEY || '',
+        }
       };
 
       await transporter.sendMail(mailOptions);
