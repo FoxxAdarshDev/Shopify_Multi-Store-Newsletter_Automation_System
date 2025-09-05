@@ -73,43 +73,26 @@ Team Foxx Bioprocess`,
   const [previewHtml, setPreviewHtml] = useState("");
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const { data: template, isLoading, refetch } = useQuery<EmailTemplate>({
-    queryKey: ["/api/email-template", Date.now()], // Add timestamp to force fresh fetch
-    queryFn: () => {
-      const timestamp = Date.now();
-      return fetch(`/api/email-template?_t=${timestamp}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      }).then(res => res.json());
-    },
+  const { data: template, isLoading } = useQuery<EmailTemplate>({
+    queryKey: ["/api/email-template"],
     staleTime: 0, // Always fetch fresh data to get updated domain URLs
-    cacheTime: 0, // Don't cache to ensure fresh domain detection
+    gcTime: 0, // Don't cache to ensure fresh domain detection (updated from cacheTime)
   });
-
-  // Force refresh template data on component mount to get fresh domain detection
-  useEffect(() => {
-    queryClient.clear(); // Clear all cache
-    queryClient.invalidateQueries({ queryKey: ["/api/email-template"] });
-    setTimeout(() => refetch(), 100); // Delay refetch to ensure cache is cleared
-  }, []);
 
   const { data: clickStats } = useQuery<{clickRate: number; totalEmails: number; totalClicks: number}>({
     queryKey: ["/api/email-click-stats"],
   });
 
   useEffect(() => {
-    if (template) {
+    if (template && typeof template === 'object' && 'templateName' in template) {
       // Backend now provides the full URL with correct domain detection
       // No need to modify it on frontend
       setTemplateForm({
-        templateName: template.templateName,
-        subject: template.subject,
+        templateName: template.templateName || "Welcome Email Template",
+        subject: template.subject || "Thank You for Registering – Here's Your 15% Discount!",
         headerLogo: template.headerLogo || "/assets/images/foxx-logo.png", // Use the full URL provided by backend
         headerText: template.headerText || "Foxx Bioprocess",
-        bodyContent: template.bodyContent,
+        bodyContent: template.bodyContent || "",
         footerText: template.footerText || "© 2024 Foxx Bioprocess. All rights reserved.",
         socialMediaLinks: {
           website: template.socialMediaLinks?.website || "https://www.foxxbioprocess.com",
@@ -118,23 +101,13 @@ Team Foxx Bioprocess`,
           facebook: template.socialMediaLinks?.facebook || "",
           instagram: template.socialMediaLinks?.instagram || ""
         },
-        primaryColor: template.primaryColor,
-        secondaryColor: template.secondaryColor
+        primaryColor: template.primaryColor || "#0071b9",
+        secondaryColor: template.secondaryColor || "#00c68c"
       });
       // Auto-generate preview when template loads
       setTimeout(() => generatePreviewMutation.mutate(), 100);
     }
   }, [template]);
-
-  // Update form with detected domain URL when template data loads
-  useEffect(() => {
-    if (template?.headerLogo) {
-      setTemplateForm(prev => ({
-        ...prev,
-        headerLogo: template.headerLogo || "/assets/images/foxx-logo.png"
-      }));
-    }
-  }, [template?.headerLogo]);
 
   // Cleanup timer on unmount
   useEffect(() => {
