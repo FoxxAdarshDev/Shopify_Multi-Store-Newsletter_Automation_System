@@ -251,8 +251,11 @@ Team Foxx Bioprocess`,
     // Use API_BASE_URL or provided baseUrl for logo assets
     const apiBaseUrl = baseUrl || process.env.API_BASE_URL || 'http://localhost:5000';
     
-    // Use the template as-is since logo URLs are now stored as full URLs
-    const updatedTemplate = templateForm;
+    // Convert relative logo URL to full URL for preview
+    const updatedTemplate = { ...templateForm };
+    if (updatedTemplate.headerLogo === "/assets/foxx-logo.png" || updatedTemplate.headerLogo === "/assets/images/foxx-logo.png") {
+      updatedTemplate.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
+    }
     
     return this.generateCustomWelcomeEmailTemplate(
       firstName,
