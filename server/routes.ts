@@ -1463,10 +1463,20 @@ Team Foxx Bioprocess`,
         };
         res.json(defaultTemplate);
       } else {
-        // Always update headerLogo to use freshly detected domain (override database value)
+        // Update headerLogo to use freshly detected domain while preserving custom paths
+        let logoPath = '/assets/images/foxx-logo.png'; // default path
+        
+        // If template has existing headerLogo, try to preserve the path part
+        if (template.headerLogo) {
+          const urlMatch = template.headerLogo.match(/https?:\/\/[^\/]+(\/.*)/);
+          if (urlMatch && urlMatch[1]) {
+            logoPath = urlMatch[1]; // Extract and preserve the path part
+          }
+        }
+        
         const responseTemplate = {
           ...template,
-          headerLogo: `${apiBaseUrl}/assets/images/foxx-logo.png` // Always use fresh domain detection
+          headerLogo: `${apiBaseUrl}${logoPath}` // Use detected domain + preserved path
         };
         res.json(responseTemplate);
       }
@@ -1485,11 +1495,18 @@ Team Foxx Bioprocess`,
       console.log('Email template PUT API baseUrl determined:', apiBaseUrl);
       
       // Convert relative logo URL to full URL using detected base URL
-      if (templateData.headerLogo === "/assets/foxx-logo.png" || templateData.headerLogo === "/assets/images/foxx-logo.png") {
-        templateData.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
-      } else if (templateData.headerLogo && !templateData.headerLogo.startsWith('http')) {
-        // Handle any other relative URLs
+      if (templateData.headerLogo && !templateData.headerLogo.startsWith('http')) {
+        // Handle relative URLs - preserve the path the user entered
         templateData.headerLogo = `${apiBaseUrl}${templateData.headerLogo}`;
+      } else if (templateData.headerLogo && templateData.headerLogo.startsWith('http')) {
+        // If it's already a full URL, update only the domain part but preserve the path
+        const urlMatch = templateData.headerLogo.match(/https?:\/\/[^\/]+(\/.*)/);
+        if (urlMatch && urlMatch[1]) {
+          templateData.headerLogo = `${apiBaseUrl}${urlMatch[1]}`;
+        } else {
+          // Fallback if URL parsing fails
+          templateData.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
+        }
       }
       
       // Check if template exists
