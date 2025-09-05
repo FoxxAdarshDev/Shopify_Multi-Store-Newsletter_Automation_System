@@ -1469,6 +1469,7 @@ Team Foxx Bioprocess`,
         // If template has existing headerLogo, try to preserve the path part
         if (template.headerLogo) {
           const urlMatch = template.headerLogo.match(/https?:\/\/[^\/]+(\/.*)/);
+          console.log('GET: Parsing headerLogo:', template.headerLogo, 'extracted path:', urlMatch ? urlMatch[1] : 'no match');
           if (urlMatch && urlMatch[1]) {
             logoPath = urlMatch[1]; // Extract and preserve the path part
           }
@@ -1494,20 +1495,9 @@ Team Foxx Bioprocess`,
       const apiBaseUrl = detectApiBaseUrlFromRequest(req);
       console.log('Email template PUT API baseUrl determined:', apiBaseUrl);
       
-      // Convert relative logo URL to full URL using detected base URL
-      if (templateData.headerLogo && !templateData.headerLogo.startsWith('http')) {
-        // Handle relative URLs - preserve the path the user entered
-        templateData.headerLogo = `${apiBaseUrl}${templateData.headerLogo}`;
-      } else if (templateData.headerLogo && templateData.headerLogo.startsWith('http')) {
-        // If it's already a full URL, update only the domain part but preserve the path
-        const urlMatch = templateData.headerLogo.match(/https?:\/\/[^\/]+(\/.*)/);
-        if (urlMatch && urlMatch[1]) {
-          templateData.headerLogo = `${apiBaseUrl}${urlMatch[1]}`;
-        } else {
-          // Fallback if URL parsing fails
-          templateData.headerLogo = `${apiBaseUrl}/assets/images/foxx-logo.png`;
-        }
-      }
+      // Simply save whatever headerLogo the user provided - let frontend handle domain detection
+      console.log('PUT: Received headerLogo from frontend:', templateData.headerLogo);
+      console.log('PUT: Saving headerLogo as-is without modification');
       
       // Check if template exists
       const existingTemplate = await storage.getEmailTemplate(req.user!.id);
