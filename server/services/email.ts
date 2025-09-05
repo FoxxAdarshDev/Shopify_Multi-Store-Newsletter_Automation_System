@@ -31,7 +31,7 @@ export class EmailService {
   }
 
   async createTransporter(config: EmailConfig): Promise<nodemailer.Transporter> {
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.port === 465,
@@ -207,7 +207,7 @@ Team Foxx Bioprocess`,
           
           <!-- Main Content -->
           <div class="content" style="background: white; padding: 40px; text-align: left;">
-            ${bodyContent.split('\n').map(line => `<p style="margin-bottom: 15px; font-size: 16px; line-height: 1.6;">${line}</p>`).join('')}
+            ${bodyContent.split('\n').map((line: string) => `<p style="margin-bottom: 15px; font-size: 16px; line-height: 1.6;">${line}</p>`).join('')}
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${trackingUrl}?utm_source=newsletter&utm_medium=email&utm_campaign=welcome-discount" 
