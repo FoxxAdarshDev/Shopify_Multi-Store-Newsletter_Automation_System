@@ -40,7 +40,15 @@ function OnboardingHeader({ existingStores }: { existingStores: Array<{id: strin
             className="h-8 w-auto"
           />
           
-          <Select defaultValue="add-new">
+          <Select defaultValue="add-new" onValueChange={(value) => {
+            if (value === 'add-new') {
+              // Stay on onboarding page
+              return;
+            } else {
+              // Navigate to selected store's dashboard
+              setLocation(`/store/${value}/dashboard`);
+            }
+          }}>
             <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
