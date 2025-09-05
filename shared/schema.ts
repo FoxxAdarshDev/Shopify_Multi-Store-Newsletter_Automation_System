@@ -55,7 +55,12 @@ export const popupConfigs = pgTable("popup_configs", {
     name: false,
     phone: false,
     company: false,
-    address: false
+    address: false,
+    street: false,
+    city: false,
+    state: false,
+    zipCode: false,
+    country: false
   }),
   emailValidation: jsonb("email_validation").notNull().default({
     companyEmailsOnly: true,
@@ -81,6 +86,11 @@ export const subscribers = pgTable("subscribers", {
   phone: text("phone"),
   company: text("company"),
   address: text("address"),
+  street: text("street"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  country: text("country"),
   sessionId: text("session_id"), // Browser session ID to track popup suppression
   discountCodeSent: text("discount_code_sent"),
   discountCodeUsed: boolean("discount_code_used").default(false).notNull(),

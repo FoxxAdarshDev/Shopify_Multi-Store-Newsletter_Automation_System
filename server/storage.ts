@@ -86,6 +86,10 @@ export interface IStorage {
   recordEmailClick(trackingId: string, ipAddress?: string, userAgent?: string): Promise<void>;
   getEmailClickStats(storeId: string): Promise<{clickRate: number; totalEmails: number; totalClicks: number}>;
   getEmailClicksByStore(storeId: string): Promise<EmailClickTracking[]>;
+  getEmailClickTrackingById(id: string): Promise<EmailClickTracking | undefined>;
+  deleteEmailClickTracking(id: string): Promise<boolean>;
+  bulkDeleteEmailClickTracking(ids: string[]): Promise<number>;
+  deleteEmailClickTrackingByEmail(email: string, storeId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -504,6 +508,75 @@ export class DatabaseStorage implements IStorage {
       .where(eq(emailClickTracking.trackingId, trackingId))
       .limit(1);
     return tracking;
+  }
+
+  async getEmailClickTrackingById(id: string): Promise<EmailClickTracking | undefined> {
+    const [tracking] = await db
+      .select()
+      .from(emailClickTracking)
+      .where(eq(emailClickTracking.id, id))
+      .limit(1);
+    return tracking;
+  }
+
+  async deleteEmailClickTracking(id: string): Promise<boolean> {
+    // Get the email analytics record to get subscriber email and store info
+    const trackingRecord = await this.getEmailClickTrackingById(id);
+    if (!trackingRecord) {
+      return false;
+    }
+
+    // Delete the email analytics record
+    const result = await db.delete(emailClickTracking).where(eq(emailClickTracking.id, id));
+    
+    if ((result.rowCount || 0) > 0) {
+      // Also delete the subscriber with matching email in the same store
+      const subscriber = await this.getSubscriberByEmail(trackingRecord.storeId, trackingRecord.subscriberEmail);
+      if (subscriber) {
+        await this.deleteSubscriber(subscriber.id);
+      }
+    }
+    
+    return (result.rowCount || 0) > 0;
+  }
+
+  async bulkDeleteEmailClickTracking(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    
+    // First get all the tracking records to identify which subscribers to delete
+    const trackingRecords = await db
+      .select()
+      .from(emailClickTracking)
+      .where(sql`${emailClickTracking.id} = ANY(${ids})`);
+    
+    // Delete the email analytics records
+    const result = await db.delete(emailClickTracking).where(
+      sql`${emailClickTracking.id} = ANY(${ids})`
+    );
+    
+    const deletedCount = result.rowCount || 0;
+    
+    if (deletedCount > 0) {
+      // Also delete associated subscribers
+      for (const record of trackingRecords) {
+        const subscriber = await this.getSubscriberByEmail(record.storeId, record.subscriberEmail);
+        if (subscriber) {
+          await this.deleteSubscriber(subscriber.id);
+        }
+      }
+    }
+    
+    return deletedCount;
+  }
+
+  async deleteEmailClickTrackingByEmail(email: string, storeId: string): Promise<boolean> {
+    const result = await db.delete(emailClickTracking).where(
+      and(
+        eq(emailClickTracking.subscriberEmail, email),
+        eq(emailClickTracking.storeId, storeId)
+      )
+    );
+    return (result.rowCount || 0) > 0;
   }
 }
 

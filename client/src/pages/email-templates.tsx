@@ -398,10 +398,11 @@ Team Foxx Bioprocess`,
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="content" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="content">Content</TabsTrigger>
                 <TabsTrigger value="design">Design</TabsTrigger>
                 <TabsTrigger value="social">Social</TabsTrigger>
+                <TabsTrigger value="address">Address</TabsTrigger>
                 <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
 
@@ -580,6 +581,69 @@ Team Foxx Bioprocess`,
                       placeholder="https://instagram.com/foxxbioprocess"
                       data-testid="input-social-instagram"
                     />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="address" className="space-y-4">
+                <div className="flex items-center space-x-2 mb-4">
+                  <span className="font-medium">Address Information</span>
+                </div>
+
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium mb-3">Sender Address Information</h4>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>This address information will be included in the email footer for compliance and sender identification purposes.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-4 mt-4">
+                    <div>
+                      <Label>Company Address</Label>
+                      <Input
+                        placeholder="e.g., 123 Business St, Suite 100"
+                        data-testid="input-company-address"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>City</Label>
+                        <Input
+                          placeholder="e.g., New York"
+                          data-testid="input-company-city"
+                        />
+                      </div>
+                      <div>
+                        <Label>State</Label>
+                        <Input
+                          placeholder="e.g., NY"
+                          data-testid="input-company-state"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>ZIP Code</Label>
+                        <Input
+                          placeholder="e.g., 10001"
+                          data-testid="input-company-zip"
+                        />
+                      </div>
+                      <div>
+                        <Label>Country</Label>
+                        <Input
+                          placeholder="e.g., United States"
+                          data-testid="input-company-country"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-xs text-blue-700">
+                      <strong>Note:</strong> Adding sender address information helps with email deliverability and compliance with anti-spam regulations.
+                    </p>
                   </div>
                 </div>
               </TabsContent>

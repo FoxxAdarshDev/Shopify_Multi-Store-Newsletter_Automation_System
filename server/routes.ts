@@ -1606,6 +1606,62 @@ Team Foxx Bioprocess`,
     }
   });
 
+  // Delete single email analytics record
+  app.delete("/api/email-analytics/:id", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get the email analytics record to verify ownership
+      const trackingRecord = await storage.getEmailClickTrackingById(id);
+      if (!trackingRecord) {
+        return res.status(404).json({ message: "Email analytics record not found" });
+      }
+
+      // Verify user owns the store associated with this record
+      const store = await storage.getStore(trackingRecord.storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const success = await storage.deleteEmailClickTracking(id);
+      if (!success) {
+        return res.status(404).json({ message: "Email analytics record not found" });
+      }
+
+      res.json({ message: "Email analytics record deleted successfully" });
+    } catch (error) {
+      console.error("Delete email analytics error:", error);
+      res.status(500).json({ message: "Failed to delete email analytics record" });
+    }
+  });
+
+  // Bulk delete email analytics records
+  app.delete("/api/stores/:storeId/email-analytics/bulk", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const { storeId } = req.params;
+      const { ids } = req.body;
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invalid or empty IDs array" });
+      }
+
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      const deletedCount = await storage.bulkDeleteEmailClickTracking(ids);
+      res.json({ 
+        message: `Successfully deleted ${deletedCount} email analytics records`,
+        deletedCount 
+      });
+    } catch (error) {
+      console.error("Bulk delete email analytics error:", error);
+      res.status(500).json({ message: "Failed to bulk delete email analytics records" });
+    }
+  });
+
   // Serve the newsletter popup JavaScript file
 
   const httpServer = createServer(app);
