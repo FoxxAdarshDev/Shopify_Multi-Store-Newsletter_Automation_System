@@ -242,6 +242,21 @@ Team Foxx Bioprocess`,
     `;
   }
 
+  generatePreviewEmail(templateForm: any): string {
+    // Sample data for preview
+    const firstName = "John Smith";
+    const discountCode = templateForm.discountCode || "WELCOME15";
+    const trackingUrl = "https://www.foxxbioprocess.com";
+    
+    return this.generateCustomWelcomeEmailTemplate(
+      firstName,
+      discountCode,
+      templateForm.discountPercentage || 15,
+      templateForm,
+      trackingUrl
+    );
+  }
+
   async sendAdminNotification(
     userId: string,
     subscriberEmail: string,

@@ -1393,6 +1393,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Email Templates Management
+  app.get("/api/email-template", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const template = await storage.getEmailTemplate(req.user!.id);
+      if (!template) {
+        // Return default template if none exists
+        const defaultTemplate = {
+          templateName: "Welcome Email Template",
+          subject: "Thank You for Registering – Here's Your 15% Discount!",
+          headerLogo: "/assets/foxx-logo.png",
+          headerText: "Foxx Bioprocess",
+          bodyContent: `Dear [First Name],
+
+Thank you for registering your email with Foxx Bioprocess. We're excited to have you as part of our community!
+
+As a token of our appreciation, here's a 15% discount code you can use on your next purchase through our website:
+
+[DISCOUNT_CODE]
+
+Simply apply this code at checkout on www.foxxbioprocess.com to enjoy your savings.
+
+We look forward to supporting your Single-Use Technology needs with the world's first and largest Bioprocess SUT library.
+
+Happy shopping!
+Warm regards,
+Team Foxx Bioprocess`,
+          footerText: "© 2024 Foxx Bioprocess. All rights reserved.",
+          socialMediaLinks: {
+            website: "https://www.foxxbioprocess.com",
+            linkedin: "",
+            twitter: "",
+            facebook: "",
+            instagram: ""
+          },
+          primaryColor: "#0071b9",
+          secondaryColor: "#00c68c",
+          isActive: true
+        };
+        res.json(defaultTemplate);
+      } else {
+        res.json(template);
+      }
+    } catch (error) {
+      console.error("Get email template error:", error);
+      res.status(500).json({ message: "Failed to fetch email template" });
+    }
+  });
+
+  app.put("/api/email-template", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const templateData = req.body;
+      
+      // Check if template exists
+      const existingTemplate = await storage.getEmailTemplate(req.user!.id);
+      
+      let result;
+      if (existingTemplate) {
+        result = await storage.updateEmailTemplate(req.user!.id, templateData);
+      } else {
+        result = await storage.createEmailTemplate({
+          ...templateData,
+          userId: req.user!.id
+        });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Update email template error:", error);
+      res.status(500).json({ message: "Failed to update email template" });
+    }
+  });
+
+  app.post("/api/email-template/preview", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const templateForm = req.body;
+      const html = emailService.generatePreviewEmail(templateForm);
+      res.json({ html });
+    } catch (error) {
+      console.error("Generate email preview error:", error);
+      res.status(500).json({ message: "Failed to generate email preview" });
+    }
+  });
+
+  app.get("/api/email-click-stats", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      // Get stats across all stores for the user
+      const stores = await storage.getStoresByUserId(req.user!.id);
+      let totalEmails = 0;
+      let totalClicks = 0;
+
+      for (const store of stores) {
+        const stats = await storage.getEmailClickStats(store.id);
+        totalEmails += stats.totalEmails;
+        totalClicks += stats.totalClicks;
+      }
+
+      const clickRate = totalEmails > 0 ? Math.round((totalClicks / totalEmails) * 100) : 0;
+
+      res.json({
+        clickRate,
+        totalEmails,
+        totalClicks
+      });
+    } catch (error) {
+      console.error("Get email click stats error:", error);
+      res.status(500).json({ message: "Failed to fetch email click stats" });
+    }
+  });
+
   // Serve the newsletter popup JavaScript file
   app.get("/js/newsletter-popup.js", (req, res) => {
     try {
