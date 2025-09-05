@@ -50,41 +50,50 @@ function AuthenticatedRouter() {
     return <Onboarding />;
   }
 
-  // Regular authenticated layout with sidebar
+  // Handle onboarding route separately (no sidebar)
   return (
-    <StoreProvider>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto">
-            <Header />
-            <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/store/:storeId/dashboard" component={Dashboard} />
-            <Route path="/stores" component={Stores} />
-            <Route path="/popup-builder" component={PopupBuilder} />
-            <Route path="/store/:storeId/popup-builder" component={PopupBuilder} />
-            <Route path="/subscribers" component={Subscribers} />
-            <Route path="/store/:storeId/subscribers" component={Subscribers} />
-            <Route path="/integration" component={Integration} />
-            <Route path="/store/:storeId/integration" component={Integration} />
-            <Route path="/email-templates" component={EmailTemplates} />
-            <Route path="/store/:storeId/email-templates" component={EmailTemplates} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/store/:storeId/settings" component={Settings} />
-            
-            {/* Admin only routes */}
-            {user?.role === 'admin' && (
-              <Route path="/admin/members" component={Members} />
-            )}
-            
-            <Route component={NotFound} />
-          </Switch>
-          </div>
-        </div>
-      </div>
-    </StoreProvider>
+    <Switch>
+      <Route path="/onboarding" component={Onboarding} />
+      
+      {/* Regular authenticated layout with sidebar for all other routes */}
+      <Route>
+        {() => (
+          <StoreProvider>
+            <div className="flex h-screen overflow-hidden">
+              <Sidebar />
+              <div className="flex-1 overflow-hidden">
+                <div className="h-full overflow-y-auto">
+                  <Header />
+                  <Switch>
+                  <Route path="/" component={Dashboard} />
+                  <Route path="/dashboard" component={Dashboard} />
+                  <Route path="/store/:storeId/dashboard" component={Dashboard} />
+                  <Route path="/stores" component={Stores} />
+                  <Route path="/popup-builder" component={PopupBuilder} />
+                  <Route path="/store/:storeId/popup-builder" component={PopupBuilder} />
+                  <Route path="/subscribers" component={Subscribers} />
+                  <Route path="/store/:storeId/subscribers" component={Subscribers} />
+                  <Route path="/integration" component={Integration} />
+                  <Route path="/store/:storeId/integration" component={Integration} />
+                  <Route path="/email-templates" component={EmailTemplates} />
+                  <Route path="/store/:storeId/email-templates" component={EmailTemplates} />
+                  <Route path="/settings" component={Settings} />
+                  <Route path="/store/:storeId/settings" component={Settings} />
+                  
+                  {/* Admin only routes */}
+                  {user?.role === 'admin' && (
+                    <Route path="/admin/members" component={Members} />
+                  )}
+                  
+                  <Route component={NotFound} />
+                </Switch>
+                </div>
+              </div>
+            </div>
+          </StoreProvider>
+        )}
+      </Route>
+    </Switch>
   );
 }
 
