@@ -31,10 +31,6 @@ interface EmailTemplate {
     instagram?: string;
   };
   companyAddress?: string | null;
-  companyCity?: string | null;
-  companyState?: string | null;
-  companyZipCode?: string | null;
-  companyCountry?: string | null;
   primaryColor: string;
   secondaryColor: string;
   isActive: boolean;
@@ -92,11 +88,7 @@ Team Foxx Bioprocess`,
       facebook: "",
       instagram: ""
     },
-    companyAddress: "B-129, Pandav Nagar",
-    companyCity: "New Delhi",
-    companyState: "Delhi",
-    companyZipCode: "110092",
-    companyCountry: "India",
+    companyAddress: "B-129, Pandav Nagar, New Delhi, Delhi 110092, India",
     primaryColor: "#0071b9",
     secondaryColor: "#00c68c"
   });
@@ -141,11 +133,7 @@ Team Foxx Bioprocess`,
           facebook: template.socialMediaLinks?.facebook || "",
           instagram: template.socialMediaLinks?.instagram || ""
         },
-        companyAddress: template.companyAddress || "B-129, Pandav Nagar",
-        companyCity: template.companyCity || "New Delhi",
-        companyState: template.companyState || "Delhi",
-        companyZipCode: template.companyZipCode || "110092",
-        companyCountry: template.companyCountry || "India",
+        companyAddress: template.companyAddress || "B-129, Pandav Nagar, New Delhi, Delhi 110092, India",
         primaryColor: template.primaryColor || "#0071b9",
         secondaryColor: template.secondaryColor || "#00c68c"
       });
@@ -616,52 +604,10 @@ Team Foxx Bioprocess`,
                       <Label>Company Address</Label>
                       <Input
                         value={templateForm.companyAddress || ""}
-                        onChange={(e) => updateTemplateField("companyAddress", e.target.value)}
+                        onChange={(e) => handleInputChange("companyAddress", e.target.value)}
                         placeholder="e.g., 123 Business St, Suite 100"
                         data-testid="input-company-address"
                       />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>City</Label>
-                        <Input
-                          value={templateForm.companyCity || ""}
-                          onChange={(e) => updateTemplateField("companyCity", e.target.value)}
-                          placeholder="e.g., New York"
-                          data-testid="input-company-city"
-                        />
-                      </div>
-                      <div>
-                        <Label>State</Label>
-                        <Input
-                          value={templateForm.companyState || ""}
-                          onChange={(e) => updateTemplateField("companyState", e.target.value)}
-                          placeholder="e.g., NY"
-                          data-testid="input-company-state"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>ZIP Code</Label>
-                        <Input
-                          value={templateForm.companyZipCode || ""}
-                          onChange={(e) => updateTemplateField("companyZipCode", e.target.value)}
-                          placeholder="e.g., 10001"
-                          data-testid="input-company-zip"
-                        />
-                      </div>
-                      <div>
-                        <Label>Country</Label>
-                        <Input
-                          value={templateForm.companyCountry || ""}
-                          onChange={(e) => updateTemplateField("companyCountry", e.target.value)}
-                          placeholder="e.g., United States"
-                          data-testid="input-company-country"
-                        />
-                      </div>
                     </div>
                   </div>
                   
