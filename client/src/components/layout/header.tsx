@@ -39,7 +39,7 @@ export default function Header() {
               className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-white hover:opacity-90"
               style={{ backgroundColor: '#0071b9' }}
               data-testid="button-add-store-header"
-              onClick={() => setLocation('/stores')}
+              onClick={() => setLocation('/onboarding')}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add New Store
