@@ -75,6 +75,7 @@ Team Foxx Bioprocess`,
 
   const { data: template, isLoading } = useQuery<EmailTemplate>({
     queryKey: ["/api/email-template"],
+    staleTime: 0, // Always fetch fresh data to get updated domain URLs
   });
 
   const { data: clickStats } = useQuery<{clickRate: number; totalEmails: number; totalClicks: number}>({
@@ -106,6 +107,16 @@ Team Foxx Bioprocess`,
       setTimeout(() => generatePreviewMutation.mutate(), 100);
     }
   }, [template]);
+
+  // Update form with detected domain URL when template data loads
+  useEffect(() => {
+    if (template?.headerLogo) {
+      setTemplateForm(prev => ({
+        ...prev,
+        headerLogo: template.headerLogo || "/assets/images/foxx-logo.png"
+      }));
+    }
+  }, [template?.headerLogo]);
 
   // Cleanup timer on unmount
   useEffect(() => {
