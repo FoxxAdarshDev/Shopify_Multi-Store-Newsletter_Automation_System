@@ -24,6 +24,7 @@ import ResetPassword from "@/pages/auth/reset-password";
 
 // Admin pages
 import Members from "@/pages/admin/members";
+import EmailTemplates from "@/pages/email-templates";
 
 function AuthenticatedRouter() {
   const { user } = useAuth();
@@ -68,6 +69,8 @@ function AuthenticatedRouter() {
             <Route path="/store/:storeId/subscribers" component={Subscribers} />
             <Route path="/integration" component={Integration} />
             <Route path="/store/:storeId/integration" component={Integration} />
+            <Route path="/email-templates" component={EmailTemplates} />
+            <Route path="/store/:storeId/email-templates" component={EmailTemplates} />
             <Route path="/settings" component={Settings} />
             <Route path="/store/:storeId/settings" component={Settings} />
             

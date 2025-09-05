@@ -15,7 +15,8 @@ import {
   Shield,
   ChevronDown,
   Plus,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Mail
 } from "lucide-react";
 
 interface NavigationItem {
@@ -31,6 +32,7 @@ const getNavigation = (selectedStoreId: string | null): NavigationItem[] => [
   { name: "Store Management", href: "/stores", icon: Store, permission: "manage_stores" },
   { name: "Popup Builder", href: selectedStoreId ? `/store/${selectedStoreId}/popup-builder` : "/popup-builder", icon: Layout, permission: "manage_popups" },
   { name: "Subscribers", href: selectedStoreId ? `/store/${selectedStoreId}/subscribers` : "/subscribers", icon: Users, permission: "view_subscribers" },
+  { name: "Email Templates", href: selectedStoreId ? `/store/${selectedStoreId}/email-templates` : "/email-templates", icon: Mail, permission: "manage_email_settings" },
   { name: "Integration", href: selectedStoreId ? `/store/${selectedStoreId}/integration` : "/integration", icon: Code, permission: "manage_integrations" },
   { name: "Settings", href: selectedStoreId ? `/store/${selectedStoreId}/settings` : "/settings", icon: Settings, permission: "manage_email_settings" },
   { name: "Member Management", href: "/admin/members", icon: Shield, adminOnly: true },
