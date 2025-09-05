@@ -268,6 +268,8 @@ Team Foxx Bioprocess`,
     const apiBaseUrl = baseUrl || process.env.API_BASE_URL || 'http://localhost:5000';
     const trackingUrl = `${apiBaseUrl}/track/preview-tracking-id-example`;
     
+    console.log('Preview tracking URL generated:', trackingUrl);
+    
     // Convert relative logo URL to full URL for preview
     const updatedTemplate = { ...templateForm };
     if (updatedTemplate.headerLogo && updatedTemplate.headerLogo.startsWith('/')) {
