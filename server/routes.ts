@@ -1428,7 +1428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Email template API baseUrl determined:', apiBaseUrl);
       
       if (!template) {
-        // Return default template if none exists with detected domain
+        // Return default template if none exists with detected domain (only for new templates)
         const defaultTemplate = {
           templateName: "Welcome Email Template",
           subject: "Thank You for Registering – Here's Your 15% Discount!",
@@ -1463,23 +1463,9 @@ Team Foxx Bioprocess`,
         };
         res.json(defaultTemplate);
       } else {
-        // Update headerLogo to use freshly detected domain while preserving custom paths
-        let logoPath = '/assets/images/foxx-logo.png'; // default path
-        
-        // If template has existing headerLogo, try to preserve the path part
-        if (template.headerLogo) {
-          const urlMatch = template.headerLogo.match(/https?:\/\/[^\/]+(\/.*)/);
-          console.log('GET: Parsing headerLogo:', template.headerLogo, 'extracted path:', urlMatch ? urlMatch[1] : 'no match');
-          if (urlMatch && urlMatch[1]) {
-            logoPath = urlMatch[1]; // Extract and preserve the path part
-          }
-        }
-        
-        const responseTemplate = {
-          ...template,
-          headerLogo: `${apiBaseUrl}${logoPath}` // Use detected domain + preserved path
-        };
-        res.json(responseTemplate);
+        // Return the template as-is from database - let frontend handle domain display
+        console.log('GET: Returning template with headerLogo from database:', template.headerLogo);
+        res.json(template);
       }
     } catch (error) {
       console.error("Get email template error:", error);
