@@ -1402,19 +1402,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Utility function to detect current domain (same logic as popup generator)
-  function detectApiBaseUrl(): string {
-    // Check for API_BASE_URL environment variable first
-    if (process.env.API_BASE_URL) {
-      return process.env.API_BASE_URL;
-    } else if (process.env.REPLIT_DEV_DOMAIN) {
-      // For Replit environment
-      return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-    } else if (process.env.NODE_ENV === 'production') {
-      return 'https://your-app-domain.com';
-    } else {
-      return 'http://localhost:5000';
-    }
+  // Utility function to detect current domain from HTTP request (same logic as integration script)
+  function detectApiBaseUrlFromRequest(req: any): string {
+    // Auto-detect current domain from request headers (same as integration script)
+    const protocol = req.get('X-Forwarded-Proto') || req.protocol || 'https';
+    const host = req.get('X-Forwarded-Host') || req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    
+    console.log('Email template domain detection from request:', { protocol, host, baseUrl });
+    return baseUrl;
   }
 
   // Email Templates Management
@@ -1422,8 +1418,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const template = await storage.getEmailTemplate(req.user!.id);
       
-      // Always detect the current domain using the same logic as integration script
-      const apiBaseUrl = detectApiBaseUrl();
+      // Always detect the current domain from HTTP request (same logic as integration script)
+      const apiBaseUrl = detectApiBaseUrlFromRequest(req);
       console.log('Email template API baseUrl determined:', apiBaseUrl);
       
       if (!template) {
@@ -1481,8 +1477,8 @@ Team Foxx Bioprocess`,
     try {
       const templateData = req.body;
       
-      // Use the same domain detection logic as GET endpoint
-      const apiBaseUrl = detectApiBaseUrl();
+      // Use the same request-based domain detection as GET endpoint
+      const apiBaseUrl = detectApiBaseUrlFromRequest(req);
       console.log('Email template PUT API baseUrl determined:', apiBaseUrl);
       
       // Convert relative logo URL to full URL using detected base URL
@@ -1517,8 +1513,8 @@ Team Foxx Bioprocess`,
     try {
       const templateForm = req.body;
       
-      // Use the same domain detection logic for consistent URL generation
-      const baseUrl = detectApiBaseUrl();
+      // Use the same request-based domain detection for consistent URL generation
+      const baseUrl = detectApiBaseUrlFromRequest(req);
       console.log('Email template preview API baseUrl determined:', baseUrl);
       
       const html = emailService.generatePreviewEmail(templateForm, baseUrl);
