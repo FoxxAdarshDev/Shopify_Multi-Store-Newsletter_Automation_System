@@ -1416,6 +1416,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email Templates Management
   app.get("/api/email-template", authenticateSession, async (req: AuthRequest, res) => {
     try {
+      // Disable caching to ensure fresh domain detection
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       const template = await storage.getEmailTemplate(req.user!.id);
       
       // Always detect the current domain from HTTP request (same logic as integration script)
@@ -1458,12 +1463,10 @@ Team Foxx Bioprocess`,
         };
         res.json(defaultTemplate);
       } else {
-        // Update headerLogo in existing template to use current detected domain
+        // Always update headerLogo to use freshly detected domain (override database value)
         const responseTemplate = {
           ...template,
-          headerLogo: template.headerLogo?.startsWith('http') 
-            ? template.headerLogo 
-            : `${apiBaseUrl}${template.headerLogo || '/assets/images/foxx-logo.png'}`
+          headerLogo: `${apiBaseUrl}/assets/images/foxx-logo.png` // Always use fresh domain detection
         };
         res.json(responseTemplate);
       }

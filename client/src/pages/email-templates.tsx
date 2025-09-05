@@ -73,10 +73,28 @@ Team Foxx Bioprocess`,
   const [previewHtml, setPreviewHtml] = useState("");
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const { data: template, isLoading } = useQuery<EmailTemplate>({
-    queryKey: ["/api/email-template"],
+  const { data: template, isLoading, refetch } = useQuery<EmailTemplate>({
+    queryKey: ["/api/email-template", Date.now()], // Add timestamp to force fresh fetch
+    queryFn: () => {
+      const timestamp = Date.now();
+      return fetch(`/api/email-template?_t=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }).then(res => res.json());
+    },
     staleTime: 0, // Always fetch fresh data to get updated domain URLs
+    cacheTime: 0, // Don't cache to ensure fresh domain detection
   });
+
+  // Force refresh template data on component mount to get fresh domain detection
+  useEffect(() => {
+    queryClient.clear(); // Clear all cache
+    queryClient.invalidateQueries({ queryKey: ["/api/email-template"] });
+    setTimeout(() => refetch(), 100); // Delay refetch to ensure cache is cleared
+  }, []);
 
   const { data: clickStats } = useQuery<{clickRate: number; totalEmails: number; totalClicks: number}>({
     queryKey: ["/api/email-click-stats"],
