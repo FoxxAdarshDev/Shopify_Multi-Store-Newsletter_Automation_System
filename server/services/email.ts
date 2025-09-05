@@ -122,22 +122,35 @@ Team Foxx Bioprocess`,
       
       // Create click tracking if storeId provided
       let trackingUrl = 'https://www.foxxbioprocess.com';
+      console.log('sendWelcomeEmail: storeId provided:', storeId);
       if (storeId) {
         const trackingId = crypto.randomBytes(16).toString('hex');
-        await storage.createEmailClickTracking({
-          subscriberEmail,
-          storeId,
-          trackingId,
-          originalUrl: 'https://www.foxxbioprocess.com',
-          utmSource: 'newsletter',
-          utmMedium: 'email',
-          utmCampaign: 'welcome-discount',
-          isClicked: false,
-          clickCount: 0
-        });
-        // Get the current domain from environment or use Replit domain
-        const baseUrl = process.env.API_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
-        trackingUrl = `${baseUrl}/track/${trackingId}`;
+        console.log('sendWelcomeEmail: Creating tracking record with trackingId:', trackingId);
+        
+        try {
+          await storage.createEmailClickTracking({
+            subscriberEmail,
+            storeId,
+            trackingId,
+            originalUrl: 'https://www.foxxbioprocess.com',
+            utmSource: 'newsletter',
+            utmMedium: 'email',
+            utmCampaign: 'welcome-discount',
+            isClicked: false,
+            clickCount: 0
+          });
+          
+          // Get the current domain from environment or use Replit domain
+          const baseUrl = process.env.API_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+          trackingUrl = `${baseUrl}/track/${trackingId}`;
+          console.log('sendWelcomeEmail: Generated tracking URL:', trackingUrl);
+        } catch (error) {
+          console.error('sendWelcomeEmail: Failed to create tracking record:', error);
+          // Fallback to direct URL if tracking fails
+          trackingUrl = 'https://www.foxxbioprocess.com';
+        }
+      } else {
+        console.log('sendWelcomeEmail: No storeId provided, using direct URL');
       }
 
       const mailOptions = {
