@@ -1451,6 +1451,7 @@ Happy shopping!
 Warm regards,
 Team Foxx Bioprocess`,
           footerText: "© 2024 Foxx Bioprocess. All rights reserved.",
+          footerNote: "You have received this mail because your e-mail ID is registered with us. This is a system-generated e-mail, please don't reply to this message.",
           socialMediaLinks: {
             website: "https://www.foxxbioprocess.com",
             linkedin: "",
@@ -1513,6 +1514,7 @@ Team Foxx Bioprocess`,
       // Use the same request-based domain detection for consistent URL generation
       const baseUrl = detectApiBaseUrlFromRequest(req);
       console.log('Email template preview API baseUrl determined:', baseUrl);
+      console.log('Preview templateForm footerNote:', templateForm.footerNote);
       
       const html = emailService.generatePreviewEmail(templateForm, baseUrl);
       res.json({ html });

@@ -312,7 +312,7 @@ Team Foxx Bioprocess`,
             ` : ''}
             
             <p style="color: #666; font-size: 12px; margin: 10px 0;">${template.footerText}</p>
-            ${template.footerNote ? `<p style="color: #999; font-size: 11px; margin: 10px 0; font-style: italic;">${template.footerNote}</p>` : ''}
+            ${template.footerNote ? `<p style="color: #666; font-size: 12px; margin: 15px 0 5px 0; font-style: italic; border-top: 1px solid #eee; padding-top: 15px;">${template.footerNote}</p>` : ''}
           </div>
         </div>
       </body>
