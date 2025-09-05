@@ -149,15 +149,18 @@ Team Foxx Bioprocess`,
           template,
           trackingUrl
         ),
-        // Enhanced deliverability headers
+        // Improved deliverability headers (avoid spam triggers)
         headers: {
-          'X-Priority': '1',
-          'X-MSMail-Priority': 'High',
-          'Importance': 'high',
-          'List-Unsubscribe': `<mailto:unsubscribe@foxxbioprocess.com?subject=unsubscribe>`,
+          'List-Unsubscribe': `<mailto:unsubscribe@foxxbioprocess.com?subject=unsubscribe>, <${trackingUrl}/unsubscribe>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           'List-ID': `<newsletter.foxxbioprocess.com>`,
-          'Precedence': 'bulk',
-          'X-Auto-Response-Suppress': 'OOF, DR, RN, NRN',
+          'Message-ID': `<${Date.now()}-${Math.random().toString(36).substr(2, 9)}@foxxbioprocess.com>`,
+          'Return-Path': config.fromEmail,
+          'Reply-To': config.fromEmail,
+          'Organization': 'Foxx Bioprocess',
+          'X-Mailer': 'Foxx Newsletter System',
+          'Content-Type': 'text/html; charset=utf-8',
+          'MIME-Version': '1.0',
         },
       };
 
@@ -191,20 +194,25 @@ Team Foxx Bioprocess`,
       .replace(/\[DISCOUNT_CODE\]/g, `<div style="background: ${template.primaryColor}; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 24px; font-weight: bold;">${discountCode}</div>`);
       
     return `
-      <!DOCTYPE html>
-      <html>
+      <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+      <html xmlns="http://www.w3.org/1999/xhtml">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <title>${template.subject}</title>
-        <style>
+        <style type="text/css">
+          /* Email-safe CSS reset */
+          body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+          table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+          img { -ms-interpolation-mode: bicubic; border: 0; }
+          
           @media only screen and (max-width: 600px) {
             .container { width: 100% !important; padding: 10px !important; }
             .content { padding: 20px !important; }
           }
         </style>
       </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+      <body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #333333; margin: 0; padding: 0; background-color: #f4f4f4;">
         <div class="container" style="max-width: 600px; margin: 0 auto; padding: 20px;">
           <!-- Header -->
           <div style="background: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; border-bottom: 3px solid ${template.primaryColor};">
