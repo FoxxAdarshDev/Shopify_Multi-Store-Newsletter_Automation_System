@@ -421,11 +421,11 @@ export class PopupGeneratorService {
             margin-top: 24px;
             color: #9ca3af;
           ">
-            <i style="font-size: 18px;">📘</i>
-            <i style="font-size: 18px;">📷</i>
-            <i style="font-size: 18px;">📌</i>
-            <i style="font-size: 18px;">🎥</i>
-            <i style="font-size: 18px;">🐦</i>
+            <svg style="width: 18px; height: 18px; opacity: 0.6;" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            <svg style="width: 18px; height: 18px; opacity: 0.6;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            <svg style="width: 18px; height: 18px; opacity: 0.6;" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0002 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9554 2.4189-2.1568 2.4189Z"/></svg>
+            <svg style="width: 18px; height: 18px; opacity: 0.6;" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+            <svg style="width: 18px; height: 18px; opacity: 0.6;" fill="currentColor" viewBox="0 0 24 24"><path d="m10 15 5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73Z"/></svg>
           </div>
 
           <div style="margin-top: 16px;">
@@ -470,20 +470,212 @@ export class PopupGeneratorService {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.7; }
     }
+    @keyframes successBounce {
+      0% { 
+        transform: scale(0) rotate(0deg); 
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.2) rotate(180deg);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1) rotate(360deg);
+        opacity: 1;
+      }
+    }
+    @keyframes pulseRing {
+      0% {
+        transform: scale(0.8);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.2);
+        opacity: 0;
+      }
+    }
   \`;
   document.head.appendChild(style);
   
-  // Email validation
+  // Custom notification system
+  function showCustomNotification(message, type = 'error') {
+    // Remove existing notifications
+    const existing = document.getElementById('foxx-custom-notification');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.id = 'foxx-custom-notification';
+    notification.style.cssText = \`
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: \${type === 'error' ? 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)'};
+      border: 1px solid \${type === 'error' ? '#fca5a5' : '#86efac'};
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      z-index: 1000000;
+      max-width: 400px;
+      animation: foxxSlideIn 0.3s ease-out;
+      backdrop-filter: blur(8px);
+    \`;
+    
+    notification.innerHTML = \`
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="
+          width: 6px;
+          height: 24px;
+          background: \${type === 'error' ? '#ef4444' : '#22c55e'};
+          border-radius: 3px;
+        "></div>
+        <div style="
+          color: \${type === 'error' ? '#7f1d1d' : '#14532d'};
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 1.4;
+        ">\${message}</div>
+        <button onclick="this.parentElement.parentElement.remove()" style="
+          background: none;
+          border: none;
+          color: \${type === 'error' ? '#7f1d1d' : '#14532d'};
+          font-size: 18px;
+          cursor: pointer;
+          opacity: 0.7;
+          padding: 0;
+          margin-left: auto;
+        ">×</button>
+      </div>
+    \`;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      if (notification && notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+  
+  // Confetti animation function
+  function fireConfetti() {
+    // Create canvas for confetti
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = \`
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999998;
+    \`;
+    document.body.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const confettiPieces = [];
+    const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+    
+    // Create confetti pieces
+    for (let i = 0; i < 100; i++) {
+      confettiPieces.push({
+        x: Math.random() * canvas.width,
+        y: -10,
+        vx: Math.random() * 4 - 2,
+        vy: Math.random() * 3 + 2,
+        rotation: Math.random() * 360,
+        rotationSpeed: Math.random() * 10 - 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 6 + 3
+      });
+    }
+    
+    function animateConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      confettiPieces.forEach((piece, index) => {
+        piece.x += piece.vx;
+        piece.y += piece.vy;
+        piece.rotation += piece.rotationSpeed;
+        
+        ctx.save();
+        ctx.translate(piece.x, piece.y);
+        ctx.rotate((piece.rotation * Math.PI) / 180);
+        ctx.fillStyle = piece.color;
+        ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size);
+        ctx.restore();
+        
+        // Remove confetti that's off screen
+        if (piece.y > canvas.height + 10) {
+          confettiPieces.splice(index, 1);
+        }
+      });
+      
+      if (confettiPieces.length > 0) {
+        requestAnimationFrame(animateConfetti);
+      } else {
+        // Clean up canvas
+        document.body.removeChild(canvas);
+      }
+    }
+    
+    animateConfetti();
+  }
+  
+  // Copy discount code to clipboard with toast notification
+  window.copyDiscountCode = function(discountCode) {
+    navigator.clipboard.writeText(discountCode).then(() => {
+      showCustomNotification('Discount code "' + discountCode + '" copied to clipboard!', 'success');
+    }).catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = discountCode;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        showCustomNotification('Discount code "' + discountCode + '" copied to clipboard!', 'success');
+      } catch (err) {
+        showCustomNotification('Unable to copy code. Please copy manually: ' + discountCode, 'error');
+      }
+      
+      document.body.removeChild(textArea);
+    });
+  };
+  
+  // Email validation with temporary email detection
   function validateEmail(email) {
     const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
     if (!emailRegex.test(email)) {
       return { valid: false, message: 'Please enter a valid email address.' };
     }
     
+    const domain = email.split('@')[1].toLowerCase();
+    
+    // Check for temporary email domains
+    const tempDomains = [
+      'temp-mail.org', '10minutemail.com', 'guerrillamail.com', 'mailinator.com',
+      'yopmail.com', 'throwaway.email', 'tempmail.com', 'gettemp.mail',
+      'temp-mail.io', 'mohmal.com', 'maildrop.cc', 'mailnesia.com',
+      'tempail.com', 'sharklasers.com', 'guerrillamailblock.com', 'pokemail.net',
+      'spam4.me', 'bccto.me', 'chacuo.net', 'dispostable.com', 'dmhubs.com'
+    ];
+    
+    if (tempDomains.includes(domain)) {
+      return { valid: false, message: 'Temporary email addresses are not allowed. Please use your permanent business email address.' };
+    }
+    
     const validation = POPUP_CONFIG.emailValidation;
     if (validation.companyEmailsOnly) {
-      const domain = email.split('@')[1].toLowerCase();
-      
       // Check blocked domains
       if (validation.blockedDomains.includes(domain)) {
         return { valid: false, message: 'Please use your company email address.' };
@@ -557,7 +749,7 @@ export class PopupGeneratorService {
     // Validate email
     const emailValidation = validateEmail(data.email);
     if (!emailValidation.valid) {
-      alert(emailValidation.message);
+      showCustomNotification(emailValidation.message, 'error');
       return;
     }
     
@@ -607,6 +799,9 @@ export class PopupGeneratorService {
         
         // Also set session flag to prevent showing again this session
         sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
+        
+        // Fire confetti animation
+        fireConfetti();
         
         // Show modern 2024 success confirmation with brand colors
         document.getElementById('foxx-newsletter-popup').innerHTML = \`
@@ -682,7 +877,7 @@ export class PopupGeneratorService {
                 font-weight: 800;
                 text-shadow: 0 2px 8px rgba(0,0,0,0.2);
                 letter-spacing: -0.5px;
-              ">🎉 Welcome to the Family!</h2>
+              ">Welcome to the Family!</h2>
               
               <!-- Email confirmation with user's email -->
               <div style="
@@ -716,7 +911,7 @@ export class PopupGeneratorService {
                   justify-content: center;
                   gap: 8px;
                 ">
-                  <span style="font-size: 16px;">✉️</span>
+                  <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.1 3.89 23 5 23H11V21H5V3H13V9H21Z"/></svg>
                   Email with discount code is on its way!
                 </div>
               </div>
@@ -733,7 +928,7 @@ export class PopupGeneratorService {
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 position: relative;
                 overflow: hidden;
-              " onclick="copyToClipboard('\${result.discountCode}')" onmouseover="this.style.transform='scale(1.02)'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(255,255,255,0.1)'">
+              " onclick="copyDiscountCode('\${result.discountCode}')" onmouseover="this.style.transform='scale(1.02)'; this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(255,255,255,0.1)'">
                 <!-- Shimmer effect -->
                 <div style="
                   position: absolute;
@@ -770,7 +965,7 @@ export class PopupGeneratorService {
                     justify-content: center;
                     gap: 6px;
                   ">
-                    <span style="font-size: 16px;">👆</span>
+                    <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M19 21H8V7H19M19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1Z"/></svg>
                     Tap to copy • Save \${result.discountPercentage}%
                   </div>
                 </div>
@@ -794,7 +989,7 @@ export class PopupGeneratorService {
                   margin-bottom: 8px;
                   font-weight: 600;
                 ">
-                  <span style="font-size: 18px;">📧</span>
+                  <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24"><path d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z"/></svg>
                   Email Notification
                 </div>
                 We're sending you a welcome email with your discount code and exclusive updates. Check your inbox in the next few minutes!
