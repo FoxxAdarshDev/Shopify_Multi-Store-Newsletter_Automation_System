@@ -494,6 +494,14 @@ export class PopupGeneratorService {
         opacity: 0;
       }
     }
+    @keyframes shimmer {
+      0% {
+        left: -100%;
+      }
+      100% {
+        left: 100%;
+      }
+    }
   \`;
   document.head.appendChild(style);
   
