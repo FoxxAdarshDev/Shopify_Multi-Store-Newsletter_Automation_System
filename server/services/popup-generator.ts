@@ -272,7 +272,7 @@ export class PopupGeneratorService {
     let formFields = '';
     
     if (fields.email) {
-      formFields += '<input type="email" name="email" placeholder="Enter your email address" required style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+      formFields += '<input type="email" name="email" placeholder="Enter your email address" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
     }
     
     if (fields.name) {
