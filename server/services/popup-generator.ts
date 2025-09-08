@@ -308,24 +308,32 @@ export class PopupGeneratorService {
       ">
         <div id="foxx-newsletter-popup" style="
           background: white;
-          border-radius: 12px;
-          padding: 32px;
-          width: 95%;
-          max-width: 600px;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          border-radius: 24px;
+          padding: 28px;
+          width: 92%;
+          max-width: 480px;
+          max-height: fit-content;
+          overflow: visible;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.8);
           position: relative;
-          animation: foxxSlideIn 0.3s ease-out;
+          animation: foxxSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           
-          /* Responsive design */
+          /* Responsive design - mobile first */
+          @media (max-width: 640px) {
+            width: 95%;
+            padding: 24px;
+            margin: 10px;
+            border-radius: 20px;
+          }
           @media (min-width: 768px) {
-            width: 85%;
-            max-width: 700px;
+            max-width: 520px;
+            padding: 32px;
           }
           @media (min-width: 1024px) {
-            width: 75%;
-            max-width: 800px;
+            max-width: 560px;
+            padding: 36px;
           }
         ">
           <button id="foxx-close-btn" style="
@@ -1018,7 +1026,7 @@ export class PopupGeneratorService {
                 min-width: 140px;
                 margin-top: 24px;
               " onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.transform='translateY(0)'">
-                Continue Shopping ✨
+                Continue Shopping
               </button>
             </div>
           </div>
@@ -1106,7 +1114,7 @@ export class PopupGeneratorService {
         spinner.style.display = 'none';
         loadingMessages.style.display = 'none';
         
-        alert(result.message || 'Subscription failed. Please try again.');
+        showCustomNotification(result.message || 'Subscription failed. Please try again.', 'error');
       }
     } catch (error) {
       // Clear progress messages and reset button on error
@@ -1118,7 +1126,7 @@ export class PopupGeneratorService {
       loadingMessages.style.display = 'none';
       
       console.error('Foxx Newsletter: Subscription error', error);
-      alert('An error occurred. Please try again later.');
+      showCustomNotification('An error occurred. Please try again later.', 'error');
     }
   }
   
