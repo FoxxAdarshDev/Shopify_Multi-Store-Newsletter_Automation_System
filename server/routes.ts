@@ -894,7 +894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const script = popupGeneratorService.getNewsletterScript(baseUrl);
       res.setHeader("Content-Type", "application/javascript");
-      res.setHeader("Cache-Control", "public, max-age=300"); // 5 minute cache
+      res.setHeader("Cache-Control", "public, max-age=30"); // 30 second cache for faster updates
       res.send(script);
     } catch (error) {
       console.error("Serve newsletter script error:", error);
@@ -955,7 +955,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: config.isActive,
         // Include verification status so popup can check without authentication
         isVerified: store.isVerified || false,
-        hasActiveScript: !!(store.activeScriptVersion && store.activeScriptTimestamp)
+        hasActiveScript: !!(store.activeScriptVersion && store.activeScriptTimestamp),
+        // Include social links for the popup script
+        socialLinks: store.socialLinks || {}
       };
       
       res.setHeader("Access-Control-Allow-Origin", origin || "*");
