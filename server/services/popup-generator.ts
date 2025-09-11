@@ -277,19 +277,19 @@ export class PopupGeneratorService {
     let formFields = '';
     
     if (fields.email) {
-      formFields += '<input type="email" name="email" placeholder="Enter your email address" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+      formFields += '<input type="email" name="email" placeholder="Enter your email address" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
     }
     
     if (fields.name) {
-      formFields += '<input type="text" name="name" placeholder="Full Name" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+      formFields += '<input type="text" name="name" placeholder="Full Name" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
     }
     
     if (fields.phone) {
-      formFields += '<input type="tel" name="phone" placeholder="Phone Number" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+      formFields += '<input type="tel" name="phone" placeholder="Phone Number" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
     }
     
     if (fields.company) {
-      formFields += '<input type="text" name="company" placeholder="Company Name" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
+      formFields += '<input type="text" name="company" placeholder="Company Name" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
     }
     
     if (fields.address) {
