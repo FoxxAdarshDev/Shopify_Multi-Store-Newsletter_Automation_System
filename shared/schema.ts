@@ -41,6 +41,15 @@ export const stores = pgTable("stores", {
   isVerified: boolean("is_verified").default(false).notNull(),
   activeScriptVersion: text("active_script_version"), // Current active script version for verification
   activeScriptTimestamp: text("active_script_timestamp"), // Timestamp of current active script
+  socialLinks: jsonb("social_links").default({
+    linkedin: "",
+    twitter: "",
+    youtube: "",
+    instagram: "",
+    facebook: "",
+    reddit: "",
+    quora: ""
+  }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -72,6 +81,11 @@ export const popupConfigs = pgTable("popup_configs", {
   discountPercentage: integer("discount_percentage").notNull().default(15),
   displayTrigger: text("display_trigger").notNull().default("immediate"),
   animation: text("animation").notNull().default("slide-in"),
+  layout: jsonb("layout").default({
+    width: "lg",
+    maxHeightVh: 70,
+    showSocialIcons: true
+  }),
   showExitIntentIfNotSubscribed: boolean("show_exit_intent_if_not_subscribed").default(false).notNull(),
   suppressAfterSubscription: boolean("suppress_after_subscription").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
@@ -262,6 +276,7 @@ export const updatePermissionsSchema = z.object({
   permissions: z.record(z.boolean()),
 });
 export const insertStoreSchema = createInsertSchema(stores).omit({ id: true, createdAt: true, updatedAt: true });
+export const updateStoreSchema = createInsertSchema(stores).omit({ id: true, userId: true, createdAt: true, updatedAt: true }).partial();
 export const insertPopupConfigSchema = createInsertSchema(popupConfigs).omit({ id: true, createdAt: true, updatedAt: true });
 export const updatePopupConfigSchema = createInsertSchema(popupConfigs).omit({ id: true, storeId: true, createdAt: true, updatedAt: true }).partial();
 export const insertSubscriberSchema = createInsertSchema(subscribers).omit({ id: true, subscribedAt: true });
@@ -282,6 +297,7 @@ export type SetPasswordData = z.infer<typeof setPasswordSchema>;
 export type UpdatePermissionsData = z.infer<typeof updatePermissionsSchema>;
 export type Store = typeof stores.$inferSelect;
 export type InsertStore = z.infer<typeof insertStoreSchema>;
+export type UpdateStore = z.infer<typeof updateStoreSchema>;
 export type PopupConfig = typeof popupConfigs.$inferSelect;
 export type InsertPopupConfig = z.infer<typeof insertPopupConfigSchema>;
 export type UpdatePopupConfig = z.infer<typeof updatePopupConfigSchema>;
