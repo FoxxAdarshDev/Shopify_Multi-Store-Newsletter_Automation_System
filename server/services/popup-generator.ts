@@ -305,15 +305,23 @@ export class PopupGeneratorService {
         align-items: center;
         justify-content: center;
         animation: foxxFadeIn 0.3s ease-out;
+        
+        /* Mobile: align to top for better scrolling */
+        @media (max-width: 640px) {
+          align-items: flex-start;
+          padding-block: 24px;
+        }
       ">
         <div id="foxx-newsletter-popup" style="
           background: white;
           border-radius: 24px;
           padding: 28px;
-          width: 92%;
-          max-width: 480px;
-          max-height: fit-content;
-          overflow: visible;
+          width: min(92vw, 680px);
+          max-width: 680px;
+          max-height: 90vh;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.8);
           position: relative;
           animation: foxxSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -323,17 +331,18 @@ export class PopupGeneratorService {
           /* Responsive design - mobile first */
           @media (max-width: 640px) {
             width: 95%;
-            padding: 24px;
-            margin: 10px;
+            padding: 20px;
+            margin: 16px;
             border-radius: 20px;
+            max-height: 85vh;
           }
           @media (min-width: 768px) {
-            max-width: 520px;
-            padding: 32px;
+            max-width: 640px;
+            padding: 28px;
           }
           @media (min-width: 1024px) {
-            max-width: 560px;
-            padding: 36px;
+            max-width: 680px;
+            padding: 32px;
           }
         ">
           <button id="foxx-close-btn" style="
@@ -890,26 +899,18 @@ export class PopupGeneratorService {
         
         // Show modern 2024 success confirmation with brand colors
         document.getElementById('foxx-newsletter-popup').innerHTML = \`
-          <div style="
+          <div id="foxx-success-content" style="
             text-align: center; 
-            padding: 64px 48px; 
+            padding: 32px 24px; 
             position: relative;
             background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #2563eb 100%);
-            border-radius: 32px;
-            box-shadow: 0 30px 60px rgba(30, 64, 175, 0.3), 0 0 0 1px rgba(255,255,255,0.15);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(30, 64, 175, 0.3), 0 0 0 1px rgba(255,255,255,0.15);
             color: white;
             width: 100%;
             max-width: none;
             margin: 0;
-            overflow: hidden;
-            
-            /* Responsive padding */
-            @media (min-width: 768px) {
-              padding: 80px 64px;
-            }
-            @media (min-width: 1024px) {
-              padding: 96px 80px;
-            }
+            overflow: visible;
           ">
             <!-- Glassmorphism overlay -->
             <div style="
@@ -921,10 +922,12 @@ export class PopupGeneratorService {
               background: rgba(255,255,255,0.05);
               backdrop-filter: blur(20px);
               border-radius: 24px;
+              pointer-events: none;
+              z-index: 0;
             "></div>
             
             <!-- Content container -->
-            <div style="position: relative; z-index: 2;">
+            <div style="position: relative; z-index: 2; padding-bottom: 20px;">
               <!-- Animated Success Icon -->
               <div style="
                 width: 120px;
@@ -1104,6 +1107,34 @@ export class PopupGeneratorService {
         // Add modern animations and copy function
         const confettiScript = \`
           <style>
+            /* Success popup responsive styles */
+            #foxx-success-content {
+              padding: 32px 24px;
+            }
+            @media (max-width: 640px) {
+              #foxx-newsletter-backdrop {
+                align-items: flex-start !important;
+                padding-top: 24px !important;
+                padding-bottom: 24px !important;
+              }
+            }
+            @media (min-width: 640px) {
+              #foxx-success-content {
+                padding: 40px 32px;
+              }
+            }
+            @media (min-width: 768px) {
+              #foxx-success-content {
+                padding: 48px 40px;
+              }
+            }
+            @media (min-width: 1024px) {
+              #foxx-success-content {
+                padding: 56px 48px;
+              }
+            }
+            
+            /* Animation keyframes */
             @keyframes successBounce {
               0% { transform: scale(0.3) rotate(-12deg); opacity: 0; }
               30% { transform: scale(1.1) rotate(12deg); opacity: 0.8; }
