@@ -56,7 +56,9 @@ export default function Members() {
     resolver: zodResolver(createMemberSchema),
     defaultValues: {
       email: '',
-      permissions: {},
+      permissions: Object.fromEntries(
+        Object.keys(AVAILABLE_PERMISSIONS).map(key => [key, false])
+      ),
     },
   });
 
@@ -205,8 +207,8 @@ export default function Members() {
                         <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                           <FormControl>
                             <Checkbox
-                              checked={field.value || false}
-                              onCheckedChange={field.onChange}
+                              checked={!!field.value}
+                              onCheckedChange={(val) => field.onChange(val === true)}
                               data-testid={`checkbox-permission-${key}`}
                             />
                           </FormControl>
