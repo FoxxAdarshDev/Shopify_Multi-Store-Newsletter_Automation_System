@@ -446,14 +446,53 @@ export class PopupGeneratorService {
 
           <div style="margin-top: 16px;">
             <label style="
-              display: flex;
-              align-items: flex-start;
-              font-size: 12px;
-              color: #6b7280;
-              line-height: 1.4;
+              display: flex !important;
+              align-items: flex-start !important;
+              font-size: 12px !important;
+              color: #6b7280 !important;
+              line-height: 1.4 !important;
+              cursor: pointer !important;
+              user-select: none !important;
+              position: relative !important;
+              visibility: visible !important;
+              opacity: 1 !important;
             ">
-              <input type="checkbox" style="margin-right: 8px; margin-top: 2px;" />
-              Stay Connected For: ✓ Exclusive Product Launches ✓ Special Promotions ✓ Bioprocess Insights & Updates
+              <input type="checkbox" checked style="
+                /* Bulletproof checkbox styling that cannot be overridden */
+                appearance: none !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+                width: 16px !important;
+                height: 16px !important;
+                border: 2px solid #0071b9 !important;
+                border-radius: 3px !important;
+                background: #0071b9 !important;
+                background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K') !important;
+                background-repeat: no-repeat !important;
+                background-position: center !important;
+                background-size: 10px 8px !important;
+                margin-right: 8px !important;
+                margin-top: 2px !important;
+                flex-shrink: 0 !important;
+                position: relative !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+                display: inline-block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                outline: none !important;
+                box-shadow: 0 0 0 0 transparent !important;
+                vertical-align: top !important;
+              " />
+              <span style="
+                font-size: 12px !important;
+                color: #6b7280 !important;
+                line-height: 1.4 !important;
+                display: inline !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                font-weight: normal !important;
+              ">Stay Connected For: <strong style='font-weight: 600 !important; color: #374151 !important;'>Exclusive Product Launches</strong> • <strong style='font-weight: 600 !important; color: #374151 !important;'>Special Promotions</strong> • <strong style='font-weight: 600 !important; color: #374151 !important;'>Bioprocess Insights & Updates</strong></span>
             </label>
           </div>
         </div>
