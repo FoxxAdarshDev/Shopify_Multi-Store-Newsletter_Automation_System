@@ -1012,7 +1012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Basic domain verification
-      if (origin && !origin.includes(new URL(store.shopifyUrl).hostname)) {
+      if (origin && !origin.includes(store.shopifyUrl.replace(/^https?:\/\//, ''))) {
         return res.status(403).json({ message: "Domain not authorized" });
       }
       
@@ -1298,7 +1298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return {
         scriptVersion: store.activeScriptVersion,
         generatedAt: store.activeScriptTimestamp,
-        storeDomain: new URL(shopifyUrl).hostname
+        storeDomain: shopifyUrl.replace(/^https?:\/\//, '')
       };
     }
     
@@ -1413,7 +1413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Basic domain verification - allow requests from the configured store domain
       if (origin) {
         const originDomain = new URL(origin).hostname;
-        const storeDomain = new URL(store.shopifyUrl).hostname;
+        const storeDomain = store.shopifyUrl.replace(/^https?:\/\//, '');
         
         if (!originDomain.includes(storeDomain) && !storeDomain.includes(originDomain)) {
           return res.status(403).json({ message: "Domain not authorized" });

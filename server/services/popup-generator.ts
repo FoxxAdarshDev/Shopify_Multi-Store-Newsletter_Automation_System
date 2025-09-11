@@ -69,7 +69,7 @@ export class PopupGeneratorService {
   script.setAttribute('data-store-id', '${storeId}');
   script.setAttribute('data-popup-config', 'auto');
   script.setAttribute('data-integration-type', 'shopify');
-  script.setAttribute('data-store-domain', '${new URL(shopifyUrl).hostname}');
+  script.setAttribute('data-store-domain', '${shopifyUrl.replace(/^https?:\/\//, '')}');
   script.setAttribute('data-script-version', '${uniqueId}');
   script.setAttribute('data-generated-at', '${timestamp}');
   document.head.appendChild(script);
@@ -1214,7 +1214,7 @@ export class PopupGeneratorService {
 
   generateIntegrationFile(storeId?: string, shopifyUrl?: string, baseUrl?: string): string {
     const apiBase = baseUrl || 'http://localhost:5000';
-    const storeDomain = shopifyUrl ? new URL(shopifyUrl).hostname : 'yourdomain.com';
+    const storeDomain = shopifyUrl ? shopifyUrl.replace(/^https?:\/\//, '') : 'yourdomain.com';
     
     return `
 // Foxx Newsletter Manager Service Worker

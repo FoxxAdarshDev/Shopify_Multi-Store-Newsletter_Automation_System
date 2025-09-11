@@ -234,7 +234,7 @@ export default function Integration() {
             </p>
             <div className="mb-4">
               <code className="text-sm text-primary bg-primary/10 px-2 py-1 rounded">
-                {currentStore ? `https://${new URL(currentStore.shopifyUrl || 'https://yourdomain.com').hostname}/webpushr-sw.js` : 'https://yourdomain.com/webpushr-sw.js'}
+                {currentStore ? `https://${currentStore.shopifyUrl?.replace(/^https?:\/\//, '') || 'yourdomain.com'}/webpushr-sw.js` : 'https://yourdomain.com/webpushr-sw.js'}
               </code>
             </div>
             <Button 
