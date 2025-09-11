@@ -18,6 +18,8 @@ import foxxLogo from "@/assets/foxx-logo.png";
 interface StoreFormData {
   name: string;
   shopifyUrl: string;
+  shopifyStoreName?: string;
+  customDomain?: string;
   shopifyAccessToken?: string;
   integrationType: string;
 }
@@ -128,6 +130,7 @@ export default function Onboarding() {
   const [iconPreview, setIconPreview] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState("");
   const [isScriptCopied, setIsScriptCopied] = useState(false);
+  const [urlEditMode, setUrlEditMode] = useState<'myshopify' | 'domain'>('myshopify');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -142,7 +145,21 @@ export default function Onboarding() {
   const displayStores = existingStores.length > 0 ? existingStores : [];
 
   const createStoreMutation = useMutation({
-    mutationFn: (data: StoreFormData) => apiRequest("/api/stores", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: StoreFormData) => {
+      // Prepare the store data based on the URL mode and integration type
+      const storeData = {
+        name: data.name,
+        shopifyAccessToken: data.shopifyAccessToken,
+        shopifyStoreName: data.shopifyStoreName,
+        customDomain: data.customDomain,
+        // For backwards compatibility, set shopifyUrl based on the provided fields
+        shopifyUrl: data.integrationType === "shopify" 
+          ? (data.shopifyStoreName ? `${data.shopifyStoreName}.myshopify.com` : data.customDomain)
+          : data.shopifyUrl
+      };
+      
+      return apiRequest("/api/stores", { method: "POST", body: JSON.stringify(storeData) });
+    },
     onSuccess: async (store) => {
       // Invalidate and refetch the stores query to ensure UI updates
       await queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
@@ -205,7 +222,12 @@ export default function Onboarding() {
 
   const handleNext = async () => {
     if (step === 1) {
-      if (!formData.name || !formData.shopifyUrl || !formData.integrationType) {
+      // Check if either shopifyStoreName or customDomain is provided based on selected mode
+      const hasValidUrl = urlEditMode === 'myshopify' 
+        ? formData.shopifyStoreName?.trim()
+        : formData.customDomain?.trim();
+        
+      if (!formData.name || !hasValidUrl || !formData.integrationType) {
         toast({
           title: "Error",
           description: "Please fill in all required fields",
@@ -361,17 +383,79 @@ export default function Onboarding() {
                         />
                       </div>
 
-                      <div>
-                        <Label htmlFor="siteUrl">
-                          URL: <span className="text-xs text-muted-foreground">(Enter full site url. Example: http://www.sitename.com)</span>
-                        </Label>
-                        <Input
-                          id="siteUrl"
-                          placeholder="enter your website url here..."
-                          value={formData.shopifyUrl}
-                          onChange={(e) => setFormData({ ...formData, shopifyUrl: e.target.value })}
-                        />
-                      </div>
+                      {formData.integrationType === "shopify" && (
+                        <div className="space-y-4">
+                          <div className="flex gap-2 mb-3">
+                            <Button
+                              type="button"
+                              variant={urlEditMode === 'myshopify' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setUrlEditMode('myshopify')}
+                              data-testid="button-mode-myshopify"
+                            >
+                              .myshopify.com Format
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={urlEditMode === 'domain' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setUrlEditMode('domain')}
+                              data-testid="button-mode-domain"
+                            >
+                              Custom Domain
+                            </Button>
+                          </div>
+
+                          {urlEditMode === 'myshopify' ? (
+                            <div>
+                              <Label htmlFor="shopifyStoreName">Shopify Store Name (.myshopify.com)</Label>
+                              <Input
+                                id="shopifyStoreName"
+                                placeholder="your-store-name"
+                                value={formData.shopifyStoreName || ""}
+                                onChange={(e) => {
+                                  const storeName = e.target.value.replace(/[^a-zA-Z0-9-]/g, '');
+                                  setFormData({ ...formData, shopifyStoreName: storeName, customDomain: undefined });
+                                }}
+                                data-testid="input-shopify-store-name"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Enter your Shopify store name (e.g., "my-store" becomes "my-store.myshopify.com")
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <Label htmlFor="customDomain">Custom Domain</Label>
+                              <Input
+                                id="customDomain"
+                                placeholder="https://shop.yourstore.com"
+                                value={formData.customDomain || ""}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, customDomain: e.target.value, shopifyStoreName: undefined });
+                                }}
+                                data-testid="input-custom-domain"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                For custom domains (e.g., "https://shop.yourstore.com")
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {formData.integrationType === "typical" && (
+                        <div>
+                          <Label htmlFor="siteUrl">
+                            URL: <span className="text-xs text-muted-foreground">(Enter full site url. Example: http://www.sitename.com)</span>
+                          </Label>
+                          <Input
+                            id="siteUrl"
+                            placeholder="enter your website url here..."
+                            value={formData.shopifyUrl}
+                            onChange={(e) => setFormData({ ...formData, shopifyUrl: e.target.value })}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
