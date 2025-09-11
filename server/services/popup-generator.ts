@@ -162,6 +162,11 @@ export class PopupGeneratorService {
         await checkSubscriptionStatus();
       }
       
+      // Always setup exit intent listener if feature is enabled, regardless of session suppression
+      if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
+        initExitIntentListener();
+      }
+      
       if (shouldShowPopup) {
         initPopup();
       }
@@ -896,8 +901,9 @@ export class PopupGeneratorService {
         localStorage.setItem(STORAGE_KEY, data.email);
         localStorage.setItem(STORAGE_KEY + '_time', Date.now().toString());
         
-        // Clear the dismissed flag since user has now subscribed
+        // Clear the dismissed and exit intent flags since user has now subscribed
         localStorage.removeItem(STORAGE_KEY + '_dismissed');
+        localStorage.removeItem(STORAGE_KEY + '_exit_intent_shown');
         
         // Also set session flag to prevent showing again this session
         sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
@@ -1243,8 +1249,21 @@ export class PopupGeneratorService {
     return !localStorage.getItem(STORAGE_KEY) && POPUP_CONFIG && POPUP_CONFIG.isActive;
   }
   
+  // Check if regular popup should be shown (respects session suppression)
+  function canShowRegularPopup() {
+    const sessionSuppressed = sessionStorage.getItem(STORAGE_KEY + '_session');
+    return canShowPopup() && !sessionSuppressed;
+  }
+  
+  // Check if exit intent popup should be shown (ignores session suppression)
+  function canShowExitIntentPopup() {
+    const hasDismissed = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
+    const exitIntentShown = localStorage.getItem(STORAGE_KEY + '_exit_intent_shown') === 'true';
+    return canShowPopup() && hasDismissed && !exitIntentShown;
+  }
+  
   function initPopup() {
-    if (!canShowPopup()) return;
+    if (!canShowRegularPopup()) return;
     
     // Check for suppress after subscription
     if (POPUP_CONFIG.suppressAfterSubscription && localStorage.getItem(STORAGE_KEY)) {
@@ -1283,27 +1302,26 @@ export class PopupGeneratorService {
       default:
         setTimeout(showPopup, 1000);
     }
+  }
+  
+  // Separate function to setup exit intent listener (called unconditionally if feature enabled)
+  function initExitIntentListener() {
+    let exitIntentShown = false;
+    let hasInteracted = false;
     
-    // Additional exit intent if user didn't subscribe initially
-    if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
-      let exitIntentShown = false;
-      let hasInteracted = false;
-      
-      // Track if user has interacted with the page
-      document.addEventListener('click', function() { hasInteracted = true; });
-      document.addEventListener('scroll', function() { hasInteracted = true; });
-      
-      document.addEventListener('mouseleave', function(e) {
-        // Only show if user has interacted, dismissed initial popup without subscribing, and hasn't subscribed yet
-        const userDismissedWithoutSubscribing = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
-        const hasNotSubscribed = !localStorage.getItem(STORAGE_KEY);
-        
-        if (!exitIntentShown && hasInteracted && e.clientY <= 0 && userDismissedWithoutSubscribing && hasNotSubscribed) {
-          exitIntentShown = true;
-          showPopup();
-        }
-      });
-    }
+    // Track if user has interacted with the page
+    document.addEventListener('click', function() { hasInteracted = true; });
+    document.addEventListener('scroll', function() { hasInteracted = true; });
+    
+    document.addEventListener('mouseleave', function(e) {
+      // Only show if conditions for exit intent are met
+      if (!exitIntentShown && hasInteracted && e.clientY <= 0 && canShowExitIntentPopup()) {
+        exitIntentShown = true;
+        // Mark that exit intent was shown to prevent repeated triggers
+        localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
+        showPopup();
+      }
+    });
   }
   
   // Initialize when DOM is ready with small delay
