@@ -529,10 +529,8 @@ export default function PopupPreview({ config, isFullscreen = false, onClose, so
   }
 
   return (
-    <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 min-h-96 border border-gray-200">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm rounded-xl flex items-center justify-center p-4">
-        <PopupContent />
-      </div>
+    <div className="relative bg-black/50 rounded-xl p-6 min-h-96 flex items-center justify-center" style={{backdropFilter: 'blur(4px)'}}>
+      <PopupContent />
     </div>
   );
 }
