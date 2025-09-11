@@ -217,12 +217,48 @@ export class DatabaseStorage implements IStorage {
 
   // Stores
   async getStore(id: string): Promise<Store | undefined> {
-    const [store] = await db.select().from(stores).where(eq(stores.id, id));
-    return store || undefined;
+    try {
+      const [store] = await db.select().from(stores).where(eq(stores.id, id));
+      return store || undefined;
+    } catch (error: any) {
+      if (error.code === '42703' || error.message?.includes('social_links')) {
+        // Fallback for missing social_links column
+        const [store] = await db.execute(sql`
+          SELECT id, user_id as "userId", name, shopify_url as "shopifyUrl", 
+                 shopify_store_name as "shopifyStoreName", custom_domain as "customDomain",
+                 shopify_access_token as "shopifyAccessToken", is_connected as "isConnected",
+                 is_verified as "isVerified", active_script_version as "activeScriptVersion",
+                 active_script_timestamp as "activeScriptTimestamp", 
+                 '{"linkedin":"","twitter":"","youtube":"","instagram":"","facebook":"","reddit":"","quora":""}'::jsonb as "socialLinks",
+                 created_at as "createdAt", updated_at as "updatedAt"
+          FROM stores WHERE id = ${id}
+        `);
+        return store || undefined;
+      }
+      throw error;
+    }
   }
 
   async getStoresByUserId(userId: string): Promise<Store[]> {
-    return await db.select().from(stores).where(eq(stores.userId, userId)).orderBy(desc(stores.createdAt));
+    try {
+      return await db.select().from(stores).where(eq(stores.userId, userId)).orderBy(desc(stores.createdAt));
+    } catch (error: any) {
+      if (error.code === '42703' || error.message?.includes('social_links')) {
+        // Fallback for missing social_links column
+        const storeList = await db.execute(sql`
+          SELECT id, user_id as "userId", name, shopify_url as "shopifyUrl", 
+                 shopify_store_name as "shopifyStoreName", custom_domain as "customDomain",
+                 shopify_access_token as "shopifyAccessToken", is_connected as "isConnected",
+                 is_verified as "isVerified", active_script_version as "activeScriptVersion",
+                 active_script_timestamp as "activeScriptTimestamp", 
+                 '{"linkedin":"","twitter":"","youtube":"","instagram":"","facebook":"","reddit":"","quora":""}'::jsonb as "socialLinks",
+                 created_at as "createdAt", updated_at as "updatedAt"
+          FROM stores WHERE user_id = ${userId} ORDER BY created_at DESC
+        `);
+        return storeList;
+      }
+      throw error;
+    }
   }
 
   async createStore(store: InsertStore): Promise<Store> {

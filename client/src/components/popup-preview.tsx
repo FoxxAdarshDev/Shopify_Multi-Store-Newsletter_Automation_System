@@ -3,10 +3,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, CheckCircle, Copy } from "lucide-react";
+import { X, CheckCircle, Copy, Linkedin, Twitter, Youtube, Instagram, Facebook } from "lucide-react";
+import { SiReddit, SiQuora } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import confetti from "canvas-confetti";
 import { useState } from "react";
+
+// Secure HTML sanitization for safe rendering
+const sanitizeHtml = (html: string): string => {
+  // Only allow safe formatting tags
+  const allowedTags = ['strong', 'b', 'mark', 'em', 'i'];
+  
+  // Create a temporary div to parse HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  // Remove any script tags or other dangerous elements
+  const scripts = tempDiv.querySelectorAll('script');
+  scripts.forEach(script => script.remove());
+  
+  // Process all elements
+  const allElements = tempDiv.querySelectorAll('*');
+  allElements.forEach(element => {
+    const tagName = element.tagName.toLowerCase();
+    
+    if (allowedTags.includes(tagName)) {
+      // For allowed tags, remove ALL attributes to prevent XSS
+      Array.from(element.attributes).forEach(attr => {
+        element.removeAttribute(attr.name);
+      });
+    } else {
+      // Replace disallowed tags with their text content
+      element.replaceWith(document.createTextNode(element.textContent || ''));
+    }
+  });
+  
+  return tempDiv.innerHTML;
+};
+
+// Component to render sanitized HTML
+const SafeHtmlText = ({ html, className = '' }: { html: string; className?: string }) => {
+  const sanitizedHtml = sanitizeHtml(html);
+  return (
+    <span 
+      className={className}
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }} 
+    />
+  );
+};
 
 interface PopupConfig {
   title: string;
@@ -37,9 +81,18 @@ interface PopupPreviewProps {
   config: PopupConfig;
   isFullscreen?: boolean;
   onClose?: () => void;
+  socialLinks?: {
+    linkedin: string;
+    twitter: string;
+    youtube: string;
+    instagram: string;
+    facebook: string;
+    reddit: string;
+    quora: string;
+  };
 }
 
-export default function PopupPreview({ config, isFullscreen = false, onClose }: PopupPreviewProps) {
+export default function PopupPreview({ config, isFullscreen = false, onClose, socialLinks }: PopupPreviewProps) {
   const { toast } = useToast();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,6 +219,41 @@ export default function PopupPreview({ config, isFullscreen = false, onClose }: 
     });
   };
 
+  const renderSocialIcons = () => {
+    if (!socialLinks) return null;
+    
+    const icons = [
+      { key: 'linkedin', icon: Linkedin, url: socialLinks.linkedin, color: 'text-blue-600 hover:text-blue-700' },
+      { key: 'twitter', icon: Twitter, url: socialLinks.twitter, color: 'text-blue-400 hover:text-blue-500' },
+      { key: 'youtube', icon: Youtube, url: socialLinks.youtube, color: 'text-red-600 hover:text-red-700' },
+      { key: 'instagram', icon: Instagram, url: socialLinks.instagram, color: 'text-pink-600 hover:text-pink-700' },
+      { key: 'facebook', icon: Facebook, url: socialLinks.facebook, color: 'text-blue-700 hover:text-blue-800' },
+      { key: 'reddit', icon: SiReddit, url: socialLinks.reddit, color: 'text-orange-600 hover:text-orange-700' },
+      { key: 'quora', icon: SiQuora, url: socialLinks.quora, color: 'text-red-700 hover:text-red-800' },
+    ];
+    
+    const activeIcons = icons.filter(icon => icon.url && icon.url.trim() !== '');
+    
+    if (activeIcons.length === 0) return null;
+    
+    return (
+      <div className="flex justify-center gap-3 mt-4">
+        {activeIcons.map(({ key, icon: Icon, url, color }) => (
+          <a
+            key={key}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`p-2 rounded-full border border-gray-200 hover:border-gray-300 transition-all duration-200 ${color} hover:bg-gray-50`}
+            data-testid={`social-icon-${key}`}
+          >
+            <Icon className="h-5 w-5" />
+          </a>
+        ))}
+      </div>
+    );
+  };
+
   const renderFormFields = () => {
     if (isSubmitted) return null;
     
@@ -263,59 +351,69 @@ export default function PopupPreview({ config, isFullscreen = false, onClose }: 
   const PopupContent = () => {
     if (isSubmitted) {
       return (
-        <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50 rounded-3xl p-8 w-full max-w-lg shadow-2xl relative overflow-hidden" data-testid="popup-success">
+        <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50 rounded-3xl p-6 lg:p-8 w-[92vw] lg:w-auto max-w-[720px] lg:max-w-[820px] xl:max-w-[880px] max-h-[70vh] overflow-y-auto shadow-2xl relative" data-testid="popup-success">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-emerald-400 to-blue-500 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
             <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full mix-blend-multiply filter blur-xl animate-pulse delay-200"></div>
           </div>
           
-          <div className="relative z-10 text-center">
-            {/* Success Icon */}
-            <div className="mx-auto w-20 h-20 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center mb-6 shadow-lg transform scale-110 animate-pulse">
-              <CheckCircle className="w-12 h-12 text-white" />
-            </div>
-            
-            {/* Welcome Message */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-3">
-                Welcome to the Family!
-              </h2>
-              <p className="text-gray-600 text-lg">
-                Confirmation sent to
-              </p>
-              <p className="text-gray-800 font-semibold text-lg">
-                {formData.email}
-              </p>
-            </div>
-            
-            {/* Discount Code Section */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-inner mb-6">
-              <p className="text-sm font-medium text-gray-600 mb-3 uppercase tracking-wide">
-                Your Exclusive Discount
-              </p>
-              <div className="relative">
-                <div className="text-4xl font-bold text-primary mb-2">
-                  {config.discountCode}
+          <div className="relative z-10">
+            {/* Header Row with Success Icon and Welcome */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:gap-8 mb-6">
+              <div className="flex-shrink-0 text-center lg:text-left">
+                <div className="inline-flex w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full items-center justify-center shadow-lg transform scale-110 animate-pulse mb-4 lg:mb-0">
+                  <CheckCircle className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
                 </div>
-                <Button
-                  onClick={handleCopyCode}
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 hover:bg-primary/10 border-primary/20 text-primary hover:text-primary"
-                  data-testid="button-copy-code"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Tap to copy • Save {config.discountPercentage}%
-                </Button>
+              </div>
+              
+              <div className="flex-1 text-center lg:text-left">
+                <h2 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                  Welcome to the Family!
+                </h2>
+                <div className="text-gray-600 text-base lg:text-lg">
+                  <span>Confirmation sent to </span>
+                  <span className="text-gray-800 font-semibold break-all">{formData.email}</span>
+                </div>
               </div>
             </div>
             
-            {/* Additional Info */}
-            <div className="bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-xl p-4 border border-blue-200/50">
-              <div className="flex items-center justify-center gap-2 text-blue-700 text-sm">
-                <CheckCircle className="w-4 h-4" />
-                <span>Email with discount code is on its way!</span>
+            {/* Main Content Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Discount Code Section */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/50 shadow-inner">
+                <p className="text-xs lg:text-sm font-medium text-gray-600 mb-3 uppercase tracking-wide text-center">
+                  Your Exclusive Discount
+                </p>
+                <div className="text-center">
+                  <div className="text-3xl lg:text-4xl font-bold text-primary mb-3">
+                    {config.discountCode}
+                  </div>
+                  <Button
+                    onClick={handleCopyCode}
+                    variant="outline"
+                    size="sm"
+                    className="hover:bg-primary/10 border-primary/20 text-primary hover:text-primary"
+                    data-testid="button-copy-code"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Tap to copy • Save {config.discountPercentage}%
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Email Notification Section */}
+              <div className="flex items-center justify-center">
+                <div className="bg-gradient-to-r from-blue-100/80 to-indigo-100/80 rounded-xl p-4 border border-blue-200/50 w-full">
+                  <div className="flex items-center justify-center gap-2 text-blue-700 text-sm">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-center">Email with discount code is on its way!</span>
+                  </div>
+                  <div className="text-center mt-2 text-xs text-blue-600">
+                    Check your inbox in the next few minutes!
+                  </div>
+                  {renderSocialIcons()}
+                </div>
               </div>
             </div>
           </div>
@@ -324,7 +422,7 @@ export default function PopupPreview({ config, isFullscreen = false, onClose }: 
     }
     
     return (
-      <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl relative overflow-hidden" data-testid="popup-preview">
+      <div className="fpw-popup-root bg-white rounded-3xl p-6 lg:p-8 w-[92vw] lg:w-auto max-w-[520px] lg:max-w-[600px] max-h-[70vh] overflow-y-auto shadow-2xl relative" data-testid="popup-preview">
         {/* Background Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-indigo-50/30 to-purple-50/50 rounded-3xl"></div>
         
@@ -344,10 +442,10 @@ export default function PopupPreview({ config, isFullscreen = false, onClose }: 
           <div className="text-center mb-8">
             <div className="w-16 h-1 bg-gradient-to-r from-primary to-blue-500 rounded-full mx-auto mb-4"></div>
             <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">
-              {config.title}
+              <SafeHtmlText html={config.title} />
             </h2>
             <p className="text-gray-600 text-base leading-relaxed">
-              {config.subtitle}
+              <SafeHtmlText html={config.subtitle} />
             </p>
           </div>
 
@@ -373,13 +471,14 @@ export default function PopupPreview({ config, isFullscreen = false, onClose }: 
           </div>
 
           {!isSubmitted && (
-            <div className="mt-6">
-              <label className="flex items-start text-sm text-gray-600 leading-relaxed">
-                <Checkbox className="mr-3 mt-0.5" />
-                <span>
+            <div className="mt-6 space-y-4">
+              <label className="fpw-checkbox-container flex items-start text-sm text-gray-600 leading-relaxed">
+                <Checkbox className="fpw-checkbox mr-3 mt-0.5" />
+                <span className="fpw-checkbox-text">
                   Stay Connected For: <strong>Exclusive Product Launches</strong> • <strong>Special Promotions</strong> • <strong>Bioprocess Insights & Updates</strong>
                 </span>
               </label>
+              {renderSocialIcons()}
             </div>
           )}
         </div>
@@ -390,8 +489,8 @@ export default function PopupPreview({ config, isFullscreen = false, onClose }: 
   if (isFullscreen) {
     return (
       <Dialog open={isFullscreen} onOpenChange={onClose}>
-        <DialogContent className="max-w-none w-full h-full bg-black/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 overflow-y-auto">
-          <div className="max-h-full overflow-y-auto">
+        <DialogContent className="fpw-dialog-content">
+          <div className="max-h-full overflow-y-auto w-[92vw] lg:w-auto max-w-[720px] lg:max-w-[820px] xl:max-w-[880px] max-h-[70vh]">
             <PopupContent />
           </div>
         </DialogContent>

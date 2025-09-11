@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye } from "lucide-react";
+import { Eye, Save, Linkedin, Twitter, Youtube, Instagram, Facebook, MessageCircle, Bold, Highlighter } from "lucide-react";
+import { SiReddit, SiQuora } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import PopupPreview from "@/components/popup-preview";
 import { apiRequest } from "@/lib/queryClient";
@@ -39,9 +40,20 @@ interface PopupConfig {
   isActive: boolean;
 }
 
+interface SocialLinks {
+  linkedin: string;
+  twitter: string;
+  youtube: string;
+  instagram: string;
+  facebook: string;
+  reddit: string;
+  quora: string;
+}
+
 interface Store {
   id: string;
   name: string;
+  socialLinks?: SocialLinks;
 }
 
 export default function PopupBuilder() {
@@ -58,6 +70,16 @@ export default function PopupBuilder() {
 
   const { data: stores = [] } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
+  });
+
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({
+    linkedin: '',
+    twitter: '',
+    youtube: '',
+    instagram: '',
+    facebook: '',
+    reddit: '',
+    quora: ''
   });
 
   const { data: popupConfig, isLoading } = useQuery({
@@ -96,6 +118,15 @@ export default function PopupBuilder() {
     }
   }, [stores, selectedStoreId]);
 
+  useEffect(() => {
+    if (selectedStoreId) {
+      const currentStore = stores.find(store => store.id === selectedStoreId);
+      if (currentStore?.socialLinks) {
+        setSocialLinks(currentStore.socialLinks);
+      }
+    }
+  }, [selectedStoreId, stores]);
+
   const handleConfigUpdate = (updates: Partial<PopupConfig>) => {
     if (!config) return;
     
@@ -116,6 +147,75 @@ export default function PopupBuilder() {
     
     const newValidation = { ...config.emailValidation, [field]: value };
     handleConfigUpdate({ emailValidation: newValidation });
+  };
+
+  const updateStoreSocialLinksMutation = useMutation({
+    mutationFn: (socialLinks: SocialLinks) =>
+      apiRequest(`/api/stores/${selectedStoreId}`, { method: "PUT", body: JSON.stringify({ socialLinks }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      toast({
+        title: "Success",
+        description: "Social media links updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update social media links",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSocialLinkChange = (platform: string, url: string) => {
+    setSocialLinks(prev => ({ ...prev, [platform]: url }));
+  };
+
+  const handleSaveSocialLinks = () => {
+    updateStoreSocialLinksMutation.mutate(socialLinks);
+  };
+
+  const addFormatting = (field: 'title' | 'subtitle', tag: 'strong' | 'mark') => {
+    if (!config) return;
+    
+    const textarea = document.getElementById(field === 'title' ? 'title' : 'subtitle') as HTMLInputElement | HTMLTextAreaElement;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const currentValue = config[field];
+    
+    if (start === end) {
+      // No selection, insert placeholder
+      const beforeText = currentValue.substring(0, start);
+      const afterText = currentValue.substring(end);
+      const placeholder = tag === 'strong' ? 'bold text' : 'highlighted text';
+      const newValue = `${beforeText}<${tag}>${placeholder}</${tag}>${afterText}`;
+      handleConfigUpdate({ [field]: newValue });
+      
+      // Set cursor position after the inserted text
+      setTimeout(() => {
+        textarea.focus();
+        const newPosition = start + `<${tag}>${placeholder}</${tag}>`.length;
+        textarea.setSelectionRange(newPosition, newPosition);
+      }, 0);
+    } else {
+      // Text is selected, wrap it
+      const beforeText = currentValue.substring(0, start);
+      const selectedText = currentValue.substring(start, end);
+      const afterText = currentValue.substring(end);
+      const newValue = `${beforeText}<${tag}>${selectedText}</${tag}>${afterText}`;
+      handleConfigUpdate({ [field]: newValue });
+      
+      // Restore selection after the tags
+      setTimeout(() => {
+        textarea.focus();
+        const newStart = start + `<${tag}>`.length;
+        const newEnd = newStart + selectedText.length;
+        textarea.setSelectionRange(newStart, newEnd);
+      }, 0);
+    }
   };
 
   // Show message if no stores exist
@@ -204,16 +304,67 @@ export default function PopupBuilder() {
               <h3 className="text-lg font-semibold text-foreground mb-4">Basic Settings</h3>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="title">Popup Title</Label>
+                  <div className="flex justify-between items-center mb-2">
+                    <Label htmlFor="title">Popup Title</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addFormatting('title', 'strong')}
+                        className="h-8 px-2"
+                        data-testid="button-format-title-bold"
+                      >
+                        <Bold className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addFormatting('title', 'mark')}
+                        className="h-8 px-2"
+                        data-testid="button-format-title-highlight"
+                      >
+                        <Highlighter className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                   <Input
                     id="title"
                     value={config.title}
                     onChange={(e) => handleConfigUpdate({ title: e.target.value })}
                     data-testid="input-popup-title"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select text and use formatting buttons to add <strong>bold</strong> or <mark className="bg-yellow-200 px-1 rounded">highlight</mark> styling
+                  </p>
                 </div>
                 <div>
-                  <Label htmlFor="subtitle">Subtitle</Label>
+                  <div className="flex justify-between items-center mb-2">
+                    <Label htmlFor="subtitle">Subtitle</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addFormatting('subtitle', 'strong')}
+                        className="h-8 px-2"
+                        data-testid="button-format-subtitle-bold"
+                      >
+                        <Bold className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addFormatting('subtitle', 'mark')}
+                        className="h-8 px-2"
+                        data-testid="button-format-subtitle-highlight"
+                      >
+                        <Highlighter className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                   <Textarea
                     id="subtitle"
                     rows={3}
@@ -221,6 +372,9 @@ export default function PopupBuilder() {
                     onChange={(e) => handleConfigUpdate({ subtitle: e.target.value })}
                     data-testid="textarea-popup-subtitle"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select text and use formatting buttons to add <strong>bold</strong> or <mark className="bg-yellow-200 px-1 rounded">highlight</mark> styling
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="buttonText">Button Text</Label>
@@ -342,6 +496,128 @@ export default function PopupBuilder() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Social Media Links */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-foreground">Social Media Links</h3>
+                <Button 
+                  onClick={handleSaveSocialLinks}
+                  disabled={updateStoreSocialLinksMutation.isPending}
+                  size="sm"
+                  data-testid="button-save-social-links"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateStoreSocialLinksMutation.isPending ? 'Saving...' : 'Save Links'}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Add your social media URLs to display clickable icons in your popup
+              </p>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex items-center space-x-3">
+                    <Linkedin className="h-5 w-5 text-blue-600" />
+                    <div className="flex-1">
+                      <Label htmlFor="linkedin" className="text-sm font-medium">LinkedIn</Label>
+                      <Input
+                        id="linkedin"
+                        placeholder="https://linkedin.com/company/your-company"
+                        value={socialLinks.linkedin}
+                        onChange={(e) => handleSocialLinkChange('linkedin', e.target.value)}
+                        data-testid="input-social-linkedin"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Twitter className="h-5 w-5 text-blue-400" />
+                    <div className="flex-1">
+                      <Label htmlFor="twitter" className="text-sm font-medium">Twitter</Label>
+                      <Input
+                        id="twitter"
+                        placeholder="https://twitter.com/your-handle"
+                        value={socialLinks.twitter}
+                        onChange={(e) => handleSocialLinkChange('twitter', e.target.value)}
+                        data-testid="input-social-twitter"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Youtube className="h-5 w-5 text-red-600" />
+                    <div className="flex-1">
+                      <Label htmlFor="youtube" className="text-sm font-medium">YouTube</Label>
+                      <Input
+                        id="youtube"
+                        placeholder="https://youtube.com/c/your-channel"
+                        value={socialLinks.youtube}
+                        onChange={(e) => handleSocialLinkChange('youtube', e.target.value)}
+                        data-testid="input-social-youtube"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Instagram className="h-5 w-5 text-pink-600" />
+                    <div className="flex-1">
+                      <Label htmlFor="instagram" className="text-sm font-medium">Instagram</Label>
+                      <Input
+                        id="instagram"
+                        placeholder="https://instagram.com/your-handle"
+                        value={socialLinks.instagram}
+                        onChange={(e) => handleSocialLinkChange('instagram', e.target.value)}
+                        data-testid="input-social-instagram"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Facebook className="h-5 w-5 text-blue-700" />
+                    <div className="flex-1">
+                      <Label htmlFor="facebook" className="text-sm font-medium">Facebook</Label>
+                      <Input
+                        id="facebook"
+                        placeholder="https://facebook.com/your-page"
+                        value={socialLinks.facebook}
+                        onChange={(e) => handleSocialLinkChange('facebook', e.target.value)}
+                        data-testid="input-social-facebook"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <SiReddit className="h-5 w-5 text-orange-600" />
+                    <div className="flex-1">
+                      <Label htmlFor="reddit" className="text-sm font-medium">Reddit</Label>
+                      <Input
+                        id="reddit"
+                        placeholder="https://reddit.com/r/your-subreddit"
+                        value={socialLinks.reddit}
+                        onChange={(e) => handleSocialLinkChange('reddit', e.target.value)}
+                        data-testid="input-social-reddit"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <SiQuora className="h-5 w-5 text-red-700" />
+                    <div className="flex-1">
+                      <Label htmlFor="quora" className="text-sm font-medium">Quora</Label>
+                      <Input
+                        id="quora"
+                        placeholder="https://quora.com/profile/your-profile"
+                        value={socialLinks.quora}
+                        onChange={(e) => handleSocialLinkChange('quora', e.target.value)}
+                        data-testid="input-social-quora"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Preview Panel */}
@@ -349,7 +625,10 @@ export default function PopupBuilder() {
           <Card>
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-foreground mb-4">Live Preview</h3>
-              <PopupPreview config={config} />
+              <PopupPreview 
+                config={config} 
+                socialLinks={socialLinks}
+              />
             </CardContent>
           </Card>
 
@@ -425,6 +704,7 @@ export default function PopupBuilder() {
 
       <PopupPreview 
         config={config} 
+        socialLinks={socialLinks}
         isFullscreen={showPreview}
         onClose={() => setShowPreview(false)}
       />

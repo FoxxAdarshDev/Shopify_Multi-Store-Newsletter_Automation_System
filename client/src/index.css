@@ -130,6 +130,27 @@
   background-color: rgba(0, 0, 0, 0.4);
 }
 
+/* Popup container isolation */
+.fpw-dialog-content {
+  /* Ensure dialog content is properly isolated */
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(0.75rem) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+  overflow-y: auto !important;
+}
+
+@media (min-width: 640px) {
+  .fpw-dialog-content {
+    padding: 2rem !important;
+  }
+}
+
 /* Popup preview animations */
 @keyframes foxxFadeIn {
   from { opacity: 0; }
@@ -251,4 +272,51 @@
 
 .nav-item-inactive {
   @apply text-foreground hover:bg-accent hover:text-accent-foreground;
+}
+
+/* Popup widget CSS classes to prevent conflicts with host websites */
+.fpw-popup-root {
+  /* Ensure popup root has proper isolation */
+  all: initial;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.fpw-checkbox-container {
+  /* Override any host website checkbox styling */
+  all: unset;
+  display: flex !important;
+  align-items: flex-start !important;
+  font-size: 0.875rem !important;
+  color: rgb(75 85 99) !important;
+  line-height: 1.625 !important;
+}
+
+.fpw-checkbox {
+  /* Ensure checkbox visibility */
+  all: unset;
+  margin-right: 0.75rem !important;
+  margin-top: 0.125rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0.25rem !important;
+  background-color: hsl(var(--background)) !important;
+}
+
+.fpw-checkbox[data-state="checked"] {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.fpw-checkbox-text {
+  /* Ensure text remains visible */
+  all: unset;
+  color: rgb(75 85 99) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.625 !important;
+  display: block !important;
 }
