@@ -144,18 +144,46 @@ export default function Onboarding() {
   const shouldShowHeader = true;
   const displayStores = existingStores.length > 0 ? existingStores : [];
 
+  // Helper to normalize URLs like in Settings page
+  const normalizeUrl = (url: string, isCustomDomain: boolean = false) => {
+    if (!url) return url;
+    
+    if (isCustomDomain) {
+      // For custom domains, ensure https protocol
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+      }
+      return url.replace(/\/$/, ''); // Remove trailing slash
+    } else {
+      // For Shopify store names, just clean and add .myshopify.com
+      const cleanName = url.replace(/[^a-zA-Z0-9-]/g, '');
+      return `${cleanName}.myshopify.com`;
+    }
+  };
+
   const createStoreMutation = useMutation({
     mutationFn: (data: StoreFormData) => {
       // Prepare the store data based on the URL mode and integration type
+      let normalizedShopifyUrl = data.shopifyUrl;
+      let normalizedCustomDomain = data.customDomain;
+      let normalizedShopifyStoreName = data.shopifyStoreName;
+      
+      if (data.integrationType === "shopify") {
+        if (data.shopifyStoreName) {
+          normalizedShopifyStoreName = data.shopifyStoreName.replace(/[^a-zA-Z0-9-]/g, '');
+          normalizedShopifyUrl = normalizeUrl(normalizedShopifyStoreName, false);
+        } else if (data.customDomain) {
+          normalizedCustomDomain = normalizeUrl(data.customDomain, true);
+          normalizedShopifyUrl = normalizedCustomDomain;
+        }
+      }
+      
       const storeData = {
         name: data.name,
         shopifyAccessToken: data.shopifyAccessToken,
-        shopifyStoreName: data.shopifyStoreName,
-        customDomain: data.customDomain,
-        // For backwards compatibility, set shopifyUrl based on the provided fields
-        shopifyUrl: data.integrationType === "shopify" 
-          ? (data.shopifyStoreName ? `${data.shopifyStoreName}.myshopify.com` : data.customDomain)
-          : data.shopifyUrl
+        shopifyStoreName: normalizedShopifyStoreName,
+        customDomain: normalizedCustomDomain,
+        shopifyUrl: normalizedShopifyUrl
       };
       
       return apiRequest("/api/stores", { method: "POST", body: JSON.stringify(storeData) });
@@ -222,10 +250,18 @@ export default function Onboarding() {
 
   const handleNext = async () => {
     if (step === 1) {
-      // Check if either shopifyStoreName or customDomain is provided based on selected mode
-      const hasValidUrl = urlEditMode === 'myshopify' 
-        ? formData.shopifyStoreName?.trim()
-        : formData.customDomain?.trim();
+      // Check validation based on integration type
+      let hasValidUrl = false;
+      
+      if (formData.integrationType === "shopify") {
+        // For Shopify, check if either shopifyStoreName or customDomain is provided based on selected mode
+        hasValidUrl = urlEditMode === 'myshopify' 
+          ? !!formData.shopifyStoreName?.trim()
+          : !!formData.customDomain?.trim();
+      } else {
+        // For typical websites, check if shopifyUrl is provided
+        hasValidUrl = !!formData.shopifyUrl?.trim();
+      }
         
       if (!formData.name || !hasValidUrl || !formData.integrationType) {
         toast({
