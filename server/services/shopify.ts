@@ -167,17 +167,10 @@ export class ShopifyService {
     discountCode: string
   ): Promise<{ hasUsedCoupon: boolean; orderInfo?: any }> {
     try {
-      console.log(`\n🔍 SYNC DEBUG: Checking coupon usage for ${subscriberEmail}`);
-      console.log(`   Looking for discount code: ${discountCode}`);
-      
       const customer = await this.getCustomerByEmail(config, subscriberEmail);
       if (!customer) {
-        console.log(`   ❌ Customer not found in Shopify`);
         return { hasUsedCoupon: false };
       }
-
-      console.log(`   ✅ Customer found: ID ${customer.id}, Email ${customer.email}`);
-      console.log(`   📊 Customer orders count: ${customer.orders_count || 0}`);
 
       // Get customer's orders and find the specific order where discount was used
       const decryptedConfig = this.decryptConfig(config);
