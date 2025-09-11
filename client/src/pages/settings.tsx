@@ -363,7 +363,9 @@ export default function Settings() {
   if (emailLoading || preferencesLoading) {
     return (
       <div className="p-6 space-y-6">
-        <h2 className="text-xl font-semibold text-foreground">Settings</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Settings {selectedStore ? `- ${selectedStore.name}` : ''}
+        </h2>
         <div className="grid lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -380,7 +382,9 @@ export default function Settings() {
   return (
     <div className="p-6 space-y-6" data-testid="settings-page">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Settings</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Settings {selectedStore ? `- ${selectedStore.name}` : ''}
+        </h2>
         <p className="text-sm text-muted-foreground">
           Configure your email and Shopify integration settings
         </p>
