@@ -223,7 +223,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error: any) {
       if (error.code === '42703' || error.message?.includes('social_links')) {
         // Fallback for missing social_links column
-        const [store] = await db.execute(sql`
+        const result = await db.execute(sql`
           SELECT id, user_id as "userId", name, shopify_url as "shopifyUrl", 
                  shopify_store_name as "shopifyStoreName", custom_domain as "customDomain",
                  shopify_access_token as "shopifyAccessToken", is_connected as "isConnected",
@@ -233,6 +233,7 @@ export class DatabaseStorage implements IStorage {
                  created_at as "createdAt", updated_at as "updatedAt"
           FROM stores WHERE id = ${id}
         `);
+        const [store] = result.rows || result;
         return store || undefined;
       }
       throw error;
@@ -245,7 +246,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error: any) {
       if (error.code === '42703' || error.message?.includes('social_links')) {
         // Fallback for missing social_links column
-        const storeList = await db.execute(sql`
+        const result = await db.execute(sql`
           SELECT id, user_id as "userId", name, shopify_url as "shopifyUrl", 
                  shopify_store_name as "shopifyStoreName", custom_domain as "customDomain",
                  shopify_access_token as "shopifyAccessToken", is_connected as "isConnected",
@@ -255,7 +256,7 @@ export class DatabaseStorage implements IStorage {
                  created_at as "createdAt", updated_at as "updatedAt"
           FROM stores WHERE user_id = ${userId} ORDER BY created_at DESC
         `);
-        return storeList;
+        return result.rows || result;
       }
       throw error;
     }
