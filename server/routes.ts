@@ -461,17 +461,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (store) {
         // Send welcome email with discount code
         await emailService.sendWelcomeEmail(
-          store.userId,
+          storeId,
           subscriber.email,
           subscriber.name,
           discountCode,
-          discountPercentage,
-          storeId
+          discountPercentage
         );
         
         // Send admin notification
         await emailService.sendAdminNotification(
-          store.userId,
+          storeId,
           subscriber.email,
           store.name
         );
@@ -1070,16 +1069,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send welcome email
       if (store && subscriber) {
         await emailService.sendWelcomeEmail(
-          store.userId,
+          storeId,
           subscriber.email,
           subscriber.name,
           discountCode,
-          discountPercentage,
-          storeId
+          discountPercentage
         );
         
         await emailService.sendAdminNotification(
-          store.userId,
+          storeId,
           subscriber.email,
           store.name
         );

@@ -14,8 +14,8 @@ export interface EmailConfig {
 export class EmailService {
   private transporter: nodemailer.Transporter | null = null;
 
-  async getEmailConfig(userId: string): Promise<EmailConfig | null> {
-    const settings = await storage.getEmailSettings(userId);
+  async getEmailConfig(storeId: string): Promise<EmailConfig | null> {
+    const settings = await storage.getEmailSettings(storeId);
     if (!settings || !settings.isConfigured) {
       return null;
     }
@@ -33,7 +33,7 @@ export class EmailService {
   async createTransporter(config: EmailConfig): Promise<nodemailer.Transporter> {
     const isOffice365 = config.host.includes('office365') || config.host.includes('outlook');
     
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: config.host,
       port: config.port,
       secure: config.port === 465, // true for 465, false for other ports
@@ -71,15 +71,14 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(
-    userId: string,
+    storeId: string,
     subscriberEmail: string,
     subscriberName: string | null,
     discountCode: string,
-    discountPercentage: number,
-    storeId?: string
+    discountPercentage: number
   ): Promise<boolean> {
     try {
-      const config = await this.getEmailConfig(userId);
+      const config = await this.getEmailConfig(storeId);
       if (!config) {
         throw new Error('Email configuration not found');
       }
@@ -90,11 +89,11 @@ export class EmailService {
       const firstName = subscriberName || this.extractFirstNameFromEmail(subscriberEmail);
       
       // Get email template or use default
-      let template = await storage.getEmailTemplate(userId);
+      let template = await storage.getEmailTemplate(storeId);
       if (!template) {
-        // Create default template for user
+        // Create default template for store
         template = await storage.createEmailTemplate({
-          userId,
+          storeId,
           templateName: 'Welcome Email Template',
           subject: 'Thank You for Registering – Here\'s Your 15% Discount!',
           headerLogo: '/assets/foxx-logo.png',
@@ -353,12 +352,12 @@ Team Foxx Bioprocess`,
   }
 
   async sendAdminNotification(
-    userId: string,
+    storeId: string,
     subscriberEmail: string,
     storeName: string
   ): Promise<boolean> {
     try {
-      const config = await this.getEmailConfig(userId);
+      const config = await this.getEmailConfig(storeId);
       if (!config) {
         return false;
       }
