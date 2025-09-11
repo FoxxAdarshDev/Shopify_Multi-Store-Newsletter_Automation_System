@@ -167,39 +167,71 @@ export class ShopifyService {
     discountCode: string
   ): Promise<{ hasUsedCoupon: boolean; orderInfo?: any }> {
     try {
+      console.log(`\n🔍 SYNC DEBUG: Checking coupon usage for ${subscriberEmail}`);
+      console.log(`   Looking for discount code: ${discountCode}`);
+      
       const customer = await this.getCustomerByEmail(config, subscriberEmail);
       if (!customer) {
+        console.log(`   ❌ Customer not found in Shopify`);
         return { hasUsedCoupon: false };
       }
+
+      console.log(`   ✅ Customer found: ID ${customer.id}, Email ${customer.email}`);
+      console.log(`   📊 Customer orders count: ${customer.orders_count || 0}`);
 
       // Get customer's orders and find the specific order where discount was used
       const decryptedConfig = this.decryptConfig(config);
       const ordersResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}/orders.json`);
       
       if (ordersResponse.orders) {
+        console.log(`   📦 Found ${ordersResponse.orders.length} orders for customer`);
+        
         // Check both discount_codes and discount_applications fields
-        const orderWithDiscount = ordersResponse.orders.find((order: any) => {
+        const orderWithDiscount = ordersResponse.orders.find((order: any, index: number) => {
+          console.log(`\n   📋 ORDER ${index + 1}:`);
+          console.log(`      Order ID: ${order.id}`);
+          console.log(`      Order Number: ${order.order_number}`);
+          console.log(`      Date: ${order.created_at}`);
+          console.log(`      Total: $${order.total_price}`);
+          
+          // Log discount codes
+          console.log(`      Discount Codes:`, JSON.stringify(order.discount_codes, null, 6));
+          
+          // Log discount applications
+          console.log(`      Discount Applications:`, JSON.stringify(order.discount_applications, null, 6));
+          
           // Check discount_codes (customer-entered codes)
           const foundInDiscountCodes = order.discount_codes && 
-            order.discount_codes.some((dc: any) => 
-              dc.code.toLowerCase() === discountCode.toLowerCase()
-            );
+            order.discount_codes.some((dc: any) => {
+              const match = dc.code.toLowerCase() === discountCode.toLowerCase();
+              console.log(`         Checking discount code "${dc.code}" vs "${discountCode}": ${match ? '✅ MATCH' : '❌ no match'}`);
+              return match;
+            });
 
           // Check discount_applications (all types of discounts)
           const foundInDiscountApplications = order.discount_applications && 
             order.discount_applications.some((da: any) => {
+              console.log(`         Checking discount application: type="${da.type}", title="${da.title}"`);
               // For discount_code type applications, check if the title or code matches
               if (da.type === 'discount_code') {
-                return da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+                const match = da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+                console.log(`            Discount code type check: "${da.title}" contains "${discountCode}": ${match ? '✅ MATCH' : '❌ no match'}`);
+                return match;
               }
               // For other types (automatic, manual, script), check title
-              return da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+              const match = da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+              console.log(`            General discount check: "${da.title}" contains "${discountCode}": ${match ? '✅ MATCH' : '❌ no match'}`);
+              return match;
             });
 
-          return foundInDiscountCodes || foundInDiscountApplications;
+          const overallMatch = foundInDiscountCodes || foundInDiscountApplications;
+          console.log(`      🎯 Overall match for order: ${overallMatch ? '✅ YES' : '❌ NO'}`);
+          
+          return overallMatch;
         });
 
         if (orderWithDiscount) {
+          console.log(`   🎉 COUPON USAGE FOUND! Order ${orderWithDiscount.order_number} used the discount code.`);
           return {
             hasUsedCoupon: true,
             orderInfo: {
@@ -211,7 +243,11 @@ export class ShopifyService {
               discountApplications: orderWithDiscount.discount_applications
             }
           };
+        } else {
+          console.log(`   ❌ No orders found with discount code "${discountCode}"`);
         }
+      } else {
+        console.log(`   ❌ No orders response received from Shopify`);
       }
       
       return { hasUsedCoupon: false };
