@@ -198,7 +198,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSession(sessionId: string): Promise<boolean> {
     const result = await db.delete(sessions).where(eq(sessions.sid, sessionId));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async cleanExpiredSessions(): Promise<void> {
@@ -212,7 +212,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: string): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Stores
@@ -234,7 +234,7 @@ export class DatabaseStorage implements IStorage {
           FROM stores WHERE id = ${id}
         `);
         const [store] = result.rows || result;
-        return store || undefined;
+        return store as Store || undefined;
       }
       throw error;
     }
@@ -256,7 +256,7 @@ export class DatabaseStorage implements IStorage {
                  created_at as "createdAt", updated_at as "updatedAt"
           FROM stores WHERE user_id = ${userId} ORDER BY created_at DESC
         `);
-        return result.rows || result;
+        return (result.rows || result) as Store[];
       }
       throw error;
     }
@@ -278,7 +278,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteStore(id: string): Promise<boolean> {
     const result = await db.delete(stores).where(eq(stores.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Popup Configs
@@ -389,7 +389,7 @@ export class DatabaseStorage implements IStorage {
     // Delete the subscriber
     const result = await db.delete(subscribers).where(eq(subscribers.id, id));
     
-    if (result.rowCount > 0) {
+    if ((result.rowCount || 0) > 0) {
       return { sessionId: subscriber.sessionId || undefined };
     }
     return null;
@@ -588,18 +588,16 @@ export class DatabaseStorage implements IStorage {
   async bulkDeleteEmailClickTracking(ids: string[]): Promise<number> {
     if (ids.length === 0) return 0;
     
-    // Create a parameterized query for the array
-    const placeholders = ids.map((_, index) => `$${index + 1}`).join(',');
     
     // First get all the tracking records to identify which subscribers to delete
     const trackingRecords = await db
       .select()
       .from(emailClickTracking)
-      .where(sql.raw(`${emailClickTracking.id.name} = ANY(ARRAY[${placeholders}])`, ...ids));
+      .where(inArray(emailClickTracking.id, ids));
     
     // Delete the email analytics records
     const result = await db.delete(emailClickTracking).where(
-      sql.raw(`${emailClickTracking.id.name} = ANY(ARRAY[${placeholders}])`, ...ids)
+      inArray(emailClickTracking.id, ids)
     );
     
     const deletedCount = result.rowCount || 0;

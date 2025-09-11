@@ -123,6 +123,17 @@ export default function PopupBuilder() {
       const currentStore = stores.find(store => store.id === selectedStoreId);
       if (currentStore?.socialLinks) {
         setSocialLinks(currentStore.socialLinks);
+      } else {
+        // Reset to empty social links if store doesn't have them
+        setSocialLinks({
+          linkedin: '',
+          twitter: '',
+          youtube: '',
+          instagram: '',
+          facebook: '',
+          reddit: '',
+          quora: ''
+        });
       }
     }
   }, [selectedStoreId, stores]);
@@ -153,7 +164,9 @@ export default function PopupBuilder() {
     mutationFn: (socialLinks: SocialLinks) =>
       apiRequest(`/api/stores/${selectedStoreId}`, { method: "PUT", body: JSON.stringify({ socialLinks }) }),
     onSuccess: () => {
+      // Invalidate both stores list and specific store queries
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/stores/${selectedStoreId}`] });
       toast({
         title: "Success",
         description: "Social media links updated successfully",
