@@ -273,11 +273,13 @@ export class PopupGeneratorService {
   
   // Toggle checkbox functionality
   window.toggleCheckbox = function(checkbox) {
+    var checkmarkIcon = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PC9wYXRoPgo8L3N2Zz4K';
+    
     if (checkbox.checked) {
       // Checkbox is checked - apply checked styling with proper !important priority
       checkbox.style.setProperty('background', '#0071b9', 'important');
       checkbox.style.setProperty('border-color', '#0071b9', 'important');
-      checkbox.style.setProperty('background-image', "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PC9wYXRoPgo8L3N2Zz4K')", 'important');
+      checkbox.style.setProperty('background-image', 'url(' + checkmarkIcon + ')', 'important');
     } else {
       // Checkbox is unchecked - apply unchecked styling with proper !important priority
       checkbox.style.setProperty('background', '#ffffff', 'important');
