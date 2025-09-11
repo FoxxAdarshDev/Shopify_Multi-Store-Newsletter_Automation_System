@@ -9,6 +9,15 @@ interface Store {
   shopifyAccessToken?: string;
   isConnected: boolean;
   isVerified: boolean;
+  socialLinks?: {
+    linkedin: string;
+    twitter: string;
+    youtube: string;
+    instagram: string;
+    facebook: string;
+    reddit: string;
+    quora: string;
+  };
 }
 
 interface StoreContextType {

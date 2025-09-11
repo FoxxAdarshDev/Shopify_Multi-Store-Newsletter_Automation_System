@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Save, Linkedin, Twitter, Youtube, Instagram, Facebook, MessageCircle, Bold, Highlighter } from "lucide-react";
 import { SiReddit, SiQuora } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
+import { useStoreContext } from "@/hooks/useStoreContext";
 import PopupPreview from "@/components/popup-preview";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -57,20 +59,29 @@ interface Store {
 }
 
 export default function PopupBuilder() {
-  // Get URL parameters
+  // Get URL parameters for preview mode
   const urlParams = new URLSearchParams(window.location.search);
-  const urlStoreId = urlParams.get('storeId') || "";
   const previewMode = urlParams.get('preview') === 'true';
   
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(urlStoreId);
+  // Use store context and URL params
+  const { storeId } = useParams<{ storeId?: string }>();
+  const [, setLocation] = useLocation();
+  const { stores, selectedStoreId, setSelectedStoreId, selectedStore } = useStoreContext();
+  
   const [config, setConfig] = useState<PopupConfig | null>(null);
   const [showPreview, setShowPreview] = useState(previewMode);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: stores = [] } = useQuery<Store[]>({
-    queryKey: ["/api/stores"],
-  });
+  // Sync context from URL param when it changes
+  useEffect(() => {
+    if (storeId && storeId !== selectedStoreId) {
+      setSelectedStoreId(storeId);
+    }
+  }, [storeId, selectedStoreId, setSelectedStoreId]);
+
+  // Use selectedStoreId as single source of truth after URL sync
+  const currentStoreId = selectedStoreId;
 
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({
     linkedin: '',
@@ -83,15 +94,15 @@ export default function PopupBuilder() {
   });
 
   const { data: popupConfig, isLoading } = useQuery({
-    queryKey: [`/api/stores/${selectedStoreId}/popup`],
-    enabled: !!selectedStoreId,
+    queryKey: [`/api/stores/${currentStoreId}/popup`],
+    enabled: !!currentStoreId,
   });
 
   const updateConfigMutation = useMutation({
     mutationFn: (updates: Partial<PopupConfig>) =>
-      apiRequest(`/api/stores/${selectedStoreId}/popup`, { method: "PUT", body: JSON.stringify(updates) }),
+      apiRequest(`/api/stores/${currentStoreId}/popup`, { method: "PUT", body: JSON.stringify(updates) }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/stores/${selectedStoreId}/popup`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/stores/${currentStoreId}/popup`] });
       toast({
         title: "Success",
         description: "Popup configuration updated successfully",
@@ -113,14 +124,8 @@ export default function PopupBuilder() {
   }, [popupConfig]);
 
   useEffect(() => {
-    if (stores.length > 0 && !selectedStoreId) {
-      setSelectedStoreId(stores[0].id);
-    }
-  }, [stores, selectedStoreId]);
-
-  useEffect(() => {
-    if (selectedStoreId) {
-      const currentStore = stores.find(store => store.id === selectedStoreId);
+    if (currentStoreId) {
+      const currentStore = stores.find(store => store.id === currentStoreId);
       if (currentStore?.socialLinks) {
         setSocialLinks(currentStore.socialLinks);
       } else {
@@ -136,7 +141,7 @@ export default function PopupBuilder() {
         });
       }
     }
-  }, [selectedStoreId, stores]);
+  }, [currentStoreId, stores]);
 
   const handleConfigUpdate = (updates: Partial<PopupConfig>) => {
     if (!config) return;
@@ -162,11 +167,11 @@ export default function PopupBuilder() {
 
   const updateStoreSocialLinksMutation = useMutation({
     mutationFn: (socialLinks: SocialLinks) =>
-      apiRequest(`/api/stores/${selectedStoreId}`, { method: "PUT", body: JSON.stringify({ socialLinks }) }),
+      apiRequest(`/api/stores/${currentStoreId}`, { method: "PUT", body: JSON.stringify({ socialLinks }) }),
     onSuccess: () => {
       // Invalidate both stores list and specific store queries
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/stores/${selectedStoreId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/stores/${currentStoreId}`] });
       toast({
         title: "Success",
         description: "Social media links updated successfully",
@@ -286,7 +291,10 @@ export default function PopupBuilder() {
           </p>
         </div>
         <div className="flex space-x-2">
-          <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
+          <Select value={selectedStoreId || undefined} onValueChange={(newStoreId) => {
+            // Navigate to the store-specific URL to update both URL and context
+            setLocation(`/store/${newStoreId}/popup-builder`);
+          }}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Select store" />
             </SelectTrigger>
