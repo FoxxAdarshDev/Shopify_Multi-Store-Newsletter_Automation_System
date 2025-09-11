@@ -415,7 +415,32 @@ Team Foxx Bioprocess`,
       }
 
       const transporter = await this.createTransporter(config);
-      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+      
+      // Enterprise-grade URL detection (Google/Amazon pattern)
+      const getBaseUrl = (): string => {
+        // 1st priority: Explicit environment override
+        if (process.env.FRONTEND_URL) {
+          return process.env.FRONTEND_URL;
+        }
+        
+        // 2nd priority: Replit platform detection
+        if (process.env.REPLIT_DOMAINS) {
+          return `https://${process.env.REPLIT_DOMAINS}`;
+        }
+        
+        // 3rd priority: Production environment
+        if (process.env.NODE_ENV === 'production' && process.env.PRODUCTION_DOMAIN) {
+          return `https://${process.env.PRODUCTION_DOMAIN}`;
+        }
+        
+        // 4th priority: Development fallback
+        return 'http://localhost:5000';
+      };
+      
+      const baseUrl = getBaseUrl();
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+      
+      console.log(`Using base URL: ${baseUrl} for password reset email`);
 
       const mailOptions: any = {
         from: `"${config.fromName}" <${config.fromEmail}>`,
