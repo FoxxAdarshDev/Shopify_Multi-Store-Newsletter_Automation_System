@@ -551,15 +551,18 @@ export class DatabaseStorage implements IStorage {
   async bulkDeleteEmailClickTracking(ids: string[]): Promise<number> {
     if (ids.length === 0) return 0;
     
+    // Create a parameterized query for the array
+    const placeholders = ids.map((_, index) => `$${index + 1}`).join(',');
+    
     // First get all the tracking records to identify which subscribers to delete
     const trackingRecords = await db
       .select()
       .from(emailClickTracking)
-      .where(inArray(emailClickTracking.id, ids));
+      .where(sql.raw(`${emailClickTracking.id.name} = ANY(ARRAY[${placeholders}])`, ...ids));
     
     // Delete the email analytics records
     const result = await db.delete(emailClickTracking).where(
-      inArray(emailClickTracking.id, ids)
+      sql.raw(`${emailClickTracking.id.name} = ANY(ARRAY[${placeholders}])`, ...ids)
     );
     
     const deletedCount = result.rowCount || 0;
