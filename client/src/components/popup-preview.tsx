@@ -264,7 +264,7 @@ export default function PopupPreview({ config, isFullscreen = false, onClose, so
         <div key="email" className="space-y-2">
           <Input
             type="email"
-            placeholder="Enter your business email address"
+            placeholder="Enter your email address"
             className={`w-full transition-all duration-200 border-2 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 ${formErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : 'border-gray-200 hover:border-gray-300'}`}
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
@@ -503,7 +503,7 @@ export default function PopupPreview({ config, isFullscreen = false, onClose, so
           {!isSubmitted && (
             <div className="mt-6 space-y-4">
               <label className="fpw-checkbox-container flex items-start text-sm text-gray-600 leading-relaxed">
-                <Checkbox className="fpw-checkbox mr-3 mt-0.5" />
+                <Checkbox className="fpw-checkbox mr-3 mt-0.5" defaultChecked={true} />
                 <span className="fpw-checkbox-text">
                   Stay Connected For: <strong>Exclusive Product Launches</strong> • <strong>Special Promotions</strong> • <strong>Bioprocess Insights & Updates</strong>
                 </span>
@@ -529,8 +529,65 @@ export default function PopupPreview({ config, isFullscreen = false, onClose, so
   }
 
   return (
-    <div className="relative bg-black/50 rounded-xl p-6 min-h-96 flex items-center justify-center" style={{backdropFilter: 'blur(4px)'}}>
-      <PopupContent />
+    <div className="space-y-6">
+      {/* Main Popup Preview */}
+      <div className="relative bg-white rounded-xl p-6 min-h-96 flex items-center justify-center border border-gray-200">
+        <PopupContent />
+      </div>
+      
+      {/* Success Confirmation Preview */}
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Success Confirmation Preview</h3>
+        <div className="bg-white rounded-lg p-4 flex items-center justify-center border border-gray-200">
+          <div className="text-center p-8 relative rounded-3xl text-white overflow-hidden max-w-[680px]" style={{
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #2563eb 100%)',
+            boxShadow: '0 20px 40px rgba(30, 64, 175, 0.3), 0 0 0 1px rgba(255,255,255,0.15)'
+          }}>
+            {/* Glassmorphism overlay */}
+            <div className="absolute inset-0 rounded-3xl pointer-events-none z-0" style={{
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(20px)'
+            }}></div>
+            
+            <div className="relative z-10 pb-5">
+              {/* Success Icon */}
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center text-white text-4xl font-bold" style={{
+                background: 'linear-gradient(135deg, #00c68c, #00e699)',
+                boxShadow: '0 15px 40px rgba(0, 198, 140, 0.4)'
+              }}>
+                ✓
+              </div>
+              
+              <h2 className="text-white mb-3 text-2xl font-extrabold">
+                Welcome to the Family!
+              </h2>
+              
+              <div className="rounded-xl p-3 mb-4" style={{
+                background: 'rgba(255,255,255,0.15)',
+                borderColor: 'rgba(255,255,255,0.2)'
+              }}>
+                <div className="text-sm text-white/80 mb-1 font-semibold">
+                  Confirmation sent to
+                </div>
+                <div className="text-base font-bold text-white">
+                  your-email@example.com
+                </div>
+              </div>
+              
+              <div className="text-xs text-white/70 mb-4">
+                Your discount code: <strong className="text-white">{config.discountCode}</strong>
+              </div>
+              
+              <button className="text-white border px-6 py-2 rounded-full text-sm font-bold" style={{
+                background: 'rgba(255,255,255,0.15)',
+                borderColor: 'rgba(255,255,255,0.3)'
+              }}>
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
