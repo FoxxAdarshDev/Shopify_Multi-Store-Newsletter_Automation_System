@@ -142,6 +142,9 @@ export default function Settings() {
     queryKey: ["/api/stores"],
   });
 
+  // Filter stores to only show the selected store
+  const currentStore = stores.find(store => store.id === selectedStore?.id);
+
   const saveEmailMutation = useMutation({
     mutationFn: (data: EmailSettings) => {
       if (!selectedStore?.id) throw new Error("No store selected");
@@ -579,15 +582,19 @@ export default function Settings() {
                     <p>No stores configured</p>
                     <p className="text-sm">Add a store to configure Shopify integration</p>
                   </div>
+                ) : !currentStore ? (
+                  <div className="text-center py-8 text-muted-foreground" data-testid="status-no-store-selected">
+                    <p>No store selected</p>
+                    <p className="text-sm">Please select a store to configure.</p>
+                  </div>
                 ) : (
-                  stores.map((store) => (
-                    <div key={store.id} className="space-y-4 border rounded-lg p-4">
+                  <div key={currentStore.id} className="space-y-4 border rounded-lg p-4">
                       <div className="space-y-4">
                         <div>
                           <Label>Store Name</Label>
                           <div className="flex items-center p-3 border border-border rounded-md bg-muted">
                             <Store className="h-4 w-4 mr-3 text-muted-foreground" />
-                            <span className="text-sm text-foreground">{store.name}</span>
+                            <span className="text-sm text-foreground">{currentStore.name}</span>
                           </div>
                         </div>
                         
@@ -597,7 +604,7 @@ export default function Settings() {
                               variant={urlEditMode === 'myshopify' ? 'default' : 'outline'}
                               size="sm"
                               onClick={() => setUrlEditMode('myshopify')}
-                              data-testid={`button-mode-myshopify-${store.id}`}
+                              data-testid={`button-mode-myshopify-${currentStore.id}`}
                             >
                               .myshopify.com Format
                             </Button>
@@ -605,7 +612,7 @@ export default function Settings() {
                               variant={urlEditMode === 'domain' ? 'default' : 'outline'}
                               size="sm"
                               onClick={() => setUrlEditMode('domain')}
-                              data-testid={`button-mode-domain-${store.id}`}
+                              data-testid={`button-mode-domain-${currentStore.id}`}
                             >
                               Custom Domain
                             </Button>
@@ -614,7 +621,7 @@ export default function Settings() {
                           {urlEditMode === 'myshopify' ? (
                             <div>
                               <Label>Shopify Store Name (.myshopify.com)</Label>
-                              {editingUrl === store.id ? (
+                              {editingUrl === currentStore.id ? (
                                 <div className="space-y-2">
                                   <Input
                                     type="text"
@@ -625,7 +632,7 @@ export default function Settings() {
                                     }}
                                     placeholder="your-store-name"
                                     className="flex-1"
-                                    data-testid={`input-store-name-${store.id}`}
+                                    data-testid={`input-store-name-${currentStore.id}`}
                                   />
                                   <p className="text-xs text-muted-foreground">
                                     Will become: {newUrl || 'your-store-name'}.myshopify.com
@@ -633,9 +640,9 @@ export default function Settings() {
                                   <div className="flex gap-2">
                                     <Button
                                       size="sm"
-                                      onClick={() => handleUrlSave(store.id)}
+                                      onClick={() => handleUrlSave(currentStore.id)}
                                       disabled={!newUrl.trim() || updateUrlMutation.isPending}
-                                      data-testid={`button-save-store-name-${store.id}`}
+                                      data-testid={`button-save-store-name-${currentStore.id}`}
                                     >
                                       {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
                                     </Button>
@@ -644,7 +651,7 @@ export default function Settings() {
                                       size="sm"
                                       onClick={handleUrlCancel}
                                       disabled={updateUrlMutation.isPending}
-                                      data-testid={`button-cancel-store-name-${store.id}`}
+                                      data-testid={`button-cancel-store-name-${currentStore.id}`}
                                     >
                                       Cancel
                                     </Button>
@@ -653,7 +660,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.shopifyStoreName || ''}
+                                    value={currentStore.shopifyStoreName || ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
@@ -662,8 +669,8 @@ export default function Settings() {
                                     variant="outline"
                                     size="sm"
                                     className="ml-2"
-                                    onClick={() => handleUrlEdit(store.id, store.shopifyStoreName || '')}
-                                    data-testid={`button-edit-store-name-${store.id}`}
+                                    onClick={() => handleUrlEdit(currentStore.id, currentStore.shopifyStoreName || '')}
+                                    data-testid={`button-edit-store-name-${currentStore.id}`}
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
@@ -676,7 +683,7 @@ export default function Settings() {
                           ) : (
                             <div>
                               <Label>Custom Domain URL</Label>
-                              {editingDomain === store.id ? (
+                              {editingDomain === currentStore.id ? (
                                 <div className="space-y-2">
                                   <Input
                                     type="url"
@@ -684,7 +691,7 @@ export default function Settings() {
                                     onChange={(e) => setNewDomain(e.target.value)}
                                     placeholder="https://shop.yourdomain.com"
                                     className="flex-1"
-                                    data-testid={`input-domain-${store.id}`}
+                                    data-testid={`input-domain-${currentStore.id}`}
                                   />
                                   <p className="text-xs text-muted-foreground">
                                     Enter your custom Shopify domain with protocol
@@ -692,9 +699,9 @@ export default function Settings() {
                                   <div className="flex gap-2">
                                     <Button
                                       size="sm"
-                                      onClick={() => handleDomainSave(store.id)}
+                                      onClick={() => handleDomainSave(currentStore.id)}
                                       disabled={!newDomain.trim() || updateUrlMutation.isPending}
-                                      data-testid={`button-save-domain-${store.id}`}
+                                      data-testid={`button-save-domain-${currentStore.id}`}
                                     >
                                       {updateUrlMutation.isPending ? 'Saving...' : 'Save'}
                                     </Button>
@@ -703,7 +710,7 @@ export default function Settings() {
                                       size="sm"
                                       onClick={handleUrlCancel}
                                       disabled={updateUrlMutation.isPending}
-                                      data-testid={`button-cancel-domain-${store.id}`}
+                                      data-testid={`button-cancel-domain-${currentStore.id}`}
                                     >
                                       Cancel
                                     </Button>
@@ -712,7 +719,7 @@ export default function Settings() {
                               ) : (
                                 <div className="flex items-center">
                                   <Input
-                                    value={store.customDomain || ''}
+                                    value={currentStore.customDomain || ''}
                                     readOnly
                                     className="flex-1 bg-muted text-muted-foreground"
                                     placeholder="Not configured"
@@ -721,8 +728,8 @@ export default function Settings() {
                                     variant="outline"
                                     size="sm"
                                     className="ml-2"
-                                    onClick={() => handleDomainEdit(store.id, store.customDomain || '')}
-                                    data-testid={`button-edit-domain-${store.id}`}
+                                    onClick={() => handleDomainEdit(currentStore.id, currentStore.customDomain || '')}
+                                    data-testid={`button-edit-domain-${currentStore.id}`}
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
@@ -737,7 +744,7 @@ export default function Settings() {
 
                         <div>
                         <Label>Store Access Token</Label>
-                        {editingToken === store.id ? (
+                        {editingToken === currentStore.id ? (
                           <div className="space-y-2">
                             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md mb-2">
                               <div className="flex items-center">
@@ -758,16 +765,16 @@ export default function Settings() {
                                 }}
                                 placeholder="Enter new access token (will be encrypted)"
                                 className="flex-1"
-                                data-testid={`input-new-token-${store.id}`}
+                                data-testid={`input-new-token-${currentStore.id}`}
                                 autoComplete="new-password"
                               />
                             </div>
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                onClick={() => handleTokenSave(store.id)}
+                                onClick={() => handleTokenSave(currentStore.id)}
                                 disabled={!newToken.trim() || updateTokenMutation.isPending}
-                                data-testid={`button-save-token-${store.id}`}
+                                data-testid={`button-save-token-${currentStore.id}`}
                               >
                                 {updateTokenMutation.isPending ? 'Encrypting & Saving...' : 'Save & Encrypt'}
                               </Button>
@@ -776,7 +783,7 @@ export default function Settings() {
                                 size="sm"
                                 onClick={handleTokenCancel}
                                 disabled={updateTokenMutation.isPending}
-                                data-testid={`button-cancel-token-${store.id}`}
+                                data-testid={`button-cancel-token-${currentStore.id}`}
                               >
                                 Cancel
                               </Button>
@@ -786,7 +793,7 @@ export default function Settings() {
                           <div className="flex items-center">
                             <Input
                               type="password"
-                              value={store.shopifyAccessToken ? maskToken(store.shopifyAccessToken) : ''}
+                              value={currentStore.shopifyAccessToken ? maskToken(currentStore.shopifyAccessToken) : ''}
                               readOnly
                               className="flex-1 bg-muted text-muted-foreground"
                               placeholder="No token configured"
@@ -795,8 +802,8 @@ export default function Settings() {
                               variant="outline"
                               size="sm"
                               className="ml-2"
-                              onClick={() => handleTokenEdit(store.id)}
-                              data-testid={`button-edit-token-${store.id}`}
+                              onClick={() => handleTokenEdit(currentStore.id)}
+                              data-testid={`button-edit-token-${currentStore.id}`}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -808,25 +815,25 @@ export default function Settings() {
                       </div>
 
                       <div className={`flex items-center justify-between p-4 border rounded-md ${
-                        store.isConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                        currentStore.isConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                       }`}>
                         <div className="flex items-center">
                           <div className={`w-2 h-2 rounded-full mr-3 ${
-                            store.isConnected ? 'bg-green-500' : 'bg-red-500'
+                            currentStore.isConnected ? 'bg-green-500' : 'bg-red-500'
                           }`} />
                           <span className={`text-sm font-medium ${
-                            store.isConnected ? 'text-green-800' : 'text-red-800'
+                            currentStore.isConnected ? 'text-green-800' : 'text-red-800'
                           }`}>
-                            {store.isConnected ? 'Connected' : 'Not Connected'}
+                            {currentStore.isConnected ? 'Connected' : 'Not Connected'}
                           </span>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleShopifyTest(store.id, store.shopifyUrl, store.shopifyAccessToken || '')}
+                          onClick={() => handleShopifyTest(currentStore.id, currentStore.shopifyUrl, currentStore.shopifyAccessToken || '')}
                           disabled={verifyShopifyMutation.isPending}
-                          className={store.isConnected ? 'text-green-700 hover:text-green-900' : 'text-red-700 hover:text-red-900'}
-                          data-testid={`button-test-connection-${store.id}`}
+                          className={currentStore.isConnected ? 'text-green-700 hover:text-green-900' : 'text-red-700 hover:text-red-900'}
+                          data-testid={`button-test-connection-${currentStore.id}`}
                         >
                           <RefreshCw className={`h-4 w-4 mr-2 ${verifyShopifyMutation.isPending ? 'animate-spin' : ''}`} />
                           Test Connection
@@ -834,7 +841,6 @@ export default function Settings() {
                         </div>
                       </div>
                     </div>
-                  ))
                 )}
               </div>
             )}
