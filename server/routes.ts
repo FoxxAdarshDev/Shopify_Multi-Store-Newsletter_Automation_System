@@ -952,6 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         displayTrigger: config.displayTrigger,
         animation: config.animation,
         suppressAfterSubscription: config.suppressAfterSubscription,
+        showExitIntentIfNotSubscribed: config.showExitIntentIfNotSubscribed,
         isActive: config.isActive,
         // Include verification status so popup can check without authentication
         isVerified: store.isVerified || false,

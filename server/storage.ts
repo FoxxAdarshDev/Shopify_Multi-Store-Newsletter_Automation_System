@@ -297,7 +297,7 @@ export class DatabaseStorage implements IStorage {
                  display_trigger as "displayTrigger", animation, 
                  suppress_after_subscription as "suppressAfterSubscription", 
                  is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt",
-                 false as "showExitIntentIfNotSubscribed"
+                 COALESCE(show_exit_intent_if_not_subscribed, false) as "showExitIntentIfNotSubscribed"
           FROM popup_configs WHERE store_id = ${storeId}
         `);
         const rows = result.rows;
