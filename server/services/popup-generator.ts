@@ -807,6 +807,11 @@ export class PopupGeneratorService {
     const backdrop = document.getElementById('foxx-newsletter-backdrop');
     if (backdrop) {
       backdrop.remove();
+      
+      // Track that user dismissed popup without subscribing (for exit intent logic)
+      if (!localStorage.getItem(STORAGE_KEY)) {
+        localStorage.setItem(STORAGE_KEY + '_dismissed', 'true');
+      }
     }
   }
   
@@ -890,6 +895,9 @@ export class PopupGeneratorService {
         // Store email and timestamp for smart suppression
         localStorage.setItem(STORAGE_KEY, data.email);
         localStorage.setItem(STORAGE_KEY + '_time', Date.now().toString());
+        
+        // Clear the dismissed flag since user has now subscribed
+        localStorage.removeItem(STORAGE_KEY + '_dismissed');
         
         // Also set session flag to prevent showing again this session
         sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
@@ -1286,8 +1294,11 @@ export class PopupGeneratorService {
       document.addEventListener('scroll', function() { hasInteracted = true; });
       
       document.addEventListener('mouseleave', function(e) {
-        // Only show if user has interacted, hasn't subscribed, and popup hasn't been shown via exit intent
-        if (!exitIntentShown && hasInteracted && e.clientY <= 0 && !localStorage.getItem(STORAGE_KEY)) {
+        // Only show if user has interacted, dismissed initial popup without subscribing, and hasn't subscribed yet
+        const userDismissedWithoutSubscribing = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
+        const hasNotSubscribed = !localStorage.getItem(STORAGE_KEY);
+        
+        if (!exitIntentShown && hasInteracted && e.clientY <= 0 && userDismissedWithoutSubscribing && hasNotSubscribed) {
           exitIntentShown = true;
           showPopup();
         }
