@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Mail, Eye, Trash2, Users } from "lucide-react";
+import { Download, Mail, Eye, Trash2, Users, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -99,6 +99,30 @@ export default function Subscribers() {
     },
   });
 
+  const syncCouponUsageMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/stores/${selectedStoreId}/sync-coupon-usage`, {
+        method: "POST",
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/stores", selectedStoreId, "subscribers"]
+      });
+      toast({
+        title: "Sync Complete",
+        description: data.message || `Updated ${data.updatedCount || 0} subscribers`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync coupon usage from Shopify",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredSubscribers = subscribers.filter(subscriber => {
     const matchesSearch = subscriber.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (subscriber.name && subscriber.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -169,6 +193,18 @@ export default function Subscribers() {
           </p>
         </div>
         <div className="flex space-x-2">
+          {/* Show sync button only if there are pending subscribers */}
+          {subscribers.some(sub => sub.discountCodeSent && !sub.discountCodeUsed) && (
+            <Button 
+              variant="secondary" 
+              onClick={() => syncCouponUsageMutation.mutate()}
+              disabled={syncCouponUsageMutation.isPending}
+              data-testid="button-sync-coupon-usage"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncCouponUsageMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncCouponUsageMutation.isPending ? 'Syncing...' : 'Sync Coupon Usage'}
+            </Button>
+          )}
           <Button variant="outline" data-testid="button-export-csv">
             <Download className="h-4 w-4 mr-2" />
             Export CSV

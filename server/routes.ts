@@ -552,6 +552,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync coupon usage from Shopify for all subscribers in a store
+  app.post("/api/stores/:storeId/sync-coupon-usage", authenticateSession, requirePermission('manage_subscribers'), async (req: AuthRequest, res) => {
+    try {
+      const { storeId } = req.params;
+      
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Check if store has Shopify connection
+      if (!store.shopifyUrl || !store.shopifyAccessToken) {
+        return res.status(400).json({ message: "Store is not connected to Shopify" });
+      }
+
+      // Get popup config to know which discount code to check
+      const popupConfig = await storage.getPopupConfig(storeId);
+      if (!popupConfig || !popupConfig.discountCode) {
+        return res.status(400).json({ message: "No discount code configured for this store" });
+      }
+
+      // Get all subscribers for this store who have not used their coupon yet
+      const allSubscribers = await storage.getSubscribersByStoreId(storeId);
+      const pendingSubscribers = allSubscribers.filter(
+        sub => sub.discountCodeSent && !sub.discountCodeUsed
+      );
+
+      if (pendingSubscribers.length === 0) {
+        return res.json({ 
+          message: "No subscribers with pending coupon usage found",
+          totalChecked: 0,
+          updatedCount: 0 
+        });
+      }
+
+      const shopifyConfig = {
+        shopUrl: store.shopifyUrl,
+        accessToken: store.shopifyAccessToken
+      };
+
+      let updatedCount = 0;
+      const syncResults = [];
+
+      // Check each subscriber's coupon usage
+      for (const subscriber of pendingSubscribers) {
+        try {
+          const syncResult = await shopifyService.syncSubscriberCouponUsage(
+            shopifyConfig,
+            subscriber.email,
+            popupConfig.discountCode
+          );
+
+          if (syncResult.hasUsedCoupon) {
+            // Update subscriber to mark coupon as used
+            await storage.updateSubscriber(subscriber.id, {
+              discountCodeUsed: true
+            });
+            updatedCount++;
+
+            syncResults.push({
+              email: subscriber.email,
+              status: 'updated',
+              orderInfo: syncResult.orderInfo
+            });
+          } else {
+            syncResults.push({
+              email: subscriber.email,
+              status: 'no_usage_found'
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to sync coupon usage for ${subscriber.email}:`, error);
+          syncResults.push({
+            email: subscriber.email,
+            status: 'error',
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      res.json({
+        message: `Coupon usage sync completed. Updated ${updatedCount} out of ${pendingSubscribers.length} subscribers.`,
+        totalChecked: pendingSubscribers.length,
+        updatedCount,
+        results: syncResults
+      });
+
+    } catch (error) {
+      console.error("Sync coupon usage error:", error);
+      res.status(500).json({ message: "Failed to sync coupon usage from Shopify" });
+    }
+  });
+
   // Email settings
   app.get("/api/stores/:storeId/email-settings", authenticateSession, requirePermission('manage_email_settings'), async (req: AuthRequest, res) => {
     try {

@@ -147,6 +147,50 @@ export class ShopifyService {
     }
   }
 
+  async syncSubscriberCouponUsage(
+    config: ShopifyConfig,
+    subscriberEmail: string,
+    discountCode: string
+  ): Promise<{ hasUsedCoupon: boolean; orderInfo?: any }> {
+    try {
+      const customer = await this.getCustomerByEmail(config, subscriberEmail);
+      if (!customer) {
+        return { hasUsedCoupon: false };
+      }
+
+      // Get customer's orders and find the specific order where discount was used
+      const decryptedConfig = this.decryptConfig(config);
+      const ordersResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}/orders.json`);
+      
+      if (ordersResponse.orders) {
+        const orderWithDiscount = ordersResponse.orders.find((order: any) => 
+          order.discount_codes && 
+          order.discount_codes.some((dc: any) => 
+            dc.code.toLowerCase() === discountCode.toLowerCase()
+          )
+        );
+
+        if (orderWithDiscount) {
+          return {
+            hasUsedCoupon: true,
+            orderInfo: {
+              orderId: orderWithDiscount.id,
+              orderNumber: orderWithDiscount.order_number,
+              totalPrice: orderWithDiscount.total_price,
+              createdAt: orderWithDiscount.created_at,
+              discountCodes: orderWithDiscount.discount_codes
+            }
+          };
+        }
+      }
+      
+      return { hasUsedCoupon: false };
+    } catch (error) {
+      console.error('Failed to sync subscriber coupon usage:', error);
+      return { hasUsedCoupon: false };
+    }
+  }
+
   async verifyDiscountCode(
     shopUrl: string,
     accessToken: string,
