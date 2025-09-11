@@ -215,6 +215,7 @@ export default function Members() {
                               {label}
                             </FormLabel>
                           </div>
+                          {/* No FormMessage for optional permission checkboxes */}
                         </FormItem>
                       )}
                     />
