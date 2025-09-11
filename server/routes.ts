@@ -874,7 +874,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Basic domain verification - allow if origin matches store domain or custom domain
       if (origin) {
         const originHostname = new URL(origin).hostname;
-        const storeHostname = new URL(store.shopifyUrl).hostname;
+        // Ensure store URL has protocol for URL parsing
+        const normalizedStoreUrl = store.shopifyUrl.startsWith('http') ? store.shopifyUrl : `https://${store.shopifyUrl}`;
+        const storeHostname = new URL(normalizedStoreUrl).hostname;
         const customDomainHostname = store.customDomain ? new URL(store.customDomain).hostname : null;
         
         const isAuthorized = originHostname === storeHostname || 
