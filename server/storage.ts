@@ -67,9 +67,9 @@ export interface IStorage {
   }>;
 
   // Email Settings
-  getEmailSettings(userId: string): Promise<EmailSettings | undefined>;
+  getEmailSettings(storeId: string): Promise<EmailSettings | undefined>;
   createEmailSettings(settings: InsertEmailSettings): Promise<EmailSettings>;
-  updateEmailSettings(userId: string, updates: Partial<EmailSettings>): Promise<EmailSettings | undefined>;
+  updateEmailSettings(storeId: string, updates: Partial<EmailSettings>): Promise<EmailSettings | undefined>;
 
   // User Preferences  
   getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
@@ -77,9 +77,9 @@ export interface IStorage {
   updateUserPreferences(userId: string, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
 
   // Email Templates
-  getEmailTemplate(userId: string): Promise<EmailTemplate | undefined>;
+  getEmailTemplate(storeId: string): Promise<EmailTemplate | undefined>;
   createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
-  updateEmailTemplate(userId: string, updates: UpdateEmailTemplate): Promise<EmailTemplate | undefined>;
+  updateEmailTemplate(storeId: string, updates: UpdateEmailTemplate): Promise<EmailTemplate | undefined>;
 
   // Email Click Tracking
   createEmailClickTracking(tracking: InsertEmailClickTracking): Promise<EmailClickTracking>;
@@ -395,8 +395,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Email Settings
-  async getEmailSettings(userId: string): Promise<EmailSettings | undefined> {
-    const [settings] = await db.select().from(emailSettings).where(eq(emailSettings.userId, userId));
+  async getEmailSettings(storeId: string): Promise<EmailSettings | undefined> {
+    const [settings] = await db.select().from(emailSettings).where(eq(emailSettings.storeId, storeId));
     return settings || undefined;
   }
 
@@ -405,11 +405,11 @@ export class DatabaseStorage implements IStorage {
     return newSettings;
   }
 
-  async updateEmailSettings(userId: string, updates: Partial<EmailSettings>): Promise<EmailSettings | undefined> {
+  async updateEmailSettings(storeId: string, updates: Partial<EmailSettings>): Promise<EmailSettings | undefined> {
     const [updatedSettings] = await db
       .update(emailSettings)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(emailSettings.userId, userId))
+      .where(eq(emailSettings.storeId, storeId))
       .returning();
     return updatedSettings || undefined;
   }
@@ -435,11 +435,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Email Templates
-  async getEmailTemplate(userId: string): Promise<EmailTemplate | undefined> {
+  async getEmailTemplate(storeId: string): Promise<EmailTemplate | undefined> {
     const [template] = await db
       .select()
       .from(emailTemplates)
-      .where(eq(emailTemplates.userId, userId));
+      .where(eq(emailTemplates.storeId, storeId));
     return template || undefined;
   }
 
@@ -451,12 +451,12 @@ export class DatabaseStorage implements IStorage {
     return newTemplate;
   }
 
-  async updateEmailTemplate(userId: string, updates: UpdateEmailTemplate): Promise<EmailTemplate | undefined> {
+  async updateEmailTemplate(storeId: string, updates: UpdateEmailTemplate): Promise<EmailTemplate | undefined> {
     const updateData = { ...updates, updatedAt: new Date() };
     const [updatedTemplate] = await db
       .update(emailTemplates)
       .set(updateData)
-      .where(eq(emailTemplates.userId, userId))
+      .where(eq(emailTemplates.storeId, storeId))
       .returning();
     return updatedTemplate || undefined;
   }

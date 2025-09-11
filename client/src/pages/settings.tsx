@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Lock, RefreshCw, Store, Settings2, ChevronUp, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useStoreContext } from "@/hooks/useStoreContext";
 
 interface EmailSettings {
   id?: string;
@@ -108,9 +109,11 @@ export default function Settings() {
   };
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedStore } = useStoreContext();
 
   const { data: emailSettings, isLoading: emailLoading } = useQuery<EmailSettings>({
-    queryKey: ["/api/email-settings"],
+    queryKey: [`/api/stores/${selectedStore?.id}/email-settings`],
+    enabled: !!selectedStore?.id,
   });
 
   const { data: userPreferences, isLoading: preferencesLoading } = useQuery<UserPreferences>({
@@ -140,9 +143,12 @@ export default function Settings() {
   });
 
   const saveEmailMutation = useMutation({
-    mutationFn: (data: EmailSettings) => apiRequest("/api/email-settings", { method: "PUT", body: JSON.stringify(data) }),
+    mutationFn: (data: EmailSettings) => {
+      if (!selectedStore?.id) throw new Error("No store selected");
+      return apiRequest(`/api/stores/${selectedStore.id}/email-settings`, { method: "PUT", body: JSON.stringify(data) });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/stores/${selectedStore?.id}/email-settings`] });
       toast({
         title: "Success",
         description: "Email settings saved successfully",

@@ -102,7 +102,7 @@ export const subscribers = pgTable("subscribers", {
 
 export const emailSettings = pgTable("email_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  storeId: varchar("store_id").notNull().references(() => stores.id, { onDelete: "cascade" }),
   smtpHost: text("smtp_host").notNull().default("smtp.gmail.com"),
   smtpPort: integer("smtp_port").notNull().default(587),
   fromEmail: text("from_email").notNull(),
@@ -131,7 +131,7 @@ export const userPreferences = pgTable("user_preferences", {
 
 export const emailTemplates = pgTable("email_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  storeId: varchar("store_id").notNull().references(() => stores.id, { onDelete: "cascade" }),
   templateName: text("template_name").notNull().default("Welcome Email Template"),
   subject: text("subject").notNull().default("Thank You for Registering – Here's Your 15% Discount!"),
   headerLogo: text("header_logo").default("/assets/foxx-logo.png"),
@@ -188,9 +188,7 @@ export const emailClickTracking = pgTable("email_click_tracking", {
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   stores: many(stores),
-  emailSettings: many(emailSettings),
   userPreferences: many(userPreferences),
-  emailTemplates: many(emailTemplates),
 }));
 
 export const storesRelations = relations(stores, ({ one, many }) => ({
@@ -201,6 +199,8 @@ export const storesRelations = relations(stores, ({ one, many }) => ({
   popupConfig: one(popupConfigs),
   subscribers: many(subscribers),
   emailClickTracking: many(emailClickTracking),
+  emailSettings: one(emailSettings),
+  emailTemplates: many(emailTemplates),
 }));
 
 export const popupConfigsRelations = relations(popupConfigs, ({ one }) => ({
@@ -218,9 +218,9 @@ export const subscribersRelations = relations(subscribers, ({ one }) => ({
 }));
 
 export const emailSettingsRelations = relations(emailSettings, ({ one }) => ({
-  user: one(users, {
-    fields: [emailSettings.userId],
-    references: [users.id],
+  store: one(stores, {
+    fields: [emailSettings.storeId],
+    references: [stores.id],
   }),
 }));
 
@@ -232,9 +232,9 @@ export const userPreferencesRelations = relations(userPreferences, ({ one }) => 
 }));
 
 export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
-  user: one(users, {
-    fields: [emailTemplates.userId],
-    references: [users.id],
+  store: one(stores, {
+    fields: [emailTemplates.storeId],
+    references: [stores.id],
   }),
 }));
 
@@ -269,7 +269,7 @@ export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit(
 export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, createdAt: true, updatedAt: true });
 export const updateUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, userId: true, createdAt: true, updatedAt: true }).partial();
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, createdAt: true, updatedAt: true });
-export const updateEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, userId: true, createdAt: true, updatedAt: true }).partial();
+export const updateEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, storeId: true, createdAt: true, updatedAt: true }).partial();
 export const insertEmailClickTrackingSchema = createInsertSchema(emailClickTracking).omit({ id: true, createdAt: true });
 
 // Types

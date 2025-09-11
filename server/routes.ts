@@ -534,10 +534,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Email settings
-  app.get("/api/email-settings", authenticateSession, requirePermission('manage_email_settings'), async (req: AuthRequest, res) => {
+  app.get("/api/stores/:storeId/email-settings", authenticateSession, requirePermission('manage_email_settings'), async (req: AuthRequest, res) => {
     try {
-      const userId = req.user!.id;
-      const settings = await storage.getEmailSettings(userId);
+      const { storeId } = req.params;
+      
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      const settings = await storage.getEmailSettings(storeId);
       
       if (!settings) {
         return res.status(404).json({ message: "Email settings not configured" });
@@ -552,16 +559,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/email-settings", authenticateSession, requirePermission('manage_email_settings'), async (req: AuthRequest, res) => {
+  // Store-specific email settings PUT route
+  app.put("/api/stores/:storeId/email-settings", authenticateSession, requirePermission('manage_email_settings'), async (req: AuthRequest, res) => {
     try {
-      const userId = req.user!.id;
-      const settingsData = insertEmailSettingsSchema.parse({ ...req.body, userId });
+      const { storeId } = req.params;
       
-      const existingSettings = await storage.getEmailSettings(userId);
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      const settingsData = insertEmailSettingsSchema.parse({ ...req.body, storeId });
+      
+      const existingSettings = await storage.getEmailSettings(storeId);
       
       let settings;
       if (existingSettings) {
-        settings = await storage.updateEmailSettings(userId, {
+        settings = await storage.updateEmailSettings(storeId, {
           ...settingsData,
           isConfigured: true
         });
@@ -581,8 +596,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(safeSettings);
     } catch (error) {
       console.error("Update email settings error:", error);
-      res.status(400).json({ message: "Failed to update email settings" });
+      res.status(500).json({ message: "Failed to update email settings" });
     }
+  });
+
+  // Legacy email settings route - DEPRECATED (returns 410 Gone)
+  app.put("/api/email-settings", authenticateSession, requirePermission('manage_email_settings'), async (req: AuthRequest, res) => {
+    res.status(410).json({ 
+      message: "This endpoint is deprecated. Use /api/stores/:storeId/email-settings instead.",
+      deprecated: true,
+      replacement: "/api/stores/:storeId/email-settings"
+    });
   });
 
   // User Preferences routes
@@ -1416,15 +1440,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return baseUrl;
   }
 
-  // Email Templates Management
-  app.get("/api/email-template", authenticateSession, async (req: AuthRequest, res) => {
+  // Email Templates Management - Store specific
+  app.get("/api/stores/:storeId/email-template", authenticateSession, async (req: AuthRequest, res) => {
     try {
+      const { storeId } = req.params;
+      
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
       // Disable caching to ensure fresh domain detection
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
       
-      const template = await storage.getEmailTemplate(req.user!.id);
+      const template = await storage.getEmailTemplate(storeId);
       
       // Always detect the current domain from HTTP request (same logic as integration script)
       const apiBaseUrl = detectApiBaseUrlFromRequest(req);
@@ -1477,6 +1509,47 @@ Team Foxx Bioprocess`,
     }
   });
 
+  // Store-specific email template PUT route
+  app.put("/api/stores/:storeId/email-template", authenticateSession, async (req: AuthRequest, res) => {
+    try {
+      const { storeId } = req.params;
+      const templateData = req.body;
+      
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      // Use the same request-based domain detection as GET endpoint
+      const apiBaseUrl = detectApiBaseUrlFromRequest(req);
+      console.log('Email template PUT API baseUrl determined:', apiBaseUrl);
+      
+      // Simply save whatever headerLogo the user provided - let frontend handle domain detection
+      console.log('PUT: Received headerLogo from frontend:', templateData.headerLogo);
+      console.log('PUT: Saving headerLogo as-is without modification');
+      
+      // Check if template exists
+      const existingTemplate = await storage.getEmailTemplate(storeId);
+      
+      let result;
+      if (existingTemplate) {
+        result = await storage.updateEmailTemplate(storeId, templateData);
+      } else {
+        result = await storage.createEmailTemplate({
+          ...templateData,
+          storeId: storeId
+        });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Update email template error:", error);
+      res.status(500).json({ message: "Failed to update email template" });
+    }
+  });
+
+  // Legacy email template route (kept for backward compatibility)
   app.put("/api/email-template", authenticateSession, async (req: AuthRequest, res) => {
     try {
       const templateData = req.body;
@@ -1526,25 +1599,22 @@ Team Foxx Bioprocess`,
     }
   });
 
-  app.get("/api/email-click-stats", authenticateSession, async (req: AuthRequest, res) => {
+  app.get("/api/stores/:storeId/email-click-stats", authenticateSession, async (req: AuthRequest, res) => {
     try {
-      // Get stats across all stores for the user
-      const stores = await storage.getStoresByUserId(req.user!.id);
-      let totalEmails = 0;
-      let totalClicks = 0;
-
-      for (const store of stores) {
-        const stats = await storage.getEmailClickStats(store.id);
-        totalEmails += stats.totalEmails;
-        totalClicks += stats.totalClicks;
+      const { storeId } = req.params;
+      
+      // Verify user owns this store
+      const store = await storage.getStore(storeId);
+      if (!store || store.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Store not found" });
       }
 
-      const clickRate = totalEmails > 0 ? Math.round((totalClicks / totalEmails) * 100) : 0;
+      const stats = await storage.getEmailClickStats(storeId);
 
       res.json({
-        clickRate,
-        totalEmails,
-        totalClicks
+        clickRate: stats.clickRate,
+        totalEmails: stats.totalEmails,
+        totalClicks: stats.totalClicks
       });
     } catch (error) {
       console.error("Get email click stats error:", error);

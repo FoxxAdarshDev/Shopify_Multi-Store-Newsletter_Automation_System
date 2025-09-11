@@ -16,7 +16,7 @@ import { useStoreContext } from "@/hooks/useStoreContext";
 
 interface EmailTemplate {
   id: string;
-  userId: string;
+  storeId: string;
   templateName: string;
   subject: string;
   headerLogo: string | null;
@@ -99,13 +99,15 @@ Team Foxx Bioprocess`,
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   const { data: template, isLoading } = useQuery<EmailTemplate>({
-    queryKey: ["/api/email-template"],
+    queryKey: [`/api/stores/${selectedStore?.id}/email-template`],
+    enabled: !!selectedStore?.id,
     staleTime: 0, // Always fetch fresh data to get updated domain URLs
     gcTime: 0, // Don't cache to ensure fresh domain detection (updated from cacheTime)
   });
 
   const { data: clickStats } = useQuery<{clickRate: number; totalEmails: number; totalClicks: number}>({
-    queryKey: ["/api/email-click-stats"],
+    queryKey: [`/api/stores/${selectedStore?.id}/email-click-stats`],
+    enabled: !!selectedStore?.id,
   });
 
   // Query for detailed analytics data
@@ -156,13 +158,14 @@ Team Foxx Bioprocess`,
 
   const updateTemplateMutation = useMutation({
     mutationFn: async (updatedTemplate: Partial<EmailTemplate>) => {
-      return apiRequest("/api/email-template", {
+      if (!selectedStore?.id) throw new Error("No store selected");
+      return apiRequest(`/api/stores/${selectedStore.id}/email-template`, {
         method: "PUT",
         body: JSON.stringify(updatedTemplate),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/email-template"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/stores/${selectedStore?.id}/email-template`] });
       toast({
         title: "Success",
         description: "Email template updated successfully",
