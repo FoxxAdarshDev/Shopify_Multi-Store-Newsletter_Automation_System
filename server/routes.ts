@@ -965,7 +965,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
-      console.log('Store social links:', store.socialLinks); // Debug log
       res.json(publicConfig);
     } catch (error) {
       console.error("Get public popup config error:", error);
