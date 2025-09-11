@@ -6,6 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -140,10 +141,8 @@ export default function Members() {
     updatePermissionsMutation.mutate({ memberId: selectedMember.id, permissions });
   };
 
-  const handleDeleteMember = (memberId: string) => {
-    if (confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
-      deleteMemberMutation.mutate(memberId);
-    }
+  const confirmDeleteMember = (memberId: string) => {
+    deleteMemberMutation.mutate(memberId);
   };
 
   if (isLoading) {
@@ -346,15 +345,36 @@ export default function Members() {
                       Permissions
                     </Button>
                     
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteMember(member.id)}
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      data-testid={`button-delete-member-${member.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          data-testid={`button-delete-member-${member.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Member</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete <strong>{member.email}</strong>? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel data-testid={`button-cancel-delete-${member.id}`}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => confirmDeleteMember(member.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            data-testid={`button-confirm-delete-${member.id}`}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
