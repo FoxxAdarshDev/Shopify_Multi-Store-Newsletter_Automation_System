@@ -15,7 +15,7 @@ import { promisify } from 'util';
 
 const scryptAsync = promisify(scrypt);
 import { db } from "./db";
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, count, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -555,11 +555,11 @@ export class DatabaseStorage implements IStorage {
     const trackingRecords = await db
       .select()
       .from(emailClickTracking)
-      .where(sql`${emailClickTracking.id} = ANY(${ids})`);
+      .where(inArray(emailClickTracking.id, ids));
     
     // Delete the email analytics records
     const result = await db.delete(emailClickTracking).where(
-      sql`${emailClickTracking.id} = ANY(${ids})`
+      inArray(emailClickTracking.id, ids)
     );
     
     const deletedCount = result.rowCount || 0;
