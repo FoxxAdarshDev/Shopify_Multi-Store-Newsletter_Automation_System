@@ -271,42 +271,25 @@ export class PopupGeneratorService {
     closePopup();
   };
   
-  // Toggle checkbox functionality
-  window.toggleCheckbox = function(checkbox) {
-    var checkmarkIcon = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PC9wYXRoPgo8L3N2Zz4K';
-    
-    if (checkbox.checked) {
-      // Checkbox is checked - apply checked styling with proper !important priority
-      checkbox.style.setProperty('background', '#0071b9', 'important');
-      checkbox.style.setProperty('border-color', '#0071b9', 'important');
-      checkbox.style.setProperty('background-image', 'url(' + checkmarkIcon + ')', 'important');
-    } else {
-      // Checkbox is unchecked - apply unchecked styling with proper !important priority
-      checkbox.style.setProperty('background', '#ffffff', 'important');
-      checkbox.style.setProperty('border-color', '#d1d5db', 'important');
-      checkbox.style.setProperty('background-image', 'none', 'important');
-    }
-  };
-  
   // Create popup HTML
   function createPopupHTML() {
     const fields = POPUP_CONFIG.fields;
     let formFields = '';
     
     if (fields.email) {
-      formFields += '<input type="email" name="email" placeholder="Enter your email address" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
+      formFields += '<input type="email" name="email" placeholder="Enter your email address" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
     }
     
     if (fields.name) {
-      formFields += '<input type="text" name="name" placeholder="Full Name" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
+      formFields += '<input type="text" name="name" placeholder="Full Name" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
     }
     
     if (fields.phone) {
-      formFields += '<input type="tel" name="phone" placeholder="Phone Number" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
+      formFields += '<input type="tel" name="phone" placeholder="Phone Number" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
     }
     
     if (fields.company) {
-      formFields += '<input type="text" name="company" placeholder="Company Name" style="width: 100% !important; padding: 14px 16px !important; margin-bottom: 16px !important; border: 2px solid #e5e7eb !important; border-radius: 8px !important; font-size: 14px !important; background: #ffffff !important; color: #1f2937 !important; transition: all 0.2s ease !important; outline: none !important; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;" onfocus="this.style.borderColor=\'#0071b9\'; this.style.boxShadow=\'0 0 0 3px rgba(0, 113, 185, 0.1), 0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" onblur="this.style.borderColor=\'#e5e7eb\'; this.style.boxShadow=\'0 1px 3px 0 rgba(0, 0, 0, 0.1)\';" />';
+      formFields += '<input type="text" name="company" placeholder="Company Name" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" />';
     }
     
     if (fields.address) {
@@ -474,7 +457,7 @@ export class PopupGeneratorService {
               visibility: visible !important;
               opacity: 1 !important;
             ">
-              <input type="checkbox" checked id="foxx-stay-connected-checkbox" onchange="toggleCheckbox(this)" style="
+              <input type="checkbox" checked style="
                 /* Bulletproof checkbox styling that cannot be overridden */
                 appearance: none !important;
                 -webkit-appearance: none !important;
@@ -484,6 +467,7 @@ export class PopupGeneratorService {
                 border: 2px solid #0071b9 !important;
                 border-radius: 3px !important;
                 background: #0071b9 !important;
+                background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K') !important;
                 background-repeat: no-repeat !important;
                 background-position: center !important;
                 background-size: 10px 8px !important;
@@ -852,13 +836,6 @@ export class PopupGeneratorService {
     
     // Render social links dynamically after HTML is inserted
     renderSocialLinks();
-    
-    // Initialize checkbox icon
-    var checkmarkIcon = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PC9wYXRoPgo8L3N2Zz4K';
-    var checkbox = document.getElementById('foxx-stay-connected-checkbox');
-    if (checkbox) {
-      checkbox.style.setProperty('background-image', 'url(' + checkmarkIcon + ')', 'important');
-    }
     
     // Event listeners
     document.getElementById('foxx-close-btn').addEventListener('click', closePopup);
