@@ -484,7 +484,6 @@ export class PopupGeneratorService {
                 border: 2px solid #0071b9 !important;
                 border-radius: 3px !important;
                 background: #0071b9 !important;
-                background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PC9wYXRoPgo8L3N2Zz4K') !important;
                 background-repeat: no-repeat !important;
                 background-position: center !important;
                 background-size: 10px 8px !important;
@@ -853,6 +852,13 @@ export class PopupGeneratorService {
     
     // Render social links dynamically after HTML is inserted
     renderSocialLinks();
+    
+    // Initialize checkbox icon
+    var checkmarkIcon = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEwIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik04LjUgMS41TDMuNSA2LjUgMS41IDQuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PC9wYXRoPgo8L3N2Zz4K';
+    var checkbox = document.getElementById('foxx-stay-connected-checkbox');
+    if (checkbox) {
+      checkbox.style.setProperty('background-image', 'url(' + checkmarkIcon + ')', 'important');
+    }
     
     // Event listeners
     document.getElementById('foxx-close-btn').addEventListener('click', closePopup);
