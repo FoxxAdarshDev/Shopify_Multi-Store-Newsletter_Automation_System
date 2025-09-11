@@ -7,12 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Mail, Eye, Save, Palette, Link, Image, BarChart3 } from "lucide-react";
+import { Mail, Eye, Save, Palette, LinkIcon, Image, BarChart3 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useStoreContext } from "@/hooks/useStoreContext";
+import { Link } from "wouter";
 
 interface EmailTemplate {
   id: string;
@@ -110,14 +109,6 @@ Team Foxx Bioprocess`,
     enabled: !!selectedStore?.id,
   });
 
-  // Query for detailed analytics data
-  const { data: detailedAnalytics, isLoading: analyticsLoading } = useQuery<{
-    stats: {clickRate: number; totalEmails: number; totalClicks: number};
-    clickData: EmailClickData[];
-  }>({
-    queryKey: [`/api/stores/${selectedStore?.id}/email-analytics`],
-    enabled: !!selectedStore?.id,
-  });
 
   useEffect(() => {
     if (template && typeof template === 'object' && 'templateName' in template) {
@@ -304,94 +295,14 @@ Team Foxx Bioprocess`,
             </Card>
           </div>
           
-          {/* Detailed Analytics Button */}
+          {/* Detailed Analytics Link */}
           <div className="flex justify-center">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex items-center space-x-2" data-testid="button-detailed-analytics">
-                  <BarChart3 className="w-4 h-4" />
-                  <span>View Detailed Analytics</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Email Analytics Details</DialogTitle>
-                </DialogHeader>
-                
-                {analyticsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="text-muted-foreground">Loading analytics...</div>
-                  </div>
-                ) : detailedAnalytics?.clickData ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <Card>
-                        <CardContent className="p-3 text-center">
-                          <div className="text-lg font-bold text-primary">
-                            {detailedAnalytics.stats.clickRate}%
-                          </div>
-                          <div className="text-xs text-muted-foreground">Click Rate</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-3 text-center">
-                          <div className="text-lg font-bold">
-                            {detailedAnalytics.stats.totalEmails}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Emails Sent</div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-3 text-center">
-                          <div className="text-lg font-bold text-green-600">
-                            {detailedAnalytics.stats.totalClicks}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Total Clicks</div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Individual Email Details</h3>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Sent Date</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Clicked Date</TableHead>
-                            <TableHead>Click Count</TableHead>
-                            <TableHead>IP Address</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {detailedAnalytics.clickData.map((email) => (
-                            <TableRow key={email.id} data-testid={`row-email-${email.subscriberEmail}`}>
-                              <TableCell className="font-medium">{email.subscriberEmail}</TableCell>
-                              <TableCell>{new Date(email.createdAt).toLocaleDateString()}</TableCell>
-                              <TableCell>
-                                <Badge variant={email.isClicked ? "default" : "secondary"}>
-                                  {email.isClicked ? "Clicked" : "Sent"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {email.clickedAt ? new Date(email.clickedAt).toLocaleDateString() : "-"}
-                              </TableCell>
-                              <TableCell>{email.clickCount}</TableCell>
-                              <TableCell className="text-xs">{email.ipAddress || "-"}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No email data available
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
+            <Link href={selectedStore ? `/store/${selectedStore.id}/email-analytics` : '/email-analytics'}>
+              <Button variant="outline" className="flex items-center space-x-2" data-testid="button-detailed-analytics">
+                <BarChart3 className="w-4 h-4" />
+                <span>View Detailed Analytics</span>
+              </Button>
+            </Link>
           </div>
         </div>
       )}
@@ -552,7 +463,7 @@ Team Foxx Bioprocess`,
 
               <TabsContent value="social" className="space-y-4">
                 <div className="flex items-center space-x-2 mb-4">
-                  <Link className="w-4 h-4" />
+                  <LinkIcon className="w-4 h-4" />
                   <span className="font-medium">Social Media Links</span>
                 </div>
 
