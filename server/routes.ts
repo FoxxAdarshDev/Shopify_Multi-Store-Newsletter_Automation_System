@@ -13,6 +13,23 @@ import { encrypt, decrypt } from "./utils/encryption";
 import { z } from "zod";
 import { authenticateSession, requireAdmin, requirePermission, optionalAuth, type AuthRequest } from "./middleware/auth";
 
+// 🚀 REQUEST-BASED URL DETECTION (Netflix/Uber/Google Pattern) - DEPLOYMENT-AGNOSTIC
+const getBaseUrlFromRequest = (req: any): string => {
+  // Extract protocol (handles reverse proxies, load balancers, CDNs correctly)
+  const protocol = req.headers['x-forwarded-proto'] || 
+                   (req.headers['x-forwarded-ssl'] === 'on' ? 'https' :
+                   (req.connection?.encrypted ? 'https' : 'http'));
+  
+  // Extract host (handles load balancers, proxies correctly) 
+  const host = req.headers['x-forwarded-host'] || 
+               req.headers['host'] || 
+               req.get('host');
+  
+  const baseUrl = `${protocol}://${host}`;
+  console.log(`🔗 REQUEST-BASED URL: ${baseUrl} (Protocol: ${protocol}, Host: ${host})`);
+  return baseUrl;
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware
   app.use(cookieParser());
@@ -156,7 +173,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const newMember = await storage.createMemberInvitation(email, permissions || {});
-      await emailService.sendPasswordResetEmail(email, newMember.resetToken!, true);
+      
+      // 🚀 USE REQUEST-BASED URL DETECTION - Deployment-Agnostic!
+      const baseUrl = getBaseUrlFromRequest(req);
+      await emailService.sendPasswordResetEmail(email, newMember.resetToken!, true, baseUrl);
       
       res.json({ message: 'Member invitation sent successfully', memberId: newMember.id });
     } catch (error) {

@@ -383,7 +383,8 @@ Team Foxx Bioprocess`,
   async sendPasswordResetEmail(
     email: string,
     resetToken: string,
-    isNewMember: boolean = false
+    isNewMember: boolean = false,
+    baseUrl?: string
   ): Promise<boolean> {
     try {
       let config: EmailConfig | null = null;
@@ -416,31 +417,33 @@ Team Foxx Bioprocess`,
 
       const transporter = await this.createTransporter(config);
       
-      // Enterprise-grade URL detection (Google/Amazon pattern)
+      // 🚀 REQUEST-BASED URL DETECTION (Netflix/Uber Pattern) - Most Secure & Deployment-Agnostic
       const getBaseUrl = (): string => {
-        // 1st priority: Explicit environment override
+        // 1st priority: Request-based URL (passed from route)
+        if (baseUrl) {
+          console.log(`Using request-based URL: ${baseUrl}`);
+          return baseUrl;
+        }
+        
+        // 2nd priority: Explicit environment override (for testing)
         if (process.env.FRONTEND_URL) {
+          console.log(`Using environment override: ${process.env.FRONTEND_URL}`);
           return process.env.FRONTEND_URL;
         }
         
-        // 2nd priority: Replit platform detection
+        // 3rd priority: Platform auto-detection (fallback)
         if (process.env.REPLIT_DOMAINS) {
+          console.log(`Using platform detection: https://${process.env.REPLIT_DOMAINS}`);
           return `https://${process.env.REPLIT_DOMAINS}`;
         }
         
-        // 3rd priority: Production environment
-        if (process.env.NODE_ENV === 'production' && process.env.PRODUCTION_DOMAIN) {
-          return `https://${process.env.PRODUCTION_DOMAIN}`;
-        }
-        
         // 4th priority: Development fallback
+        console.log('Using development fallback: http://localhost:5000');
         return 'http://localhost:5000';
       };
       
-      const baseUrl = getBaseUrl();
-      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
-      
-      console.log(`Using base URL: ${baseUrl} for password reset email`);
+      const finalBaseUrl = getBaseUrl();
+      const resetUrl = `${finalBaseUrl}/reset-password?token=${resetToken}`;
 
       const mailOptions: any = {
         from: `"${config.fromName}" <${config.fromEmail}>`,
