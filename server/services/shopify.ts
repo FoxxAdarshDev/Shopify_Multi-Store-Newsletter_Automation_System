@@ -132,12 +132,26 @@ export class ShopifyService {
       const ordersResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}/orders.json`);
       
       if (ordersResponse.orders) {
-        return ordersResponse.orders.some((order: any) => 
-          order.discount_codes && 
-          order.discount_codes.some((dc: any) => 
-            dc.code.toLowerCase() === discountCode.toLowerCase()
-          )
-        );
+        return ordersResponse.orders.some((order: any) => {
+          // Check discount_codes (customer-entered codes)
+          const foundInDiscountCodes = order.discount_codes && 
+            order.discount_codes.some((dc: any) => 
+              dc.code.toLowerCase() === discountCode.toLowerCase()
+            );
+
+          // Check discount_applications (all types of discounts)
+          const foundInDiscountApplications = order.discount_applications && 
+            order.discount_applications.some((da: any) => {
+              // For discount_code type applications, check if the title or code matches
+              if (da.type === 'discount_code') {
+                return da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+              }
+              // For other types (automatic, manual, script), check title
+              return da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+            });
+
+          return foundInDiscountCodes || foundInDiscountApplications;
+        });
       }
       
       return false;
@@ -163,12 +177,27 @@ export class ShopifyService {
       const ordersResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}/orders.json`);
       
       if (ordersResponse.orders) {
-        const orderWithDiscount = ordersResponse.orders.find((order: any) => 
-          order.discount_codes && 
-          order.discount_codes.some((dc: any) => 
-            dc.code.toLowerCase() === discountCode.toLowerCase()
-          )
-        );
+        // Check both discount_codes and discount_applications fields
+        const orderWithDiscount = ordersResponse.orders.find((order: any) => {
+          // Check discount_codes (customer-entered codes)
+          const foundInDiscountCodes = order.discount_codes && 
+            order.discount_codes.some((dc: any) => 
+              dc.code.toLowerCase() === discountCode.toLowerCase()
+            );
+
+          // Check discount_applications (all types of discounts)
+          const foundInDiscountApplications = order.discount_applications && 
+            order.discount_applications.some((da: any) => {
+              // For discount_code type applications, check if the title or code matches
+              if (da.type === 'discount_code') {
+                return da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+              }
+              // For other types (automatic, manual, script), check title
+              return da.title && da.title.toLowerCase().includes(discountCode.toLowerCase());
+            });
+
+          return foundInDiscountCodes || foundInDiscountApplications;
+        });
 
         if (orderWithDiscount) {
           return {
@@ -178,7 +207,8 @@ export class ShopifyService {
               orderNumber: orderWithDiscount.order_number,
               totalPrice: orderWithDiscount.total_price,
               createdAt: orderWithDiscount.created_at,
-              discountCodes: orderWithDiscount.discount_codes
+              discountCodes: orderWithDiscount.discount_codes,
+              discountApplications: orderWithDiscount.discount_applications
             }
           };
         }
