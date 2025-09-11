@@ -33,19 +33,18 @@ export class EmailService {
   async createTransporter(config: EmailConfig): Promise<nodemailer.Transporter> {
     const isOffice365 = config.host.includes('office365') || config.host.includes('outlook');
     
-    return nodemailer.createTransport({
+    return nodemailer.createTransporter({
       host: config.host,
       port: config.port,
-      secure: config.port === 465,
+      secure: config.port === 465, // true for 465, false for other ports
       auth: {
         user: config.username,
         pass: config.password,
       },
       tls: {
-        rejectUnauthorized: false,
-        // Office 365 compatible TLS settings
-        ciphers: isOffice365 ? 'SSLv3' : 'SSLv3',
-        servername: isOffice365 ? config.host : undefined,
+        // Use secure TLS settings - let Node.js negotiate modern TLS
+        minVersion: 'TLSv1.2',
+        servername: config.host,
       },
       // Enhanced deliverability settings for Office 365
       pool: true,
@@ -53,7 +52,7 @@ export class EmailService {
       maxMessages: isOffice365 ? 50 : 100,
       rateDelta: 1000,
       rateLimit: isOffice365 ? 3 : 5,
-      // Office 365 specific settings
+      // Require TLS for enhanced security
       requireTLS: true,
       connectionTimeout: 60000,
       greetingTimeout: 30000,
@@ -387,21 +386,38 @@ Team Foxx Bioprocess`,
     isNewMember: boolean = false
   ): Promise<boolean> {
     try {
-      // Use admin email settings for system emails
+      let config: EmailConfig | null = null;
+
+      // First try to use admin email settings for system emails
       const adminUser = await storage.getUserByEmail('updates@foxxbioprocess.com');
-      if (!adminUser) {
-        throw new Error('Admin user not found');
+      if (adminUser) {
+        config = await this.getEmailConfig(adminUser.id);
       }
 
-      const config = await this.getEmailConfig(adminUser.id);
+      // If admin config not found, use environment-based fallback configuration
       if (!config) {
-        throw new Error('Email configuration not found');
+        console.log('Using fallback email configuration from environment secrets');
+        const fromEmail = process.env.EMAIL;
+        const password = process.env.PASSWORD;
+        
+        if (!fromEmail || !password) {
+          throw new Error('Email configuration not found and no fallback credentials available');
+        }
+
+        config = {
+          host: 'smtp.office365.com',
+          port: 587,
+          fromEmail: fromEmail,
+          fromName: 'Foxx Bioprocess Internal Tools',
+          username: fromEmail,
+          password: password,
+        };
       }
 
       const transporter = await this.createTransporter(config);
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
 
-      const mailOptions = {
+      const mailOptions: any = {
         from: `"${config.fromName}" <${config.fromEmail}>`,
         to: email,
         subject: isNewMember ? 'Welcome - Set Your Password' : 'Password Reset Request',
@@ -413,15 +429,20 @@ Team Foxx Bioprocess`,
           'Importance': 'high',
           'List-Unsubscribe': `<mailto:${config.fromEmail}?subject=Unsubscribe>`,
         },
-        // Enable DKIM if available
-        dkim: {
-          domainName: config.fromEmail.split('@')[1],
-          keySelector: 'default',
-          privateKey: process.env.DKIM_PRIVATE_KEY || '',
-        }
       };
 
+      // Only enable DKIM if private key is available
+      if (process.env.DKIM_PRIVATE_KEY) {
+        mailOptions.dkim = {
+          domainName: config.fromEmail.split('@')[1],
+          keySelector: 'default',
+          privateKey: process.env.DKIM_PRIVATE_KEY,
+        };
+      }
+
+      console.log(`Sending ${isNewMember ? 'invitation' : 'password reset'} email to ${email} using ${config.host}`);
       await transporter.sendMail(mailOptions);
+      console.log(`Successfully sent ${isNewMember ? 'invitation' : 'password reset'} email to ${email}`);
       return true;
     } catch (error) {
       console.error('Failed to send password reset email:', error);
