@@ -1321,11 +1321,30 @@ export class PopupGeneratorService {
     return canShow;
   }
   
-  // Check if exit intent popup should be shown (ignores session suppression)
+  // Check if exit intent popup should be shown (bypasses session suppression)
   function canShowExitIntentPopup() {
-    const hasDismissed = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
+    // Check if user is subscribed (exit intent should respect subscription suppression)
+    const isSubscribed = localStorage.getItem(STORAGE_KEY);
+    if (isSubscribed) {
+      return false;
+    }
+    
+    // Check if popup config is active
+    if (!POPUP_CONFIG || !POPUP_CONFIG.isActive) {
+      return false;
+    }
+    
+    // Check if exit intent was already shown this session
     const exitIntentShown = localStorage.getItem(STORAGE_KEY + '_exit_intent_shown') === 'true';
-    return canShowPopup() && hasDismissed && !exitIntentShown;
+    if (exitIntentShown) {
+      return false;
+    }
+    
+    // Check if user previously dismissed the regular popup (exit intent only shows after dismiss)
+    const hasDismissed = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
+    
+    // Exit intent should show if user dismissed regular popup, regardless of session suppression
+    return hasDismissed;
   }
   
   function initPopup() {
