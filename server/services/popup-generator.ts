@@ -1392,16 +1392,53 @@ export class PopupGeneratorService {
   function initExitIntentListener() {
     let exitIntentShown = false;
     let hasInteracted = false;
+    let mouseY = 0;
+    
+    console.log('Foxx Newsletter: Exit intent listener initialized');
     
     // Track if user has interacted with the page
-    document.addEventListener('click', function() { hasInteracted = true; });
-    document.addEventListener('scroll', function() { hasInteracted = true; });
+    document.addEventListener('click', function() { 
+      hasInteracted = true; 
+      console.log('Foxx Newsletter: User interaction detected (click)');
+    });
+    document.addEventListener('scroll', function() { 
+      hasInteracted = true; 
+      console.log('Foxx Newsletter: User interaction detected (scroll)');
+    });
+    document.addEventListener('keydown', function() { 
+      hasInteracted = true; 
+      console.log('Foxx Newsletter: User interaction detected (keydown)');
+    });
     
+    // Track mouse position
+    document.addEventListener('mousemove', function(e) {
+      mouseY = e.clientY;
+    });
+    
+    // Better exit intent detection using mouseout on document
+    document.addEventListener('mouseout', function(e) {
+      // Check if mouse is leaving the document area (going to browser UI)
+      const isLeavingWindow = (
+        e.clientY <= 0 || 
+        e.target === document.documentElement || 
+        !e.relatedTarget || 
+        e.relatedTarget.nodeName === 'HTML'
+      );
+      
+      if (!exitIntentShown && hasInteracted && isLeavingWindow && canShowExitIntentPopup()) {
+        exitIntentShown = true;
+        console.log('Foxx Newsletter: Exit intent detected, showing popup');
+        // Mark that exit intent was shown to prevent repeated triggers
+        localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
+        showPopup();
+      }
+    });
+    
+    // Additional exit intent detection for mouse leaving viewport from top
     document.addEventListener('mouseleave', function(e) {
-      // Only show if conditions for exit intent are met
       if (!exitIntentShown && hasInteracted && e.clientY <= 0 && canShowExitIntentPopup()) {
         exitIntentShown = true;
-        // Mark that exit intent was shown to prevent repeated triggers
+        console.log('Foxx Newsletter: Exit intent detected via mouseleave, showing popup');
         localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
         showPopup();
       }
