@@ -164,15 +164,16 @@ export class PopupGeneratorService {
         return;
       }
       
+      // Setup exit intent listener if feature is enabled (always register early, before verification gates)
+      if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
+        initExitIntentListener();
+        console.log('Foxx Newsletter: Exit intent listener registered for this store');
+      }
+      
       // Check if script installation is verified before loading popup
       if (!POPUP_CONFIG.isVerified || !POPUP_CONFIG.hasActiveScript) {
         console.log('Foxx Newsletter: Script not verified or no active script version, popup blocked');
         return;
-      }
-      
-      // Setup exit intent listener if feature is enabled (always register, but gate the actual showing)
-      if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
-        initExitIntentListener();
       }
       
       // Only proceed with subscription checks and popup initialization if not session suppressed
@@ -1323,28 +1324,39 @@ export class PopupGeneratorService {
   
   // Check if exit intent popup should be shown (bypasses session suppression)
   function canShowExitIntentPopup() {
+    console.log('Foxx Newsletter: Checking if exit intent popup can show...');
+    
     // Check if user is subscribed (exit intent should respect subscription suppression)
     const isSubscribed = localStorage.getItem(STORAGE_KEY);
+    console.log('Foxx Newsletter: isSubscribed:', isSubscribed);
     if (isSubscribed) {
+      console.log('Foxx Newsletter: Exit intent blocked - user is subscribed');
       return false;
     }
     
     // Check if popup config is active
     if (!POPUP_CONFIG || !POPUP_CONFIG.isActive) {
+      console.log('Foxx Newsletter: Exit intent blocked - popup config not active:', POPUP_CONFIG);
       return false;
     }
     
     // Check if exit intent was already shown this session
     const exitIntentShown = localStorage.getItem(STORAGE_KEY + '_exit_intent_shown') === 'true';
+    console.log('Foxx Newsletter: exitIntentShown:', exitIntentShown);
     if (exitIntentShown) {
+      console.log('Foxx Newsletter: Exit intent blocked - already shown this session');
       return false;
     }
     
     // Check if user previously dismissed the regular popup (exit intent only shows after dismiss)
     const hasDismissed = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
+    console.log('Foxx Newsletter: hasDismissed:', hasDismissed);
+    
+    const canShow = hasDismissed;
+    console.log('Foxx Newsletter: Exit intent can show:', canShow);
     
     // Exit intent should show if user dismissed regular popup, regardless of session suppression
-    return hasDismissed;
+    return canShow;
   }
   
   function initPopup() {
