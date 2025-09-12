@@ -137,9 +137,22 @@ export class PopupGeneratorService {
   }
   window.foxxNewsletterLoaded = true;
   
+  // Modern approach: Always check server first, use localStorage as UX enhancement only
+  let shouldShowPopup = true;
+  
   // Load configuration and check subscription status
   async function loadConfig() {
     try {
+      // CRITICAL: Check session suppression FIRST before any other logic or API calls
+      const sessionKey = STORAGE_KEY + '_session';
+      const sessionSuppressed = sessionStorage.getItem(sessionKey);
+      
+      if (sessionSuppressed) {
+        console.log('Foxx Newsletter: Regular popup suppressed for this browsing session');
+        shouldShowPopup = false;
+        // Still load config for exit intent functionality, but don't show regular popup
+      }
+      
       const response = await fetch(API_BASE + '/api/popup-config/' + STORE_ID);
       if (!response.ok) {
         throw new Error('Failed to load popup configuration');
@@ -157,36 +170,26 @@ export class PopupGeneratorService {
         return;
       }
       
-      // Check if popup should be suppressed after subscription
-      if (POPUP_CONFIG.suppressAfterSubscription) {
-        await checkSubscriptionStatus();
-      }
-      
       // Setup exit intent listener if feature is enabled (always register, but gate the actual showing)
       if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
         initExitIntentListener();
       }
       
-      // Check session suppression for regular popups only
-      const sessionKey = STORAGE_KEY + '_session';
-      const sessionSuppressed = sessionStorage.getItem(sessionKey);
-      
-      if (sessionSuppressed) {
-        console.log('Foxx Newsletter: Regular popup suppressed for this browsing session, but exit intent remains active');
-        shouldShowPopup = false;
-        return;
-      }
-      
-      if (shouldShowPopup) {
-        initPopup();
+      // Only proceed with subscription checks and popup initialization if not session suppressed
+      if (!sessionSuppressed) {
+        // Check if popup should be suppressed after subscription
+        if (POPUP_CONFIG.suppressAfterSubscription) {
+          await checkSubscriptionStatus();
+        }
+        
+        if (shouldShowPopup) {
+          initPopup();
+        }
       }
     } catch (error) {
       console.error('Foxx Newsletter: Failed to load configuration', error);
     }
   }
-  
-  // Modern approach: Always check server first, use localStorage as UX enhancement only
-  let shouldShowPopup = true;
 
   // Background cleanup: Check if sessionStorage should be cleared (independent of popup showing)
   async function backgroundCleanupCheck() {
@@ -1311,7 +1314,11 @@ export class PopupGeneratorService {
   // Check if regular popup should be shown (respects session suppression)
   function canShowRegularPopup() {
     const sessionSuppressed = sessionStorage.getItem(STORAGE_KEY + '_session');
-    return canShowPopup() && !sessionSuppressed;
+    const canShow = canShowPopup() && !sessionSuppressed;
+    if (sessionSuppressed) {
+      console.log('Foxx Newsletter: canShowRegularPopup() - Session suppressed, popup blocked');
+    }
+    return canShow;
   }
   
   // Check if exit intent popup should be shown (ignores session suppression)
@@ -1322,10 +1329,14 @@ export class PopupGeneratorService {
   }
   
   function initPopup() {
-    if (!canShowRegularPopup()) return;
+    if (!canShowRegularPopup()) {
+      console.log('Foxx Newsletter: initPopup() - Cannot show regular popup, blocked');
+      return;
+    }
     
     // Check for suppress after subscription
     if (POPUP_CONFIG.suppressAfterSubscription && localStorage.getItem(STORAGE_KEY)) {
+      console.log('Foxx Newsletter: initPopup() - Suppressed after subscription');
       return;
     }
     
