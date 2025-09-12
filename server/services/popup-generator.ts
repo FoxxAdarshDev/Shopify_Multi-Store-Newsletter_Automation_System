@@ -267,9 +267,9 @@ export class PopupGeneratorService {
       }
     }
     
-    // Method 2: Check for session-based suppression (only if no localStorage check was performed)
+    // Method 2: Check for regular popup session-based suppression (only if no localStorage check was performed)
     if (!lastSubscribedEmail) {
-      const sessionKey = STORAGE_KEY + '_session';
+      const sessionKey = STORAGE_KEY + '_session_regular';
       const sessionSuppression = sessionStorage.getItem(sessionKey);
       
       if (sessionSuppression) {
@@ -281,15 +281,18 @@ export class PopupGeneratorService {
   
   // Close popup and prevent showing again this session
   window.closePopupWithSession = function() {
-    // Set session suppression for navigation-based popups
-    sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
+    // Set session suppression ONLY for regular popup navigation-based triggers
+    sessionStorage.setItem(STORAGE_KEY + '_session_regular', 'true');
     
-    // Track that user dismissed popup without subscribing (for exit intent logic)
+    // Clear legacy dismissed flag that was blocking exit intent (migration)
+    localStorage.removeItem(STORAGE_KEY + '_dismissed');
+    
+    // Track close time for analytics but don't use for suppression
     if (!localStorage.getItem(STORAGE_KEY)) {
-      localStorage.setItem(STORAGE_KEY + '_dismissed', 'true');
+      localStorage.setItem(STORAGE_KEY + '_time', new Date().getTime().toString());
     }
     
-    console.log('Foxx Newsletter: Popup closed with session suppression enabled');
+    console.log('Foxx Newsletter: Regular popup closed, exit intent still available');
     closePopup();
   };
   
@@ -1344,11 +1347,16 @@ export class PopupGeneratorService {
       return false;
     }
     
-    // Check if exit intent was already shown this session
-    const exitIntentShown = localStorage.getItem(STORAGE_KEY + '_exit_intent_shown') === 'true';
-    console.log('Foxx Newsletter: exitIntentShown:', exitIntentShown);
-    if (exitIntentShown) {
-      console.log('Foxx Newsletter: Exit intent blocked - already shown this session');
+    // Use per-page exit intent suppression instead of global session suppression
+    const currentPage = window.location.pathname || '/';
+    const pageExitIntentKey = STORAGE_KEY + '_exit_shown_' + currentPage.replace(/[^a-zA-Z0-9]/g, '_');
+    const exitIntentShownOnThisPage = sessionStorage.getItem(pageExitIntentKey) === 'true';
+    
+    console.log('Foxx Newsletter: Current page:', currentPage);
+    console.log('Foxx Newsletter: Exit intent shown on this page:', exitIntentShownOnThisPage);
+    
+    if (exitIntentShownOnThisPage) {
+      console.log('Foxx Newsletter: Exit intent blocked - already shown on this page');
       return false;
     }
     
@@ -1358,11 +1366,12 @@ export class PopupGeneratorService {
     
     const isExitIntentTrigger = POPUP_CONFIG.displayTrigger === 'exit-intent';
     const hasExitIntentFeature = POPUP_CONFIG.showExitIntentIfNotSubscribed;
-    const hasDismissed = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
+    // For exit intent, we don't check regular session suppression - exit intent should work even if regular popup is suppressed
+    const regularSessionSuppressed = sessionStorage.getItem(STORAGE_KEY + '_session_regular') === 'true';
     
     console.log('Foxx Newsletter: Display trigger:', POPUP_CONFIG.displayTrigger);
     console.log('Foxx Newsletter: Has exit intent feature:', hasExitIntentFeature);
-    console.log('Foxx Newsletter: Has dismissed regular popup:', hasDismissed);
+    console.log('Foxx Newsletter: Regular session suppressed:', regularSessionSuppressed);
     
     let canShow = false;
     
@@ -1370,10 +1379,11 @@ export class PopupGeneratorService {
       // If display trigger is exit-intent, show popup on exit intent (primary trigger)
       canShow = true;
       console.log('Foxx Newsletter: Exit intent can show - display trigger is exit-intent');
-    } else if (hasExitIntentFeature && hasDismissed) {
-      // If exit intent feature is enabled and user dismissed regular popup, show on exit intent
+    } else if (hasExitIntentFeature) {
+      // If exit intent feature is enabled, show it regardless of regular popup dismissal
+      // This allows exit intent to work on inner pages even when regular popup was dismissed
       canShow = true;
-      console.log('Foxx Newsletter: Exit intent can show - feature enabled and user dismissed regular popup');
+      console.log('Foxx Newsletter: Exit intent can show - feature enabled for inner pages');
     }
     
     console.log('Foxx Newsletter: Exit intent final decision:', canShow);
@@ -1456,8 +1466,10 @@ export class PopupGeneratorService {
           // Remove listeners to prevent multiple triggers
           document.removeEventListener('mouseleave', handleExitIntent);
           
-          // Mark that exit intent was shown
-          localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
+          // Mark that exit intent was shown on this specific page
+          const currentPage = window.location.pathname || '/';
+          const pageExitIntentKey = STORAGE_KEY + '_exit_shown_' + currentPage.replace(/[^a-zA-Z0-9]/g, '_');
+          sessionStorage.setItem(pageExitIntentKey, 'true');
           showPopup();
         }
       }
@@ -1482,7 +1494,10 @@ export class PopupGeneratorService {
           document.removeEventListener('mouseleave', handleExitIntent);
           document.removeEventListener('mouseout', handleMouseOut);
           
-          localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
+          // Mark that exit intent was shown on this specific page
+          const currentPage = window.location.pathname || '/';
+          const pageExitIntentKey = STORAGE_KEY + '_exit_shown_' + currentPage.replace(/[^a-zA-Z0-9]/g, '_');
+          sessionStorage.setItem(pageExitIntentKey, 'true');
           showPopup();
         }
       }
