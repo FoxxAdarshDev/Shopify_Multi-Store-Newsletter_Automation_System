@@ -13,11 +13,6 @@ export function SessionCountdown() {
     user 
   } = useAuth();
 
-  // Early return BEFORE hooks to follow Rules of Hooks
-  if (!sessionExpiresAt || !user) {
-    return null;
-  }
-
   const [timeRemaining, setTimeRemaining] = useState(0);
   const { toast } = useToast();
   
@@ -75,6 +70,11 @@ export function SessionCountdown() {
 
     return () => clearInterval(interval);
   }, [sessionExpiresAt]); // Only depend on sessionExpiresAt to prevent infinite re-renders
+
+  // Early return AFTER all hooks are called
+  if (!sessionExpiresAt || !user) {
+    return null;
+  }
 
   const isExpiringSoon = timeRemaining <= 10 * 60 * 1000; // 10 minutes
 
