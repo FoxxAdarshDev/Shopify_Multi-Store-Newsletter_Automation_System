@@ -849,9 +849,8 @@ export class PopupGeneratorService {
   
   // Show popup
   function showPopup() {
-    if (localStorage.getItem(STORAGE_KEY) === 'subscribed') {
-      return;
-    }
+    // Note: subscription checking is handled by checkSubscriptionStatus() which sets shouldShowPopup
+    // Don't check localStorage here as it may contain stale data when records are deleted from database
     
     const popupHTML = createPopupHTML();
     document.body.insertAdjacentHTML('beforeend', popupHTML);
@@ -1326,13 +1325,11 @@ export class PopupGeneratorService {
   function canShowExitIntentPopup() {
     console.log('Foxx Newsletter: Checking if exit intent popup can show...');
     
-    // Check if user is subscribed (exit intent should respect subscription suppression)
-    const isSubscribed = localStorage.getItem(STORAGE_KEY);
-    console.log('Foxx Newsletter: isSubscribed:', isSubscribed);
-    if (isSubscribed) {
-      console.log('Foxx Newsletter: Exit intent blocked - user is subscribed');
-      return false;
-    }
+    // Note: subscription checking is handled by checkSubscriptionStatus() in loadConfig()
+    // Don't check localStorage here as it may contain stale data when records are deleted from database
+    console.log('Foxx Newsletter: Exit intent checking localStorage values...');
+    console.log('Foxx Newsletter: localStorage STORAGE_KEY:', localStorage.getItem(STORAGE_KEY));
+    console.log('Foxx Newsletter: localStorage time:', localStorage.getItem(STORAGE_KEY + '_time'));
     
     // Check if popup config is active
     if (!POPUP_CONFIG || !POPUP_CONFIG.isActive) {
