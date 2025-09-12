@@ -200,29 +200,29 @@ export class PopupGeneratorService {
     if (sessionSuppression) {
       const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
       
-      // If no localStorage but sessionStorage exists, check any known email patterns
-      if (!lastSubscribedEmail) {
-        // Clear sessionStorage if no corresponding localStorage (likely already cleaned up)
-        sessionStorage.removeItem(sessionKey);
-        console.log('Foxx Newsletter: Orphaned sessionStorage cleared');
-        return;
-      }
-      
-      // If localStorage exists, verify with server
-      try {
-        const checkUrl = API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail);
-        const checkResponse = await fetch(checkUrl);
-        if (checkResponse.ok) {
-          const result = await checkResponse.json();
-          
-          if (!result.isSubscribed) {
-            // User no longer subscribed, clear sessionStorage
-            sessionStorage.removeItem(sessionKey);
-            console.log('Foxx Newsletter: User unsubscribed, sessionStorage cleared');
+      // CRITICAL FIX: Only clear sessionStorage if we have a subscribed email that's no longer valid
+      // Do NOT clear session suppression for users who simply dismissed the popup without subscribing
+      if (lastSubscribedEmail && lastSubscribedEmail.includes('@')) {
+        // If localStorage exists, verify with server
+        try {
+          const checkUrl = API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail);
+          const checkResponse = await fetch(checkUrl);
+          if (checkResponse.ok) {
+            const result = await checkResponse.json();
+            
+            if (!result.isSubscribed) {
+              // User no longer subscribed, clear sessionStorage
+              sessionStorage.removeItem(sessionKey);
+              console.log('Foxx Newsletter: User unsubscribed, sessionStorage cleared');
+            }
           }
+        } catch (error) {
+          console.log('Foxx Newsletter: Background cleanup check failed');
         }
-      } catch (error) {
-        console.log('Foxx Newsletter: Background cleanup check failed');
+      } else {
+        // No subscription localStorage but sessionStorage exists - this is normal for dismissed popups
+        // DON'T clear sessionStorage as it's providing session suppression for dismissed popups
+        console.log('Foxx Newsletter: Session suppression active (popup was dismissed without subscribing)');
       }
     }
   }

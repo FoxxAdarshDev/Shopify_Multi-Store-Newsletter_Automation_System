@@ -47,18 +47,7 @@ export default function Subscribers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Set up real-time polling for new subscriptions
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (selectedStoreId) {
-        queryClient.invalidateQueries({
-          queryKey: ["/api/stores", selectedStoreId, "subscribers"]
-        });
-      }
-    }, 15000); // Check for updates every 15 seconds
-    
-    return () => clearInterval(interval);
-  }, [selectedStoreId, queryClient]);
+  // Removed excessive polling - queries now refresh only on user action
   
   // Set default store when stores are loaded
   React.useEffect(() => {
@@ -70,8 +59,7 @@ export default function Subscribers() {
   const { data: subscribers = [], isLoading } = useQuery<Subscriber[]>({
     queryKey: ["/api/stores", selectedStoreId, "subscribers"],
     enabled: !!selectedStoreId,
-    refetchInterval: 10000, // Refetch every 10 seconds to catch new subscriptions
-    refetchOnWindowFocus: true, // Refetch when user comes back to the tab
+    // Removed excessive polling - data refreshes on mutations and manual refresh
   });
   
   const deleteSubscriberMutation = useMutation({
