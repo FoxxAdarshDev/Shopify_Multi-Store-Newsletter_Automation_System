@@ -164,8 +164,8 @@ export class PopupGeneratorService {
         return;
       }
       
-      // Setup exit intent listener if feature is enabled (always register early, before verification gates)
-      if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
+      // Setup exit intent listener if feature is enabled OR display trigger is exit-intent (always register early, before verification gates)
+      if (POPUP_CONFIG.showExitIntentIfNotSubscribed || POPUP_CONFIG.displayTrigger === 'exit-intent') {
         initExitIntentListener();
         console.log('Foxx Newsletter: Exit intent listener registered for this store');
       }
@@ -1337,6 +1337,13 @@ export class PopupGeneratorService {
       return false;
     }
     
+    // Check if user already subscribed
+    const hasSubscribed = localStorage.getItem(STORAGE_KEY) === 'true';
+    if (hasSubscribed && POPUP_CONFIG.suppressAfterSubscription) {
+      console.log('Foxx Newsletter: Exit intent blocked - user already subscribed');
+      return false;
+    }
+    
     // Check if exit intent was already shown this session
     const exitIntentShown = localStorage.getItem(STORAGE_KEY + '_exit_intent_shown') === 'true';
     console.log('Foxx Newsletter: exitIntentShown:', exitIntentShown);
@@ -1345,14 +1352,31 @@ export class PopupGeneratorService {
       return false;
     }
     
-    // Check if user previously dismissed the regular popup (exit intent only shows after dismiss)
+    // Two scenarios for exit intent popup:
+    // 1. Display trigger is set to "exit-intent" - show immediately on exit intent
+    // 2. "Show popup on exit intent if user didn't subscribe initially" is enabled - show after dismissing regular popup
+    
+    const isExitIntentTrigger = POPUP_CONFIG.displayTrigger === 'exit-intent';
+    const hasExitIntentFeature = POPUP_CONFIG.showExitIntentIfNotSubscribed;
     const hasDismissed = localStorage.getItem(STORAGE_KEY + '_dismissed') === 'true';
-    console.log('Foxx Newsletter: hasDismissed:', hasDismissed);
     
-    const canShow = hasDismissed;
-    console.log('Foxx Newsletter: Exit intent can show:', canShow);
+    console.log('Foxx Newsletter: Display trigger:', POPUP_CONFIG.displayTrigger);
+    console.log('Foxx Newsletter: Has exit intent feature:', hasExitIntentFeature);
+    console.log('Foxx Newsletter: Has dismissed regular popup:', hasDismissed);
     
-    // Exit intent should show if user dismissed regular popup, regardless of session suppression
+    let canShow = false;
+    
+    if (isExitIntentTrigger) {
+      // If display trigger is exit-intent, show popup on exit intent (primary trigger)
+      canShow = true;
+      console.log('Foxx Newsletter: Exit intent can show - display trigger is exit-intent');
+    } else if (hasExitIntentFeature && hasDismissed) {
+      // If exit intent feature is enabled and user dismissed regular popup, show on exit intent
+      canShow = true;
+      console.log('Foxx Newsletter: Exit intent can show - feature enabled and user dismissed regular popup');
+    }
+    
+    console.log('Foxx Newsletter: Exit intent final decision:', canShow);
     return canShow;
   }
   

@@ -17,6 +17,8 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Eliminated Excessive API Polling**: Removed aggressive React Query polling intervals (10-15 seconds) that were causing redundant HEAD /api calls. Polling removed from subscribers page and integration verification.
 - ✅ **Optimized Client-Side Performance**: Fixed temporal dead zone errors and improved popup script reliability.
 - ✅ **Configured Replit Environment**: Set up proper workflow configuration with webview output on port 5000 and deployment settings for autoscale.
+- ✅ **Fixed Shopify Token Encryption**: Resolved "crypto2.createCipher is not a function" error by updating deprecated crypto methods to modern `createCipheriv`/`createDecipheriv` with proper IV usage and key management.
+- ✅ **Fixed Exit Intent Popup Logic**: Corrected exit intent functionality to work when display trigger is set to "exit-intent" and when "Show popup on exit intent if user didn't subscribe initially" feature is enabled. Exit intent now properly detects mouse movement towards browser UI and triggers popup on user exit attempts.
 
 ## Brand Guidelines
 
