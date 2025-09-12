@@ -1425,57 +1425,99 @@ export class PopupGeneratorService {
   function initExitIntentListener() {
     let exitIntentShown = false;
     let hasInteracted = false;
-    let mouseY = 0;
+    let listenersActive = false;
     
     console.log('Foxx Newsletter: Exit intent listener initialized');
     
-    // Track if user has interacted with the page
-    document.addEventListener('click', function() { 
-      hasInteracted = true; 
-      console.log('Foxx Newsletter: User interaction detected (click)');
-    });
-    document.addEventListener('scroll', function() { 
-      hasInteracted = true; 
-      console.log('Foxx Newsletter: User interaction detected (scroll)');
-    });
-    document.addEventListener('keydown', function() { 
-      hasInteracted = true; 
-      console.log('Foxx Newsletter: User interaction detected (keydown)');
-    });
-    
-    // Track mouse position
-    document.addEventListener('mousemove', function(e) {
-      mouseY = e.clientY;
-    });
-    
-    // Better exit intent detection using mouseout on document
-    document.addEventListener('mouseout', function(e) {
-      // Check if mouse is leaving the document area (going to browser UI)
-      const isLeavingWindow = (
-        e.clientY <= 0 || 
-        e.target === document.documentElement || 
-        !e.relatedTarget || 
-        e.relatedTarget.nodeName === 'HTML'
-      );
+    // Function to activate exit intent detection after delay and user interaction
+    function activateExitIntent() {
+      if (listenersActive) return;
+      listenersActive = true;
       
-      if (!exitIntentShown && hasInteracted && isLeavingWindow && canShowExitIntentPopup()) {
-        exitIntentShown = true;
-        console.log('Foxx Newsletter: Exit intent detected, showing popup');
-        // Mark that exit intent was shown to prevent repeated triggers
-        localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
-        showPopup();
+      console.log('Foxx Newsletter: Exit intent detection activated');
+      
+      // Primary exit intent detection using mouseleave (industry standard)
+      function handleExitIntent(e) {
+        console.log('Foxx Newsletter: Exit intent event triggered', {
+          clientY: e.clientY,
+          relatedTarget: e.relatedTarget,
+          toElement: e.toElement,
+          exitIntentShown: exitIntentShown
+        });
+        
+        // Industry standard conditions for exit intent
+        const isExitingUp = e.clientY <= 10; // Mouse near top of page (towards address bar)
+        const isLeavingPage = !e.relatedTarget && !e.toElement; // Mouse leaving document completely
+        
+        if (!exitIntentShown && isExitingUp && isLeavingPage && canShowExitIntentPopup()) {
+          exitIntentShown = true;
+          console.log('Foxx Newsletter: Exit intent detected - showing popup');
+          
+          // Remove listeners to prevent multiple triggers
+          document.removeEventListener('mouseleave', handleExitIntent);
+          
+          // Mark that exit intent was shown
+          localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
+          showPopup();
+        }
       }
-    });
+      
+      // Alternative detection for mobile and edge cases
+      function handleMouseOut(e) {
+        // Only trigger if mouseleave hasn't worked
+        if (exitIntentShown) return;
+        
+        const isExitingUp = e.clientY <= 5;
+        const isLeavingDocument = (
+          !e.relatedTarget || 
+          e.relatedTarget.nodeName === 'HTML' ||
+          e.target === document.documentElement
+        );
+        
+        if (isExitingUp && isLeavingDocument && canShowExitIntentPopup()) {
+          exitIntentShown = true;
+          console.log('Foxx Newsletter: Exit intent detected via mouseout - showing popup');
+          
+          // Remove listeners
+          document.removeEventListener('mouseleave', handleExitIntent);
+          document.removeEventListener('mouseout', handleMouseOut);
+          
+          localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
+          showPopup();
+        }
+      }
+      
+      // Add the event listeners
+      document.addEventListener('mouseleave', handleExitIntent);
+      document.addEventListener('mouseout', handleMouseOut);
+    }
     
-    // Additional exit intent detection for mouse leaving viewport from top
-    document.addEventListener('mouseleave', function(e) {
-      if (!exitIntentShown && hasInteracted && e.clientY <= 0 && canShowExitIntentPopup()) {
-        exitIntentShown = true;
-        console.log('Foxx Newsletter: Exit intent detected via mouseleave, showing popup');
-        localStorage.setItem(STORAGE_KEY + '_exit_intent_shown', 'true');
-        showPopup();
+    // Track user interactions to ensure genuine engagement before showing exit intent
+    function trackInteraction(eventType) {
+      if (!hasInteracted) {
+        hasInteracted = true;
+        console.log('Foxx Newsletter: User interaction detected (' + eventType + ')');
+        
+        // Activate exit intent after user has interacted and a small delay
+        setTimeout(activateExitIntent, 2000); // 2 second delay after first interaction
       }
-    });
+    }
+    
+    // Set up interaction tracking
+    document.addEventListener('click', () => trackInteraction('click'));
+    document.addEventListener('scroll', () => trackInteraction('scroll'));
+    document.addEventListener('keydown', () => trackInteraction('keydown'));
+    document.addEventListener('mousemove', () => trackInteraction('mousemove'));
+    
+    // Also activate after a delay even without interaction (for exit-intent trigger mode)
+    if (POPUP_CONFIG && POPUP_CONFIG.displayTrigger === 'exit-intent') {
+      setTimeout(() => {
+        if (!listenersActive) {
+          console.log('Foxx Newsletter: Activating exit intent after delay (no interaction required for exit-intent trigger)');
+          activateExitIntent();
+        }
+      }, 5000); // 5 seconds for exit-intent trigger mode
+    }
   }
   
   // Initialize when DOM is ready with small delay
