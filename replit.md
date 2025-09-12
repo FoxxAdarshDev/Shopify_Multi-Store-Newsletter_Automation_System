@@ -4,9 +4,19 @@
 
 A full-stack newsletter management dashboard specifically designed for Shopify stores. The application enables businesses to create and deploy customizable newsletter popup campaigns, manage subscribers, and integrate with Shopify for discount code distribution. Built with a modern tech stack featuring React frontend, Express backend, PostgreSQL database, and comprehensive email automation.
 
+**Status**: Fully operational in Replit environment with resolved session suppression and optimized API polling.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes
+
+**September 12, 2025**
+- ✅ **Fixed Critical Session Suppression Bug**: Resolved race condition where `backgroundCleanupCheck()` was incorrectly clearing sessionStorage that should prevent popups from showing during the same browsing session. Users can now close popups and navigate between pages on the same domain without popups reappearing.
+- ✅ **Eliminated Excessive API Polling**: Removed aggressive React Query polling intervals (10-15 seconds) that were causing redundant HEAD /api calls. Polling removed from subscribers page and integration verification.
+- ✅ **Optimized Client-Side Performance**: Fixed temporal dead zone errors and improved popup script reliability.
+- ✅ **Configured Replit Environment**: Set up proper workflow configuration with webview output on port 5000 and deployment settings for autoscale.
 
 ## Brand Guidelines
 
