@@ -162,9 +162,19 @@ export class PopupGeneratorService {
         await checkSubscriptionStatus();
       }
       
-      // Always setup exit intent listener if feature is enabled, regardless of session suppression
+      // Setup exit intent listener if feature is enabled (always register, but gate the actual showing)
       if (POPUP_CONFIG.showExitIntentIfNotSubscribed) {
         initExitIntentListener();
+      }
+      
+      // Check session suppression for regular popups only
+      const sessionKey = STORAGE_KEY + '_session';
+      const sessionSuppressed = sessionStorage.getItem(sessionKey);
+      
+      if (sessionSuppressed) {
+        console.log('Foxx Newsletter: Regular popup suppressed for this browsing session, but exit intent remains active');
+        shouldShowPopup = false;
+        return;
       }
       
       if (shouldShowPopup) {
@@ -267,7 +277,15 @@ export class PopupGeneratorService {
   
   // Close popup and prevent showing again this session
   window.closePopupWithSession = function() {
+    // Set session suppression for navigation-based popups
     sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
+    
+    // Track that user dismissed popup without subscribing (for exit intent logic)
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY + '_dismissed', 'true');
+    }
+    
+    console.log('Foxx Newsletter: Popup closed with session suppression enabled');
     closePopup();
   };
   
@@ -837,10 +855,12 @@ export class PopupGeneratorService {
     // Render social links dynamically after HTML is inserted
     renderSocialLinks();
     
-    // Event listeners
-    document.getElementById('foxx-close-btn').addEventListener('click', closePopup);
+    // Event listener for backdrop close - use session-aware close
     document.getElementById('foxx-newsletter-backdrop').addEventListener('click', function(e) {
-      if (e.target === this) closePopup();
+      if (e.target === this) {
+        // Use same close function as the button for consistency
+        closePopupWithSession();
+      }
     });
     
     document.getElementById('foxx-newsletter-form').addEventListener('submit', handleSubmit);
@@ -1330,13 +1350,8 @@ export class PopupGeneratorService {
         });
         break;
       case 'exit-intent':
-        let intentShown = false;
-        document.addEventListener('mouseleave', function(e) {
-          if (!intentShown && e.clientY <= 0) {
-            intentShown = true;
-            showPopup();
-          }
-        });
+        // Exit intent is now handled by the dedicated initExitIntentListener() function
+        // No need to register another listener here to avoid duplicates
         break;
       default:
         setTimeout(showPopup, 1000);
