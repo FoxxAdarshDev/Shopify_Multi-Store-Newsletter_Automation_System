@@ -64,7 +64,7 @@ export class PopupGeneratorService {
 <script>
 (function() {
   var script = document.createElement('script');
-  script.src = '${scriptBaseUrl}/js/newsletter-popup.js?v=${timestamp}&id=${uniqueId}';
+  script.src = '${scriptBaseUrl}/api/newsletter-script.js?v=${timestamp}&id=${uniqueId}';
   script.async = true;
   script.setAttribute('data-store-id', '${storeId}');
   script.setAttribute('data-popup-config', 'auto');
@@ -1535,6 +1535,13 @@ export class PopupGeneratorService {
     }
   }
   
+  // Clean up legacy storage that was blocking exit intent (one-time migration)
+  const legacyExitIntentKey = STORAGE_KEY + '_exit_intent_shown';
+  if (localStorage.getItem(legacyExitIntentKey)) {
+    localStorage.removeItem(legacyExitIntentKey);
+    console.log('Foxx Newsletter: Cleared legacy exit intent suppression key - exit intent now available');
+  }
+
   // Initialize when DOM is ready with small delay
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {

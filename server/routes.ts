@@ -34,6 +34,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware
   app.use(cookieParser());
   
+  // Dynamic newsletter script route - MUST come before static middleware
+  app.get('/api/newsletter-script.js', async (req, res) => {
+    try {
+      const baseUrl = getBaseUrlFromRequest(req);
+      const script = await popupGeneratorService.getNewsletterScript(baseUrl);
+      
+      res.type('application/javascript');
+      res.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.send(script);
+    } catch (error) {
+      console.error('Error serving newsletter script:', error);
+      res.status(500).send('// Script generation failed');
+    }
+  });
+  
   // Clean expired sessions periodically
   setInterval(() => {
     storage.cleanExpiredSessions().catch(console.error);
