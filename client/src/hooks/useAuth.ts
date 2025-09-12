@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import { useCallback } from 'react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,9 +47,9 @@ export function useAuth() {
     },
   });
 
-  const logout = () => {
+  const logout = useCallback(() => {
     logoutMutation.mutate();
-  };
+  }, [logoutMutation]);
 
   const getSessionTimeRemaining = (): number => {
     if (!authData?.sessionExpiresAt) return 0;

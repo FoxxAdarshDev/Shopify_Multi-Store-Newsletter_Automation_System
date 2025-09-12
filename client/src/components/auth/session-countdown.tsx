@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,24 +7,43 @@ import { useToast } from '@/hooks/use-toast';
 
 export function SessionCountdown() {
   const { 
-    getSessionTimeRemaining, 
     getSessionTimeRemainingFormatted, 
     logout, 
     sessionExpiresAt,
     user 
   } = useAuth();
+
+  // Early return BEFORE hooks to follow Rules of Hooks
+  if (!sessionExpiresAt || !user) {
+    return null;
+  }
+
   const [timeRemaining, setTimeRemaining] = useState(0);
   const { toast } = useToast();
+  
+  // Use refs to track toast states and stable logout reference
+  const warningToastShown = useRef(false);
+  const expiredToastShown = useRef(false);
+  const logoutRef = useRef(logout);
+
+  // Keep logout ref current
+  useEffect(() => {
+    logoutRef.current = logout;
+  }, [logout]);
 
   useEffect(() => {
     if (!sessionExpiresAt) return;
 
+    // Compute time directly from sessionExpiresAt to avoid dependency on function
+    const expiresAt = new Date(sessionExpiresAt).getTime();
+    
     const updateTime = () => {
-      const remaining = getSessionTimeRemaining();
+      const remaining = Math.max(0, expiresAt - Date.now());
       setTimeRemaining(remaining);
 
-      // Show warning when less than 5 minutes remaining
-      if (remaining > 0 && remaining <= 5 * 60 * 1000 && remaining > 4 * 60 * 1000) {
+      // Show warning when less than 5 minutes remaining (only once)
+      if (remaining > 0 && remaining <= 5 * 60 * 1000 && remaining > 4 * 60 * 1000 && !warningToastShown.current) {
+        warningToastShown.current = true;
         toast({
           title: 'Session Expiring Soon',
           description: 'Your session will expire in less than 5 minutes.',
@@ -32,16 +51,21 @@ export function SessionCountdown() {
         });
       }
 
-      // Auto logout when session expires
-      if (remaining <= 0) {
+      // Auto logout when session expires (only once)
+      if (remaining <= 0 && !expiredToastShown.current) {
+        expiredToastShown.current = true;
         toast({
           title: 'Session Expired',
           description: 'Your session has expired. Please login again.',
           variant: 'destructive',
         });
-        logout();
+        logoutRef.current();
       }
     };
+
+    // Reset toast state when session is renewed
+    warningToastShown.current = false;
+    expiredToastShown.current = false;
 
     // Update immediately
     updateTime();
@@ -50,11 +74,7 @@ export function SessionCountdown() {
     const interval = setInterval(updateTime, 1000);
 
     return () => clearInterval(interval);
-  }, [sessionExpiresAt, getSessionTimeRemaining, logout, toast]);
-
-  if (!sessionExpiresAt || !user) {
-    return null;
-  }
+  }, [sessionExpiresAt]); // Only depend on sessionExpiresAt to prevent infinite re-renders
 
   const isExpiringSoon = timeRemaining <= 10 * 60 * 1000; // 10 minutes
 
