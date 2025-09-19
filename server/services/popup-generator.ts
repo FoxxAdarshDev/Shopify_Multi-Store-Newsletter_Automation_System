@@ -6,6 +6,350 @@ export class PopupGeneratorService {
     return this.getNewsletterScript();
   }
 
+  // Generate checkout validation script for Shopify
+  generateCheckoutValidationScript(storeId: string, discountCodes: string[] = ['WELCOME50'], maxAmount: number = 100000): string {
+    return `// MODERN SHOPIFY CHECKOUT VALIDATION SCRIPT - 2024
+// Generated for Store ID: ${storeId}
+// This script addresses JavaScript execution issues and uses modern approaches
+
+(function() {
+  'use strict';
+  
+  // Configuration - Dynamically set
+  const CONFIG = {
+    STORE_ID: '${storeId}',
+    SUBSCRIBER_MAXIMUM_AMOUNT: ${maxAmount}, // Amount in cents
+    NEWSLETTER_DISCOUNT_CODES: [${discountCodes.map(code => `'${code}'`).join(', ')}],
+    STORAGE_KEY_PREFIX: 'foxx_newsletter_'
+  };
+  
+  // Enhanced console logging for debugging
+  const log = (message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const prefix = \`[\${timestamp}] [FOXX-CHECKOUT-VALIDATION]\`;
+    
+    switch(type) {
+      case 'error':
+        console.error(\`\${prefix} ❌\`, message);
+        break;
+      case 'warn':
+        console.warn(\`\${prefix} ⚠️\`, message);
+        break;
+      case 'success':
+        console.log(\`\${prefix} ✅\`, message);
+        break;
+      default:
+        console.log(\`\${prefix} 🔍\`, message);
+    }
+  };
+  
+  log('=== CHECKOUT VALIDATION SCRIPT STARTING ===', 'success');
+  log('Store ID: ${storeId}');
+  log('Max Amount: $' + (CONFIG.SUBSCRIBER_MAXIMUM_AMOUNT/100).toFixed(2));
+  log('Discount Codes: ' + CONFIG.NEWSLETTER_DISCOUNT_CODES.join(', '));
+  
+  // Check if user is subscribed
+  function isUserSubscribed() {
+    try {
+      const storageKey = CONFIG.STORAGE_KEY_PREFIX + CONFIG.STORE_ID;
+      const subscribedEmail = localStorage.getItem(storageKey);
+      const subscribedTime = localStorage.getItem(storageKey + '_time');
+      
+      const isSubscribed = subscribedEmail && 
+                          subscribedEmail.includes('@') && 
+                          subscribedTime;
+                          
+      log(\`Subscription check: \${isSubscribed ? 'SUBSCRIBED' : 'NOT SUBSCRIBED'}\`, isSubscribed ? 'success' : 'info');
+      log(\`Email: \${subscribedEmail || 'none'}, Time: \${subscribedTime || 'none'}\`);
+      
+      return isSubscribed;
+    } catch (error) {
+      log(\`Error checking subscription: \${error.message}\`, 'error');
+      return false;
+    }
+  }
+  
+  // Get current order total with multiple fallback methods
+  function getCurrentOrderTotal() {
+    let total = 0;
+    
+    // Method 1: Shopify checkout object
+    if (typeof Shopify !== 'undefined' && Shopify.checkout && Shopify.checkout.total_price) {
+      total = Shopify.checkout.total_price;
+      log(\`Order total from Shopify.checkout: $\${(total/100).toFixed(2)}\`, 'success');
+      return total;
+    }
+    
+    // Method 2: Search DOM for total amount
+    const totalSelectors = [
+      '[data-checkout-payment-due-target]',
+      '[data-order-summary-section="total"] [data-payment-due-target]',
+      '.payment-due__price',
+      '.total-line__price',
+      '.order-summary__emphasis',
+      '[data-total-price]'
+    ];
+    
+    for (const selector of totalSelectors) {
+      try {
+        const element = document.querySelector(selector);
+        if (element) {
+          const text = element.textContent || element.innerText || '';
+          const match = text.match(/[\\d,]+\\.?\\d*/);
+          if (match) {
+            const amount = parseFloat(match[0].replace(/,/g, ''));
+            if (!isNaN(amount) && amount > 0) {
+              total = Math.round(amount * 100); // Convert to cents
+              log(\`Order total from DOM (\${selector}): $\${(total/100).toFixed(2)}\`, 'success');
+              return total;
+            }
+          }
+        }
+      } catch (e) {
+        log(\`Selector \${selector} failed: \${e.message}\`, 'warn');
+      }
+    }
+    
+    log('Could not determine order total', 'warn');
+    return 0;
+  }
+  
+  // Check if a discount code is newsletter-related
+  function isNewsletterDiscountCode(code) {
+    if (!code) return false;
+    const upperCode = code.toUpperCase();
+    return CONFIG.NEWSLETTER_DISCOUNT_CODES.some(discount => 
+      upperCode.includes(discount.toUpperCase())
+    );
+  }
+  
+  // Show validation error message
+  function showValidationError(orderTotal) {
+    // Remove existing error
+    const existingError = document.getElementById('foxx-discount-validation-error');
+    if (existingError) existingError.remove();
+    
+    const excess = orderTotal - CONFIG.SUBSCRIBER_MAXIMUM_AMOUNT;
+    
+    const errorHtml = \`
+      <div id="foxx-discount-validation-error" style="
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        color: white;
+        padding: 16px;
+        margin: 16px 0;
+        border-radius: 12px;
+        border-left: 4px solid #dc2626;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+        position: relative;
+        animation: slideInFromTop 0.5s ease-out;
+        z-index: 9999;
+      ">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+          ">⚠️</div>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 8px;">
+              ${discountCodes[0]} Discount Not Available
+            </div>
+            <div style="margin-bottom: 8px;">
+              Your order total is <strong>$\${(orderTotal/100).toFixed(2)}</strong>. Newsletter subscriber discount codes are only valid for orders up to <strong>$${(maxAmount/100).toFixed(2)}</strong>.
+            </div>
+            <div style="font-size: 13px; background: rgba(0,0,0,0.1); padding: 8px; border-radius: 4px;">
+              To use your <strong>${discountCodes[0]}</strong> discount code, remove $\${(excess/100).toFixed(2)} worth of items from your cart.
+            </div>
+          </div>
+        </div>
+      </div>
+    \`;
+    
+    // Insert error message in multiple locations
+    const insertLocations = [
+      '.main__header',
+      '.main__content',
+      '.order-summary',
+      '.checkout-step',
+      '.step__sections',
+      'main'
+    ];
+    
+    let inserted = false;
+    for (const selector of insertLocations) {
+      const element = document.querySelector(selector);
+      if (element && !inserted) {
+        element.insertAdjacentHTML('afterbegin', errorHtml);
+        inserted = true;
+        log(\`Validation error inserted at: \${selector}\`, 'success');
+        break;
+      }
+    }
+    
+    if (!inserted) {
+      document.body.insertAdjacentHTML('afterbegin', errorHtml);
+      log('Validation error inserted at body (fallback)', 'warn');
+    }
+  }
+  
+  // Block discount form submission
+  function blockDiscountSubmission(event) {
+    const formElement = event.target;
+    const discountInput = formElement.querySelector('input[name*="reduction"], input[name*="discount"]');
+    
+    if (discountInput) {
+      const discountCode = discountInput.value.trim().toUpperCase();
+      
+      if (isNewsletterDiscountCode(discountCode)) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        
+        log(\`BLOCKED newsletter discount application: \${discountCode}\`, 'warn');
+        
+        // Clear the input
+        discountInput.value = '';
+        
+        // Show alert
+        const orderTotal = getCurrentOrderTotal();
+        alert(\`❌ \${discountCode} discount code cannot be applied to orders over $${(maxAmount/100).toFixed(2)}.\\n\\nYour current total: $\${(orderTotal/100).toFixed(2)}\\nMaximum eligible amount: $${(maxAmount/100).toFixed(2)}\\n\\nPlease reduce your order total to use this discount.\`);
+        
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  // Main validation function
+  function runValidation() {
+    const orderTotal = getCurrentOrderTotal();
+    const isSubscribed = isUserSubscribed();
+    
+    log(\`Running validation - Total: $\${(orderTotal/100).toFixed(2)}, Subscribed: \${isSubscribed}\`);
+    
+    if (isSubscribed && orderTotal > CONFIG.SUBSCRIBER_MAXIMUM_AMOUNT) {
+      log(\`Order exceeds threshold ($\${CONFIG.SUBSCRIBER_MAXIMUM_AMOUNT/100}) - applying restrictions\`, 'warn');
+      
+      // Show error message
+      showValidationError(orderTotal);
+      
+      // Block form submissions
+      document.addEventListener('submit', blockDiscountSubmission, true);
+      
+      // Block input events
+      document.addEventListener('input', function(e) {
+        if (e.target.matches('input[name*="reduction"], input[name*="discount"]')) {
+          const code = e.target.value.trim().toUpperCase();
+          if (isNewsletterDiscountCode(code)) {
+            e.target.style.borderColor = '#dc2626';
+            e.target.style.backgroundColor = '#fee2e2';
+            log(\`Newsletter discount code detected in input: \${code}\`, 'warn');
+          }
+        }
+      });
+      
+      log('Validation restrictions applied', 'success');
+    } else if (isSubscribed) {
+      log(\`Order eligible for newsletter discount ($\${(orderTotal/100).toFixed(2)} ≤ $${(maxAmount/100).toFixed(2)})\`, 'success');
+    } else {
+      log('User not subscribed - no restrictions needed');
+    }
+  }
+  
+  // CSS for animations
+  const style = document.createElement('style');
+  style.textContent = \`
+    @keyframes slideInFromTop {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  \`;
+  document.head.appendChild(style);
+  
+  // Initialize with multiple triggers
+  function initialize() {
+    log('Initializing checkout validation...');
+    
+    // Run immediately
+    runValidation();
+    
+    // Run after DOM updates
+    setTimeout(runValidation, 1000);
+    setTimeout(runValidation, 3000);
+    
+    // Watch for Shopify checkout updates
+    if (typeof Shopify !== 'undefined' && Shopify.Checkout) {
+      try {
+        if (Shopify.Checkout.OrderSummary && typeof Shopify.Checkout.OrderSummary.subscribe === 'function') {
+          Shopify.Checkout.OrderSummary.subscribe(function() {
+            log('Shopify checkout updated, re-running validation');
+            setTimeout(runValidation, 500);
+          });
+        }
+      } catch (e) {
+        log(\`Could not subscribe to Shopify updates: \${e.message}\`, 'warn');
+      }
+    }
+    
+    // Watch for DOM changes
+    const observer = new MutationObserver(function(mutations) {
+      let shouldRerun = false;
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (let node of mutation.addedNodes) {
+            if (node.nodeType === 1 && (
+              node.matches('.order-summary') ||
+              node.querySelector('.order-summary') ||
+              node.matches('[data-checkout-payment-due-target]') ||
+              node.querySelector('[data-checkout-payment-due-target]')
+            )) {
+              shouldRerun = true;
+              break;
+            }
+          }
+        }
+      });
+      
+      if (shouldRerun) {
+        log('DOM changes detected, re-running validation');
+        setTimeout(runValidation, 500);
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    log('Checkout validation initialized successfully', 'success');
+  }
+  
+  // Start initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    initialize();
+  }
+  
+  // Global reference for debugging
+  window.FoxxCheckoutValidation = {
+    runValidation,
+    getCurrentOrderTotal,
+    isUserSubscribed,
+    config: CONFIG
+  };
+  
+  log('Script setup complete - validation ready!', 'success');
+  
+})();`
+  }
+
   generateIntegrationScript(storeId: string, shopifyUrl: string, baseUrl?: string): string {
     // Use provided baseUrl or detect from environment
     let scriptBaseUrl = baseUrl;
