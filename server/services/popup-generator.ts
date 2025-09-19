@@ -234,12 +234,8 @@ export class PopupGeneratorService {
     const lastSubscribedEmail = localStorage.getItem(STORAGE_KEY);
     const lastSubscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
     
-    // If subscribed recently (within 24 hours), verify with server
-    if (lastSubscribedEmail && lastSubscribedTime) {
-      const timeDiff = Date.now() - parseInt(lastSubscribedTime);
-      const hoursAgo = timeDiff / (1000 * 60 * 60);
-      
-      if (hoursAgo < 24 && lastSubscribedEmail.includes('@')) {
+    // Always verify with server if subscription exists (removed 24h limit)
+    if (lastSubscribedEmail && lastSubscribedEmail.includes('@')) {
         // Always verify with server when localStorage exists
         try {
           const checkUrl = API_BASE + '/api/stores/' + STORE_ID + '/check-subscription/' + encodeURIComponent(lastSubscribedEmail);
@@ -252,19 +248,42 @@ export class PopupGeneratorService {
               return;
             } else {
               // No longer subscribed, clear ALL storage (localStorage + sessionStorage)
+              // Clear localStorage
               localStorage.removeItem(STORAGE_KEY);
               localStorage.removeItem(STORAGE_KEY + '_time');
+              localStorage.removeItem(STORAGE_KEY + '_dismissed');
+              
+              // Clear ALL sessionStorage keys that could exist
               sessionStorage.removeItem(STORAGE_KEY + '_session');
-              console.log('Foxx Newsletter: User no longer subscribed, all storage cleared');
+              sessionStorage.removeItem(STORAGE_KEY + '_session_regular');
+              sessionStorage.removeItem(STORAGE_KEY + '_cart_validation_session');
+              
+              // Clear any page-specific exit intent keys (collect first, then remove)
+              try {
+                const exitIntentKeys = [];
+                for (let i = 0; i < sessionStorage.length; i++) {
+                  const key = sessionStorage.key(i);
+                  if (key && key.startsWith(STORAGE_KEY + '_exit_shown_')) {
+                    exitIntentKeys.push(key);
+                  }
+                }
+                exitIntentKeys.forEach(key => sessionStorage.removeItem(key));
+              } catch (error) {
+                console.log('Could not clear exit intent session keys');
+              }
+              
+              console.log('Foxx Newsletter: User no longer subscribed, ALL storage cleared including cart validation session');
+              
+              // Force popup to show again by resetting shouldShowPopup
+              shouldShowPopup = true;
             }
           }
         } catch (error) {
           console.log('Foxx Newsletter: Could not verify subscription status');
+          // Clear localStorage on error to prevent stale data
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(STORAGE_KEY + '_time');
         }
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(STORAGE_KEY + '_time');
-      }
     }
     
     // Method 2: Check for regular popup session-based suppression (only if no localStorage check was performed)
