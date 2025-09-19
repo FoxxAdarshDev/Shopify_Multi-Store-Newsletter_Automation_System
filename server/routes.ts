@@ -13,6 +13,52 @@ import { encrypt, decrypt } from "./utils/encryption";
 import { z } from "zod";
 import { authenticateSession, requireAdmin, requirePermission, optionalAuth, type AuthRequest } from "./middleware/auth";
 
+// Simple in-memory cache for validation results to prevent repeated checks
+interface ValidationCacheEntry {
+  result: any;
+  timestamp: number;
+  expiresAt: number;
+}
+
+const validationCache = new Map<string, ValidationCacheEntry>();
+const VALIDATION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
+function getCachedValidation(storeId: string): any | null {
+  const cacheKey = `validation_${storeId}`;
+  const cached = validationCache.get(cacheKey);
+  
+  if (cached && Date.now() < cached.expiresAt) {
+    console.log(`Using cached validation for store ${storeId}, age: ${((Date.now() - cached.timestamp) / 1000).toFixed(1)}s`);
+    return cached.result;
+  }
+  
+  // Remove expired cache
+  if (cached) {
+    validationCache.delete(cacheKey);
+  }
+  
+  return null;
+}
+
+function setCachedValidation(storeId: string, result: any): void {
+  const cacheKey = `validation_${storeId}`;
+  const now = Date.now();
+  
+  validationCache.set(cacheKey, {
+    result,
+    timestamp: now,
+    expiresAt: now + VALIDATION_CACHE_TTL
+  });
+  
+  console.log(`Cached validation result for store ${storeId}`);
+}
+
+function clearValidationCache(storeId: string): void {
+  const cacheKey = `validation_${storeId}`;
+  validationCache.delete(cacheKey);
+  console.log(`Cleared validation cache for store ${storeId}`);
+}
+
 // 🚀 REQUEST-BASED URL DETECTION (Netflix/Uber/Google Pattern) - DEPLOYMENT-AGNOSTIC
 const getBaseUrlFromRequest = (req: any): string => {
   // Extract protocol (handles reverse proxies, load balancers, CDNs correctly)
@@ -1258,6 +1304,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stores/:storeId/verify-installation", authenticateSession, async (req: AuthRequest, res) => {
     try {
       const { storeId } = req.params;
+      const { force } = req.query; // Allow force refresh
+      
+      // Check cache first (unless force refresh requested)
+      if (!force) {
+        const cachedResult = getCachedValidation(storeId);
+        if (cachedResult) {
+          return res.json(cachedResult);
+        }
+      }
       
       const store = await storage.getStore(storeId);
       if (!store) {
@@ -1327,12 +1382,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
             html.includes(`data-script-version="${currentValues.scriptVersion}"`)
           );
           
-          // Check if generated timestamp EXACTLY MATCHES current timestamp
-          const hasMatchingGeneratedAt = currentValues.generatedAt && (
+          // SMARTER timestamp validation: Check if timestamp is recent (within 72 hours) instead of exact match
+          let hasRecentTimestamp = false;
+          let extractedTimestamp = null;
+          
+          // Fixed regex to properly match quoted attributes: data-generated-at="value" or data-generated-at='value'
+          const timestampRegex = /data-generated-at=["']([^"']+)["']/;
+          const timestampMatch = html.match(timestampRegex);
+          
+          if (timestampMatch) {
+            try {
+              extractedTimestamp = timestampMatch[1];
+              const installedTimestamp = new Date(extractedTimestamp).getTime();
+              const currentTime = Date.now();
+              const hoursDifference = (currentTime - installedTimestamp) / (1000 * 60 * 60);
+              
+              // Consider script valid if installed within last 72 hours (allows for CDN/browser cache delays)
+              hasRecentTimestamp = !isNaN(installedTimestamp) && hoursDifference >= 0 && hoursDifference <= 72;
+              console.log(`Timestamp validation: extracted="${extractedTimestamp}", parsed=${new Date(installedTimestamp).toISOString()}, age=${hoursDifference.toFixed(1)}h, valid=${hasRecentTimestamp}`);
+            } catch (error) {
+              console.log(`Timestamp parsing error for "${extractedTimestamp}":`, error instanceof Error ? error.message : String(error));
+            }
+          } else {
+            console.log(`No timestamp found in HTML with regex ${timestampRegex}`);
+          }
+          
+          // Fallback: exact match for backward compatibility
+          const hasExactTimestampMatch = currentValues.generatedAt && (
             html.includes(`script.setAttribute('data-generated-at', '${currentValues.generatedAt}')`) ||
             html.includes(`script.setAttribute("data-generated-at", "${currentValues.generatedAt}")`) ||
             html.includes(`data-generated-at="${currentValues.generatedAt}"`)
           );
+          
+          const hasValidTimestamp = hasRecentTimestamp || hasExactTimestampMatch;
           
           // Check for any script version/timestamp (for existence detection)
           const hasAnyScriptVersion = html.includes(`data-script-version`) ||
@@ -1343,20 +1425,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                    html.includes(`script.setAttribute('data-generated-at'`) ||
                                    html.includes(`script.setAttribute("data-generated-at"`);
           
-          // Check if the script URL matches the current domain
+          // Check if the script URL matches the current server domain OR has basic script structure
           const hasCorrectScriptUrl = html.includes(`script.src = '${baseUrl}/api/newsletter-script.js`) ||
-                                     html.includes(`script.src='${baseUrl}/api/newsletter-script.js`);
+                                     html.includes(`script.src='${baseUrl}/api/newsletter-script.js`) ||
+                                     html.includes('/api/newsletter-script.js'); // Allow any domain serving newsletter-script.js
           
-          // STRICT VALIDATION: All attributes must exist AND BOTH script version AND timestamp must match exactly
+          console.log(`Domain validation: baseUrl="${baseUrl}", hasCorrectScriptUrl=${hasCorrectScriptUrl}`);
+          
+          // RELAXED VALIDATION: Script is valid if basic attributes exist AND (recent timestamp OR version match)
           const hasBasicAttributes = hasStoreDomain && hasPopupConfig && hasIntegrationType;
-          const hasCorrectVersion = hasMatchingScriptVersion && hasMatchingGeneratedAt; // Check BOTH version AND timestamp
+          const hasValidVersion = hasMatchingScriptVersion || hasValidTimestamp; // Version match OR recent timestamp
           const hasCorrectDomain = hasCorrectScriptUrl;
           
-          // Complete validation: script exists + store ID + all attributes + correct version + correct domain
-          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasCorrectVersion && hasCorrectDomain;
+          // Complete validation: script exists + store ID + all attributes + recent version + correct domain  
+          const isValidInstallation = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasValidVersion && hasCorrectDomain;
           
-          // Outdated script: has all basic attributes but script version doesn't match current generation
-          const hasOutdatedScript = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasAnyScriptVersion && !hasCorrectVersion;
+          // Outdated script: has all basic attributes but version is old or missing
+          const hasOutdatedScript = hasNewsletterScript && hasStoreId && hasBasicAttributes && hasAnyScriptVersion && !hasValidVersion;
           
           let validationLevel = 'incomplete';
           let message = '';
@@ -1375,7 +1460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message = 'Newsletter script not found';
           }
           
-          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Timestamp match: ${hasMatchingGeneratedAt}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
+          console.log(`${url} - Newsletter script: ${hasNewsletterScript}, Store ID: ${hasStoreId}, Store domain: ${hasStoreDomain}, Popup config: ${hasPopupConfig}, Integration type: ${hasIntegrationType}, Script version match: ${hasMatchingScriptVersion}, Timestamp valid: ${hasValidTimestamp}, Correct domain: ${hasCorrectDomain} | Validation: ${validationLevel}`);
           
           checkedUrls.push({
             url,
@@ -1387,7 +1472,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasScriptVersion: hasAnyScriptVersion,
             hasGeneratedAt: hasAnyGeneratedAt,
             hasMatchingScriptVersion,
-            hasMatchingGeneratedAt,
+            hasValidTimestamp,
+            hasRecentTimestamp,
             hasCorrectDomain,
             validationLevel,
             message,
@@ -1419,14 +1505,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const successfulResult = checkedUrls.find(result => result.success);
       const outdatedResult = checkedUrls.find(result => result.isOutdated);
       
+      let result;
       if (foundOnAnyUrl) {
-        res.json({ 
+        result = { 
           installed: true,
           message: "Script is properly installed and up-to-date",
           checkedUrls
-        });
+        };
       } else if (hasOutdatedScript) {
-        res.json({ 
+        result = { 
           installed: false,
           isOutdated: true,
           message: "Script is installed but outdated - please update to the latest version",
@@ -1437,9 +1524,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             outdatedScriptFound: true,
             lastError: lastError instanceof Error ? lastError.message : 'No current error'
           }
-        });
+        };
       } else {
-        res.json({ 
+        result = { 
           installed: false,
           message: urlsToCheck.length === 0 
             ? "No URLs configured to check" 
@@ -1450,8 +1537,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             urlsChecked: urlsToCheck,
             lastError: lastError instanceof Error ? lastError.message : 'Unknown error occurred'
           }
-        });
+        };
       }
+      
+      // Cache the result for 5 minutes to prevent repeated calls
+      setCachedValidation(storeId, result);
+      res.json(result);
     } catch (error) {
       console.error("Verify installation error:", error);
       res.status(500).json({ message: "Failed to verify installation" });

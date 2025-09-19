@@ -68,6 +68,12 @@ export default function Integration() {
   const { data: installationStatus } = useQuery({
     queryKey: [`/api/stores/${selectedStoreId}/verify-installation`],
     enabled: !!selectedStoreId,
+    // Cache validation results for 5 minutes to prevent repeated calls
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    // Only refetch on manual refresh, not on window focus
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     // Removed excessive polling - verification status updates on user action
   });
 
@@ -106,7 +112,8 @@ export default function Integration() {
     if (!selectedStoreId) return;
     
     try {
-      const response = await fetch(`/api/stores/${selectedStoreId}/verify-installation`);
+      // Force refresh by bypassing cache
+      const response = await fetch(`/api/stores/${selectedStoreId}/verify-installation?force=true`);
       const result = await response.json();
       
       // Force refresh both the installation status query and stores query
