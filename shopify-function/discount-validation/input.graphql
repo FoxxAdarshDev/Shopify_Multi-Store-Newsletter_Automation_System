@@ -1,0 +1,42 @@
+query RunInput {
+  cart {
+    cost {
+      totalAmount {
+        amount
+        currencyCode
+      }
+    }
+    buyerIdentity {
+      customer {
+        id
+        email
+        displayName
+        hasTags(tags: ["newsletter", "subscriber", "Newsletter Subscribers", "newsletter-subscriber"]) {
+          hasTag
+          tag
+        }
+      }
+    }
+    discountCodes {
+      applicable
+      code
+    }
+    lines {
+      id
+      quantity
+      merchandise {
+        ... on ProductVariant {
+          id
+          title
+          product {
+            id
+            title
+          }
+        }
+      }
+    }
+  }
+  buyerJourney {
+    step
+  }
+}

@@ -1,0 +1,212 @@
+<script>
+// Enhanced Checkout UX for Newsletter Subscribers (Basic Plan Compatible)
+(function() {
+  'use strict';
+  
+  // Configuration
+  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af'; // Your store ID
+  const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
+  const SUBSCRIBER_MINIMUM_AMOUNT = 100000; // $1000 in cents
+  const PROTECTED_CODES = ['WELCOME50', 'WELCOME50']; // Add your discount codes here
+  
+  console.log('🔍 Checkout UX Enhancement: Starting');
+  
+  // Function to check if user is subscribed
+  function isUserSubscribed() {
+    try {
+      const subscribedEmail = localStorage.getItem(STORAGE_KEY);
+      const subscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
+      
+      return subscribedEmail && 
+             subscribedEmail.includes('@') && 
+             subscribedTime;
+    } catch (error) {
+      console.log('Could not check subscription status');
+      return false;
+    }
+  }
+  
+  // Function to get cart total from Shopify checkout
+  function getCurrentCartTotal() {
+    // Try multiple methods to get cart total
+    if (typeof Shopify !== 'undefined' && Shopify.checkout) {
+      return parseInt(Shopify.checkout.subtotal_price) || 0;
+    }
+    
+    // Fallback: try to extract from DOM
+    const totalElement = document.querySelector('[data-checkout-subtotal-price-target]') ||
+                        document.querySelector('.total-line__price') ||
+                        document.querySelector('[data-subtotal-price]');
+    
+    if (totalElement) {
+      const totalText = totalElement.textContent || totalElement.innerText;
+      const totalMatch = totalText.match(/[\d,]+\.?\d*/);
+      if (totalMatch) {
+        return parseInt(totalMatch[0].replace(/[,\.]/g, ''));
+      }
+    }
+    
+    return 0;
+  }
+  
+  // Function to show warning message
+  function showDiscountWarning() {
+    const isSubscribed = isUserSubscribed();
+    const currentTotal = getCurrentCartTotal();
+    
+    console.log('🔍 Checking discount eligibility:', {
+      isSubscribed,
+      currentTotal,
+      minimumRequired: SUBSCRIBER_MINIMUM_AMOUNT
+    });
+    
+    // Only show warning if criteria not met
+    if (!isSubscribed || currentTotal < SUBSCRIBER_MINIMUM_AMOUNT) {
+      // Find discount code input
+      const discountInput = document.querySelector('input[placeholder*="discount" i]') ||
+                           document.querySelector('input[placeholder*="coupon" i]') ||
+                           document.querySelector('input[name*="discount"]') ||
+                           document.querySelector('#discount-code') ||
+                           document.querySelector('.field__input');
+      
+      if (discountInput && !document.getElementById('foxx-discount-warning')) {
+        // Create warning message
+        const warningHtml = `
+          <div id="foxx-discount-warning" style="
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%);
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            font-size: 13px;
+            color: #92400e;
+          ">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 16px;">⚠️</span>
+              <div>
+                <div style="font-weight: 600;">Newsletter Subscriber Exclusive</div>
+                <div style="opacity: 0.8;">
+                  ${!isSubscribed ? 'Subscribe to our newsletter and spend $1,000+ to access discount codes.' : 
+                    `Add $${((SUBSCRIBER_MINIMUM_AMOUNT - currentTotal) / 100).toFixed(2)} more to unlock your subscriber benefits.`}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Insert warning above discount input
+        discountInput.parentElement.insertAdjacentHTML('beforebegin', warningHtml);
+        
+        // Make discount input read-only with better UX
+        discountInput.style.background = '#f9fafb';
+        discountInput.style.cursor = 'not-allowed';
+        discountInput.placeholder = 'Newsletter subscriber discount (criteria not met)';
+        discountInput.readOnly = true;
+        
+        // Intercept form submissions
+        const form = discountInput.closest('form');
+        if (form) {
+          form.addEventListener('submit', function(e) {
+            const inputValue = discountInput.value.trim().toLowerCase();
+            const isProtectedCode = PROTECTED_CODES.some(code => 
+              inputValue === code.toLowerCase()
+            );
+            
+            if (isProtectedCode && (!isSubscribed || currentTotal < SUBSCRIBER_MINIMUM_AMOUNT)) {
+              e.preventDefault();
+              
+              // Show error message
+              let errorDiv = document.getElementById('foxx-discount-error');
+              if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'foxx-discount-error';
+                errorDiv.style.cssText = `
+                  background: #fef2f2;
+                  border: 1px solid #fca5a5;
+                  color: #dc2626;
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                  margin-top: 8px;
+                  font-size: 12px;
+                `;
+                discountInput.parentElement.appendChild(errorDiv);
+              }
+              
+              errorDiv.textContent = !isSubscribed ? 
+                'This discount requires newsletter subscription and $1,000+ cart value.' :
+                `Add $${((SUBSCRIBER_MINIMUM_AMOUNT - currentTotal) / 100).toFixed(2)} more to use this discount.`;
+              
+              // Clear the input
+              discountInput.value = '';
+              
+              return false;
+            }
+          });
+        }
+        
+        console.log('✅ Discount warning and protection applied');
+      }
+    } else {
+      // User meets criteria, remove any restrictions
+      const discountInput = document.querySelector('input[placeholder*="discount" i]') ||
+                           document.querySelector('input[placeholder*="coupon" i]') ||
+                           document.querySelector('input[name*="discount"]');
+      
+      if (discountInput) {
+        discountInput.style.background = '';
+        discountInput.style.cursor = '';
+        discountInput.placeholder = 'Discount code';
+        discountInput.readOnly = false;
+        
+        // Remove warning if it exists
+        const warning = document.getElementById('foxx-discount-warning');
+        if (warning) warning.remove();
+        
+        console.log('✅ User meets criteria - discount field enabled');
+      }
+    }
+  }
+  
+  // Function to monitor page changes
+  function initCheckoutMonitoring() {
+    // Initial check
+    setTimeout(showDiscountWarning, 1000);
+    
+    // Monitor for dynamic content changes
+    const observer = new MutationObserver(() => {
+      setTimeout(showDiscountWarning, 500);
+    });
+    
+    // Observe checkout container for changes
+    const checkoutContainer = document.querySelector('[data-step]') || 
+                             document.querySelector('.main__content') ||
+                             document.body;
+    
+    if (checkoutContainer) {
+      observer.observe(checkoutContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+    
+    // Also monitor for URL changes (single page app)
+    let currentUrl = window.location.href;
+    setInterval(() => {
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        setTimeout(showDiscountWarning, 1000);
+      }
+    }, 1000);
+  }
+  
+  // Initialize when page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCheckoutMonitoring);
+  } else {
+    initCheckoutMonitoring();
+  }
+  
+  console.log('✅ Checkout UX Enhancement: Initialized');
+  
+})();
+</script>

@@ -20,6 +20,23 @@ export interface ShopifyDiscountCode {
   usage_limit: number | null;
 }
 
+export interface ShopifyCustomerSegment {
+  id: number;
+  name: string;
+  query: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  message?: string;
+  exceedsThreshold?: boolean;
+  isNewsletterSubscriber?: boolean;
+  cartTotal?: number;
+  threshold?: number;
+}
+
 import { decrypt } from "../utils/encryption.js";
 
 export class ShopifyService {
@@ -34,13 +51,7 @@ export class ShopifyService {
     
     const url = `https://${shopUrl}/admin/api/2023-10/${endpoint}`;
     
-    // Debug: check for Unicode characters in the access token
-    console.log('Access token length:', config.accessToken.length);
-    console.log('Access token has non-ASCII:', /[^\x00-\x7F]/.test(config.accessToken));
-    if (/[^\x00-\x7F]/.test(config.accessToken)) {
-      console.log('Non-ASCII character found at:', config.accessToken.search(/[^\x00-\x7F]/));
-      console.log('Character code:', config.accessToken.charCodeAt(config.accessToken.search(/[^\x00-\x7F]/)));
-    }
+    // Removed debug logging for production security
     
     const response = await fetch(url, {
       ...options,
@@ -433,6 +444,173 @@ export class ShopifyService {
         success: false, 
         message: `Failed to remove tag: ${error instanceof Error ? error.message : 'Unknown error'}` 
       };
+    }
+  }
+
+  /**
+   * Validates if a customer can use newsletter discount codes based on cart total
+   * This method supports the Shopify Function validation
+   */
+  async validateNewsletterDiscountEligibility(
+    config: ShopifyConfig,
+    customerEmail: string,
+    cartTotal: number,
+    discountCode?: string
+  ): Promise<ValidationResult> {
+    const SUBSCRIBER_MAXIMUM_AMOUNT = 100000; // $1,000 in cents
+    const NEWSLETTER_DISCOUNT_CODES = ['WELCOME50', 'WELCOME15'];
+
+    try {
+      // Check if customer exists and is a newsletter subscriber
+      const customer = await this.getCustomerByEmail(config, customerEmail);
+      
+      if (!customer) {
+        return {
+          isValid: true,
+          message: 'Customer not found - allowing all discounts'
+        };
+      }
+
+      const decryptedConfig = this.decryptConfig(config);
+      const customerResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}.json`);
+      const customerTags = customerResponse.customer.tags || '';
+      
+      // Check if customer is a newsletter subscriber
+      const isNewsletterSubscriber = customerTags
+        .toLowerCase()
+        .includes('newsletter-subscriber') || 
+        customerTags.toLowerCase().includes('newsletter') ||
+        customerTags.toLowerCase().includes('subscriber');
+
+      console.log('Newsletter Validation Check:', {
+        customerEmail,
+        cartTotal: `$${(cartTotal / 100).toFixed(2)}`,
+        isNewsletterSubscriber,
+        tags: customerTags,
+        discountCode,
+        threshold: `$${(SUBSCRIBER_MAXIMUM_AMOUNT / 100).toFixed(2)}`
+      });
+
+      // If not a newsletter subscriber, allow all discounts
+      if (!isNewsletterSubscriber) {
+        return {
+          isValid: true,
+          isNewsletterSubscriber: false,
+          cartTotal,
+          threshold: SUBSCRIBER_MAXIMUM_AMOUNT
+        };
+      }
+
+      // Check if discount code is newsletter-related (if provided)
+      const isNewsletterDiscount = discountCode ? 
+        NEWSLETTER_DISCOUNT_CODES.some(code => 
+          discountCode.toUpperCase().includes(code.toUpperCase())
+        ) : true;
+
+      // If it's not a newsletter discount code, allow it
+      if (!isNewsletterDiscount) {
+        return {
+          isValid: true,
+          isNewsletterSubscriber: true,
+          cartTotal,
+          threshold: SUBSCRIBER_MAXIMUM_AMOUNT
+        };
+      }
+
+      // Check cart total against threshold for newsletter subscribers
+      const exceedsThreshold = cartTotal > SUBSCRIBER_MAXIMUM_AMOUNT;
+      
+      if (exceedsThreshold) {
+        const excessAmount = cartTotal - SUBSCRIBER_MAXIMUM_AMOUNT;
+        return {
+          isValid: false,
+          message: `Newsletter subscriber discount codes (${discountCode || 'WELCOME50'}) are only valid for orders up to $${(SUBSCRIBER_MAXIMUM_AMOUNT / 100).toFixed(2)}. Your current cart total is $${(cartTotal / 100).toFixed(2)}. Please remove $${(excessAmount / 100).toFixed(2)} worth of items to use your discount code.`,
+          exceedsThreshold: true,
+          isNewsletterSubscriber: true,
+          cartTotal,
+          threshold: SUBSCRIBER_MAXIMUM_AMOUNT
+        };
+      }
+
+      return {
+        isValid: true,
+        message: `Newsletter discount eligible - cart total $${(cartTotal / 100).toFixed(2)} is within $${(SUBSCRIBER_MAXIMUM_AMOUNT / 100).toFixed(2)} limit`,
+        exceedsThreshold: false,
+        isNewsletterSubscriber: true,
+        cartTotal,
+        threshold: SUBSCRIBER_MAXIMUM_AMOUNT
+      };
+
+    } catch (error) {
+      console.error('Failed to validate newsletter discount eligibility:', error);
+      return {
+        isValid: true, // Default to allowing discounts on error
+        message: `Validation error - allowing discount: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        cartTotal,
+        threshold: SUBSCRIBER_MAXIMUM_AMOUNT
+      };
+    }
+  }
+
+  /**
+   * Gets customer segments for validation
+   */
+  async getCustomerSegments(config: ShopifyConfig): Promise<ShopifyCustomerSegment[]> {
+    try {
+      const decryptedConfig = this.decryptConfig(config);
+      const response = await this.makeRequest(decryptedConfig, 'customer_saved_searches.json');
+      
+      return response.customer_saved_searches.map((segment: any) => ({
+        id: segment.id,
+        name: segment.name,
+        query: segment.query,
+        created_at: segment.created_at,
+        updated_at: segment.updated_at
+      }));
+    } catch (error) {
+      console.error('Failed to fetch customer segments:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Checks if customer is in a specific segment
+   */
+  async isCustomerInSegment(
+    config: ShopifyConfig, 
+    customerEmail: string, 
+    segmentName: string
+  ): Promise<boolean> {
+    try {
+      const customer = await this.getCustomerByEmail(config, customerEmail);
+      if (!customer) return false;
+
+      const segments = await this.getCustomerSegments(config);
+      const targetSegment = segments.find(segment => 
+        segment.name.toLowerCase() === segmentName.toLowerCase()
+      );
+
+      if (!targetSegment) {
+        console.warn(`Segment "${segmentName}" not found`);
+        return false;
+      }
+
+      const decryptedConfig = this.decryptConfig(config);
+      
+      // Check if customer matches segment criteria by getting segment members
+      // Note: This is a simplified check - in production you might need more sophisticated segment checking
+      const segmentResponse = await this.makeRequest(
+        decryptedConfig, 
+        `customer_saved_searches/${targetSegment.id}/customers.json`
+      );
+      
+      return segmentResponse.customers.some((segmentCustomer: any) => 
+        segmentCustomer.id === customer.id
+      );
+
+    } catch (error) {
+      console.error('Failed to check customer segment:', error);
+      return false;
     }
   }
 }

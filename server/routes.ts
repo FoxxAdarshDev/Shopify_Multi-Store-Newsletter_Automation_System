@@ -1116,37 +1116,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate checkout validation script
-  app.get("/api/stores/:storeId/checkout-validation-script", authenticateSession, async (req: AuthRequest, res) => {
-    try {
-      const { storeId } = req.params;
-      
-      // Verify user owns this store
-      const store = await storage.getStore(storeId);
-      if (!store || store.userId !== req.user!.id) {
-        return res.status(404).json({ message: "Store not found" });
-      }
-      
-      const config = await storage.getPopupConfig(storeId);
-      if (!config) {
-        return res.status(404).json({ message: "Popup configuration not found" });
-      }
-      
-      // Generate checkout validation script
-      const discountCodes = config.discountCode ? [config.discountCode] : ['WELCOME50'];
-      const maxAmount = config.cartValidation?.maximumAmount || 100000; // Default $1000
-      
-      const script = popupGeneratorService.generateCheckoutValidationScript(storeId, discountCodes, maxAmount);
-      
-      res.setHeader("Content-Type", "application/javascript");
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.send(script);
-    } catch (error) {
-      console.error("Generate checkout validation script error:", error);
-      res.status(500).json({ message: "Failed to generate checkout validation script" });
-    }
-  });
-
   // Check if email is actively subscribed (used by popup script)
   app.get("/api/stores/:storeId/check-subscription/:email", async (req, res) => {
     try {
