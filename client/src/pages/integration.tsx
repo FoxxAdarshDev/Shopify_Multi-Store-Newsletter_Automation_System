@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ export default function Integration() {
   const { storeId } = useParams<{ storeId: string }>();
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [copiedScript, setCopiedScript] = useState(false);
-  const [regenerateRequested, setRegenerateRequested] = useState(false);
   const { toast } = useToast();
 
   // Auto-select current store from URL
@@ -36,15 +35,34 @@ export default function Integration() {
   const currentStore = stores.find(store => store.id === selectedStoreId);
 
   const { data: integrationScript } = useQuery<string>({
-    queryKey: [`integration-script-${selectedStoreId}`, regenerateRequested],
-    queryFn: () => {
-      if (!selectedStoreId) return Promise.reject('No store selected');
-      const url = regenerateRequested 
-        ? `/api/stores/${selectedStoreId}/integration-script?regenerate=true`
-        : `/api/stores/${selectedStoreId}/integration-script`;
-      return apiRequest(url);
-    },
+    queryKey: [`integration-script-${selectedStoreId}`],
+    queryFn: () => selectedStoreId ? apiRequest(`/api/stores/${selectedStoreId}/integration-script`) : Promise.reject('No store selected'),
     enabled: !!selectedStoreId,
+  });
+
+  // Mutation for regenerating script
+  const regenerateMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedStoreId) throw new Error('No store selected');
+      return apiRequest(`/api/stores/${selectedStoreId}/integration-script?regenerate=true`);
+    },
+    onSuccess: () => {
+      // Invalidate the main query to refetch the updated script
+      queryClient.invalidateQueries({ 
+        queryKey: [`integration-script-${selectedStoreId}`] 
+      });
+      toast({
+        title: "Success",
+        description: "Integration script regenerated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to regenerate script",
+        variant: "destructive",
+      });
+    }
   });
 
   const { data: installationStatus } = useQuery({
@@ -143,28 +161,7 @@ export default function Integration() {
 
   const handleRegenerateScript = async () => {
     if (!selectedStoreId) return;
-    
-    try {
-      // Set regenerate flag and invalidate query to fetch with regenerate=true
-      setRegenerateRequested(true);
-      queryClient.invalidateQueries({ 
-        queryKey: [`integration-script-${selectedStoreId}`, true] 
-      });
-      
-      // Reset flag after a brief delay
-      setTimeout(() => setRegenerateRequested(false), 1000);
-      
-      toast({
-        title: "Success",
-        description: "Integration script regenerated",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to regenerate script",
-        variant: "destructive",
-      });
-    }
+    regenerateMutation.mutate();
   };
 
   return (
