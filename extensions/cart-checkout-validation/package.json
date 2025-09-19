@@ -1,0 +1,21 @@
+{
+  "name": "newsletter-discount-validation",
+  "version": "1.0.0",
+  "description": "Shopify Function to validate newsletter subscriber discount codes based on cart total",
+  "main": "src/run.js",
+  "type": "module",
+  "scripts": {
+    "build": "shopify app build",
+    "dev": "shopify app dev",
+    "deploy": "shopify app deploy"
+  },
+  "keywords": [
+    "shopify",
+    "shopify-function",
+    "discount-validation",
+    "cart-validation",
+    "newsletter"
+  ],
+  "author": "Foxx Life Sciences",
+  "license": "MIT"
+}

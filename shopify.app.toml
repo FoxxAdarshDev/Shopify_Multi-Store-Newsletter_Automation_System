@@ -1,0 +1,18 @@
+# Configuration for your Shopify app
+name = "newsletter-discount-validation"
+client_id = ""
+application_url = ""
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = ""
+
+[access_scopes]
+scopes = "write_cart_checkouts,read_discounts,write_discounts"
+
+[auth]
+redirect_urls = [ "http://localhost:3000/auth/callback" ]
+
+[webhooks]
+api_version = "2024-10"

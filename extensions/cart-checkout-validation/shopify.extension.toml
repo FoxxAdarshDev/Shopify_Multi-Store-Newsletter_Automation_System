@@ -1,0 +1,30 @@
+api_version = "2024-10"
+name = "newsletter-discount-validation"
+type = "cart_and_checkout_validation"
+
+[[targeting]]
+target = "cart.validations.run"
+input_query = "input.graphql"
+export = "run"
+
+[settings]
+  [[settings.fields]]
+  key = "subscriber_maximum_amount"
+  type = "number_integer"
+  name = "Newsletter Subscriber Maximum Amount (cents)"
+  description = "Maximum cart amount in cents for newsletter subscriber discounts"
+  default = 100000
+
+  [[settings.fields]]
+  key = "discount_codes"
+  type = "single_line_text_field"
+  name = "Newsletter Discount Codes"
+  description = "Comma-separated list of newsletter discount codes to validate"
+  default = "WELCOME50,WELCOME15"
+
+  [[settings.fields]]
+  key = "error_message"
+  type = "multi_line_text_field"
+  name = "Error Message Template"
+  description = "Error message to show when validation fails. Use {cartTotal}, {maxAmount}, and {excessAmount} as placeholders."
+  default = "Newsletter subscriber discount codes are only valid for orders up to ${maxAmount}. Your current cart total is ${cartTotal}. Please remove ${excessAmount} worth of items to use your discount code."
