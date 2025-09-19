@@ -1,0 +1,320 @@
+<!-- CORRECTED CHECKOUT.LIQUID SCRIPT FOR $1000 THRESHOLD -->
+<script>
+// Newsletter Subscriber Checkout Validation for $1000 Maximum Threshold
+(function() {
+  'use strict';
+  
+  console.log('🔍 Foxx Checkout Validation: Script started');
+  
+  // IMPORTANT: Configuration
+  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af';
+  const SUBSCRIBER_MAXIMUM_AMOUNT = 100000; // $1000 in cents (Shopify format)
+  const NEWSLETTER_DISCOUNT_CODES = ['WELCOME50', 'WELCOME15']; // Add your discount codes here
+  const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
+  
+  console.log('🔍 Configuration:', {
+    storeId: STORE_ID,
+    maxAmount: SUBSCRIBER_MAXIMUM_AMOUNT,
+    discountCodes: NEWSLETTER_DISCOUNT_CODES,
+    storageKey: STORAGE_KEY
+  });
+  
+  // Function to check if user is subscribed to newsletter
+  function isUserSubscribed() {
+    try {
+      const subscribedEmail = localStorage.getItem(STORAGE_KEY);
+      const subscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
+      
+      return subscribedEmail && 
+             subscribedEmail.includes('@') && 
+             subscribedTime;
+    } catch (error) {
+      console.error('❌ Could not check subscription status:', error);
+      return false;
+    }
+  }
+  
+  // Function to get current order total
+  function getCurrentOrderTotal() {
+    // Try Shopify checkout object first
+    if (typeof Shopify !== 'undefined' && Shopify.checkout) {
+      const total = Shopify.checkout.total_price;
+      console.log('🔍 Order Total from Shopify.checkout:', total);
+      return total || 0;
+    }
+    
+    // Try to get from order total elements
+    const totalElements = [
+      '.order-summary__section--total .order-summary__emphasis',
+      '.total-line .payment-due-label__price',
+      '.payment-due__price',
+      '[data-checkout-payment-due-target]'
+    ];
+    
+    for (const selector of totalElements) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const text = element.textContent || element.innerText;
+        const amount = parseFloat(text.replace(/[^0-9.]/g, ''));
+        if (!isNaN(amount)) {
+          const cents = Math.round(amount * 100);
+          console.log('🔍 Order Total from DOM:', cents);
+          return cents;
+        }
+      }
+    }
+    
+    console.log('🔍 Could not determine order total');
+    return 0;
+  }
+  
+  // Function to format money
+  function formatMoney(cents) {
+    return '$' + (cents / 100).toFixed(2);
+  }
+  
+  // Function to check if discount code is newsletter-related
+  function isNewsletterDiscountCode(code) {
+    if (!code) return false;
+    return NEWSLETTER_DISCOUNT_CODES.some(discountCode => 
+      code.toLowerCase().includes(discountCode.toLowerCase())
+    );
+  }
+  
+  // Function to disable discount field
+  function disableDiscountField() {
+    const discountInputs = [
+      'input[name="reduction_code"]',
+      'input[data-reduction-code]',
+      'input[placeholder*="discount" i]',
+      'input[placeholder*="coupon" i]',
+      '#discount-code',
+      '.reduction-code'
+    ];
+    
+    discountInputs.forEach(selector => {
+      const inputs = document.querySelectorAll(selector);
+      inputs.forEach(input => {
+        input.disabled = true;
+        input.style.backgroundColor = '#f5f5f5';
+        input.style.color = '#999';
+        input.placeholder = 'Discount not available (order over $1,000)';
+      });
+    });
+    
+    // Disable apply buttons
+    const applyButtons = [
+      'button[type="submit"][class*="discount"]',
+      'button[type="submit"][class*="reduction"]',
+      'button[data-discount-apply]',
+      '.reduction-code__submit'
+    ];
+    
+    applyButtons.forEach(selector => {
+      const buttons = document.querySelectorAll(selector);
+      buttons.forEach(button => {
+        button.disabled = true;
+        button.style.opacity = '0.5';
+      });
+    });
+  }
+  
+  // Function to show validation error message
+  function showDiscountValidationError() {
+    // Remove existing error first
+    const existingError = document.getElementById('discount-validation-error');
+    if (existingError) {
+      existingError.remove();
+    }
+    
+    const currentTotal = getCurrentOrderTotal();
+    const excess = currentTotal - SUBSCRIBER_MAXIMUM_AMOUNT;
+    
+    const errorHtml = `
+      <div id="discount-validation-error" style="
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 8px 0;
+        color: #dc2626;
+        font-size: 14px;
+        animation: slideIn 0.3s ease-out;
+      ">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 16px;">⚠️</span>
+          <div>
+            <strong>Newsletter discount not available</strong><br>
+            Your order total is ${formatMoney(currentTotal)}. Newsletter subscriber discounts are only valid for orders up to $1,000.
+            <br><small>Remove ${formatMoney(excess)} worth of items to use your discount.</small>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Find discount section and insert error
+    const discountSection = document.querySelector('.reduction-code, .discount-section, [data-discount-section]');
+    if (discountSection) {
+      discountSection.insertAdjacentHTML('beforebegin', errorHtml);
+    } else {
+      // Fallback: insert at top of order summary
+      const orderSummary = document.querySelector('.order-summary, .checkout-sidebar');
+      if (orderSummary) {
+        orderSummary.insertAdjacentHTML('afterbegin', errorHtml);
+      }
+    }
+  }
+  
+  // Function to validate discount on form submission
+  function validateDiscountSubmission(event) {
+    const currentTotal = getCurrentOrderTotal();
+    const isSubscribed = isUserSubscribed();
+    
+    console.log('🔍 Validating discount submission:', {
+      currentTotal: currentTotal,
+      maxAmount: SUBSCRIBER_MAXIMUM_AMOUNT,
+      isSubscribed: isSubscribed,
+      isOverThreshold: currentTotal > SUBSCRIBER_MAXIMUM_AMOUNT
+    });
+    
+    // Check if order is over threshold and user is trying to apply newsletter discount
+    if (currentTotal > SUBSCRIBER_MAXIMUM_AMOUNT && isSubscribed) {
+      // Get the discount code being applied
+      const discountInput = event.target.querySelector('input[name="reduction_code"], input[data-reduction-code]');
+      if (discountInput) {
+        const discountCode = discountInput.value.trim();
+        
+        if (isNewsletterDiscountCode(discountCode)) {
+          event.preventDefault();
+          event.stopPropagation();
+          
+          console.log('❌ Blocking newsletter discount application - order over threshold');
+          
+          // Clear the discount input
+          discountInput.value = '';
+          
+          // Show error message
+          showDiscountValidationError();
+          
+          // Show alert
+          alert(`Newsletter subscriber discount codes cannot be applied to orders over $1,000.\n\nYour current total: ${formatMoney(currentTotal)}\nMaximum eligible amount: $1,000.00\n\nPlease reduce your order total to use this discount.`);
+          
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  }
+  
+  // Function to monitor and validate checkout
+  function initCheckoutValidation() {
+    const currentTotal = getCurrentOrderTotal();
+    const isSubscribed = isUserSubscribed();
+    
+    console.log('🔍 Initializing checkout validation:', {
+      currentTotal: currentTotal,
+      isSubscribed: isSubscribed,
+      shouldRestrict: isSubscribed && currentTotal > SUBSCRIBER_MAXIMUM_AMOUNT
+    });
+    
+    // If user is subscribed and order is over threshold, restrict discount usage
+    if (isSubscribed && currentTotal > SUBSCRIBER_MAXIMUM_AMOUNT) {
+      console.log('⚠️ Order over threshold - restricting newsletter discount usage');
+      
+      // Show validation error
+      showDiscountValidationError();
+      
+      // Monitor discount form submissions
+      document.addEventListener('submit', function(e) {
+        if (e.target.matches('.reduction-code, form[data-discount-form], form[action*="discount"]') ||
+            e.target.querySelector('input[name="reduction_code"]')) {
+          validateDiscountSubmission(e);
+        }
+      });
+      
+      // Monitor discount input changes
+      document.addEventListener('input', function(e) {
+        if (e.target.matches('input[name="reduction_code"], input[data-reduction-code]')) {
+          const discountCode = e.target.value.trim();
+          if (isNewsletterDiscountCode(discountCode)) {
+            e.target.style.borderColor = '#dc2626';
+            e.target.style.backgroundColor = '#fef2f2';
+          } else {
+            e.target.style.borderColor = '';
+            e.target.style.backgroundColor = '';
+          }
+        }
+      });
+    } else if (isSubscribed) {
+      console.log('✅ Order eligible for newsletter discount');
+      
+      // Show eligible message
+      const eligibleHtml = `
+        <div style="
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          border-radius: 8px;
+          padding: 12px;
+          margin: 8px 0;
+          color: #059669;
+          font-size: 14px;
+        ">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">✅</span>
+            <div>
+              <strong>Newsletter discount available!</strong><br>
+              Your order total is ${formatMoney(currentTotal)}. You can apply your newsletter subscriber discount.
+            </div>
+          </div>
+        </div>
+      `;
+      
+      const discountSection = document.querySelector('.reduction-code, .discount-section, [data-discount-section]');
+      if (discountSection) {
+        discountSection.insertAdjacentHTML('beforebegin', eligibleHtml);
+      }
+    }
+  }
+  
+  // CSS for animations
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Initialize when DOM is ready
+  function init() {
+    console.log('🚀 Initializing checkout validation system');
+    
+    setTimeout(() => {
+      initCheckoutValidation();
+    }, 1000);
+    
+    // Re-validate when page updates (Shopify checkout steps)
+    if (typeof Shopify !== 'undefined' && Shopify.Checkout) {
+      Shopify.Checkout.OrderSummary.subscribe(function() {
+        console.log('🔄 Checkout updated, re-validating');
+        setTimeout(() => {
+          initCheckoutValidation();
+        }, 500);
+      });
+    }
+  }
+  
+  // Start when page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  
+  // Debug logging
+  console.log('🔍 Checkout script loaded for store:', STORE_ID);
+  
+})();
+</script>
