@@ -33,6 +33,13 @@ interface PopupConfig {
     allowedDomains: string[];
     blockedDomains: string[];
   };
+  cartValidation: {
+    enabled: boolean;
+    validationType: string; // "none", "minimum", "maximum", "below_threshold"
+    minimumAmount: number;
+    maximumAmount: number;
+    belowThreshold: number;
+  };
   discountCode: string;
   discountPercentage: number;
   displayTrigger: string;
@@ -163,6 +170,23 @@ export default function PopupBuilder() {
     
     const newValidation = { ...config.emailValidation, [field]: value };
     handleConfigUpdate({ emailValidation: newValidation });
+  };
+
+  const handleCartValidationChange = (field: keyof PopupConfig["cartValidation"], value: any) => {
+    if (!config) return;
+    
+    // Provide default values if cartValidation doesn't exist
+    const defaultCartValidation = {
+      enabled: false,
+      validationType: 'none',
+      minimumAmount: 0,
+      maximumAmount: 1000,
+      belowThreshold: 100
+    };
+    
+    const currentValidation = config.cartValidation || defaultCartValidation;
+    const newValidation = { ...currentValidation, [field]: value };
+    handleConfigUpdate({ cartValidation: newValidation });
   };
 
   const updateStoreSocialLinksMutation = useMutation({
@@ -514,6 +538,107 @@ export default function PopupBuilder() {
                     data-testid="input-discount-percentage"
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cart Validation Configuration */}
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Cart Value Validation</h3>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="enableCartValidation"
+                    checked={config.cartValidation?.enabled || false}
+                    onCheckedChange={(checked) => 
+                      handleCartValidationChange('enabled', !!checked)
+                    }
+                    data-testid="checkbox-enable-cart-validation"
+                  />
+                  <Label htmlFor="enableCartValidation" className="text-sm">
+                    Enable cart value validation for discount eligibility
+                  </Label>
+                </div>
+                
+                {config.cartValidation?.enabled && (
+                  <>
+                    <div>
+                      <Label htmlFor="validationType">Validation Type</Label>
+                      <Select 
+                        value={config.cartValidation?.validationType || 'none'} 
+                        onValueChange={(value) => handleCartValidationChange('validationType', value)}
+                      >
+                        <SelectTrigger data-testid="select-validation-type">
+                          <SelectValue placeholder="Select validation type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Validation</SelectItem>
+                          <SelectItem value="minimum">Minimum Cart Value</SelectItem>
+                          <SelectItem value="maximum">Maximum Cart Value</SelectItem>
+                          <SelectItem value="below_threshold">Below Threshold</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {config.cartValidation?.validationType === 'minimum' && (
+                      <div>
+                        <Label htmlFor="minimumAmount">Minimum Cart Amount ($)</Label>
+                        <Input
+                          id="minimumAmount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={config.cartValidation?.minimumAmount || 0}
+                          onChange={(e) => handleCartValidationChange('minimumAmount', Number(e.target.value))}
+                          data-testid="input-minimum-amount"
+                          placeholder="e.g., 100.00"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Discount is only valid when cart total is above this amount
+                        </p>
+                      </div>
+                    )}
+
+                    {config.cartValidation?.validationType === 'maximum' && (
+                      <div>
+                        <Label htmlFor="maximumAmount">Maximum Cart Amount ($)</Label>
+                        <Input
+                          id="maximumAmount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={config.cartValidation?.maximumAmount || 1000}
+                          onChange={(e) => handleCartValidationChange('maximumAmount', Number(e.target.value))}
+                          data-testid="input-maximum-amount"
+                          placeholder="e.g., 1000.00"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Discount is only valid when cart total is below this amount
+                        </p>
+                      </div>
+                    )}
+
+                    {config.cartValidation?.validationType === 'below_threshold' && (
+                      <div>
+                        <Label htmlFor="belowThreshold">Below Threshold Amount ($)</Label>
+                        <Input
+                          id="belowThreshold"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={config.cartValidation?.belowThreshold || 100}
+                          onChange={(e) => handleCartValidationChange('belowThreshold', Number(e.target.value))}
+                          data-testid="input-below-threshold"
+                          placeholder="e.g., 500.00"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Discount is only valid when cart total is below this threshold
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

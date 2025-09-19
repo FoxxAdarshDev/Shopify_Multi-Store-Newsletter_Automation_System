@@ -77,6 +77,13 @@ export const popupConfigs = pgTable("popup_configs", {
     allowedDomains: [],
     blockedDomains: ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]
   }),
+  cartValidation: jsonb("cart_validation").notNull().default({
+    enabled: false,
+    validationType: "none", // "minimum", "maximum", "below_threshold"
+    minimumAmount: 0,
+    maximumAmount: 1000,
+    belowThreshold: 100
+  }),
   discountCode: text("discount_code").notNull().default("WELCOME15"),
   discountPercentage: integer("discount_percentage").notNull().default(15),
   displayTrigger: text("display_trigger").notNull().default("immediate"),

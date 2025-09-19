@@ -1058,6 +1058,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         buttonText: config.buttonText,
         fields: config.fields,
         emailValidation: config.emailValidation,
+        cartValidation: config.cartValidation,
         discountCode: config.discountCode,
         discountPercentage: config.discountPercentage,
         displayTrigger: config.displayTrigger,

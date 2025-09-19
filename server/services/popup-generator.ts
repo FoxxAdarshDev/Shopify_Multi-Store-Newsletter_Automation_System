@@ -966,6 +966,23 @@ export class PopupGeneratorService {
         localStorage.setItem(STORAGE_KEY, data.email);
         localStorage.setItem(STORAGE_KEY + '_time', Date.now().toString());
         
+        // Store cart validation parameters if enabled for cart.liquid integration
+        if (POPUP_CONFIG.cartValidation && POPUP_CONFIG.cartValidation.enabled) {
+          const cartValidationKey = STORAGE_KEY + '_cart_validation';
+          const cartValidationData = {
+            enabled: POPUP_CONFIG.cartValidation.enabled,
+            validationType: POPUP_CONFIG.cartValidation.validationType,
+            minimumAmount: POPUP_CONFIG.cartValidation.minimumAmount,
+            maximumAmount: POPUP_CONFIG.cartValidation.maximumAmount,
+            belowThreshold: POPUP_CONFIG.cartValidation.belowThreshold,
+            discountCode: POPUP_CONFIG.discountCode,
+            subscribedAt: Date.now()
+          };
+          localStorage.setItem(cartValidationKey, JSON.stringify(cartValidationData));
+          sessionStorage.setItem(cartValidationKey + '_session', 'true');
+          console.log('Foxx Newsletter: Cart validation parameters stored for Shopify integration');
+        }
+        
         // Clear the dismissed and exit intent flags since user has now subscribed
         localStorage.removeItem(STORAGE_KEY + '_dismissed');
         localStorage.removeItem(STORAGE_KEY + '_exit_intent_shown');
