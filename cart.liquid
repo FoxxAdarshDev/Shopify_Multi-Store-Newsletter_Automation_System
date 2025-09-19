@@ -708,7 +708,373 @@ div.af_tag span.af_coupon_text {
 
       {% render 'hear-about-us' %}
     </div>
+{% comment %}
+  Complete Cart Validation for Foxx Newsletter Subscribers
+  Add this code to your cart.liquid file, preferably near the top after the cart form opening tag
+  This handles both cart page validation and checkout restrictions in one place
+{% endcomment %}
 
+<!-- Foxx Newsletter Cart Validation - Complete Solution -->
+<div id="foxx-cart-validation-container">
+  <!-- Validation messages will be inserted here by JavaScript -->
+</div>
+
+<script>
+  // Make cart data available globally
+  window.cart = {{ cart | json }};
+  window.cartTotal = {{ cart.total_price | money_without_currency | remove: ',' }};
+  window.shopCurrency = '{{ shop.currency }}';
+</script>
+
+<script>
+/**
+ * Foxx Newsletter Cart & Checkout Validation - Complete Solution
+ * Handles both cart page notifications and checkout restrictions
+ */
+(function() {
+  'use strict';
+  
+  // Configuration - Update with your actual store ID from popup builder
+  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af'; // Your actual store ID
+  const CART_THRESHOLD = 1000; // $1000 threshold from your popup settings
+  const DISCOUNT_CODE = 'WELCOME15'; // Your discount code from popup builder
+  
+  // Session storage keys (matching your popup system)
+  const STORAGE_KEY = `foxx_newsletter_${STORE_ID}`;
+  
+  /**
+   * Check if user is subscribed based on session storage
+   */
+  function isUserSubscribed() {
+    try {
+      // Check all possible session storage keys that indicate subscription
+      const hasRegularSession = sessionStorage.getItem(STORAGE_KEY + '_session') === 'true';
+      const hasCartValidationSession = sessionStorage.getItem(STORAGE_KEY + '_cart_validation_session') === 'true';
+      const hasLocalStorageSubscription = localStorage.getItem(STORAGE_KEY) !== null;
+      
+      console.log('Foxx Subscription Check:', {
+        regularSession: hasRegularSession,
+        cartValidationSession: hasCartValidationSession,
+        localStorage: hasLocalStorageSubscription,
+        storageKey: STORAGE_KEY
+      });
+      
+      return hasRegularSession || hasCartValidationSession || hasLocalStorageSubscription;
+    } catch (error) {
+      console.log('Foxx Cart Validation: Could not check subscription status', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Get current cart total
+   */
+  function getCartTotal() {
+    try {
+      // Use the cart total we set globally
+      return parseFloat(window.cartTotal || {{ cart.total_price | money_without_currency | remove: ',' }});
+    } catch (error) {
+      console.log('Foxx Cart Validation: Could not get cart total', error);
+      return 0;
+    }
+  }
+  
+  /**
+   * Create and show the cart validation message
+   */
+  function showCartValidationMessage() {
+    // Remove any existing validation message
+    const existingMessage = document.getElementById('foxx-cart-validation-message');
+    if (existingMessage) {
+      existingMessage.remove();
+    }
+    
+    const cartTotal = getCartTotal();
+    
+    // Create the validation message div
+    const messageDiv = document.createElement('div');
+    messageDiv.id = 'foxx-cart-validation-message';
+    messageDiv.className = 'cart-validation-notice';
+    
+    messageDiv.innerHTML = `
+      <div class="notice notice--warning" style="
+        background: #fff3cd; 
+        border: 2px solid #ffeaa7; 
+        color: #856404; 
+        padding: 20px; 
+        margin: 20px 0; 
+        border-radius: 8px;
+        font-family: inherit;
+        line-height: 1.5;
+      ">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <span style="font-size: 24px; margin-top: -2px;">⚠️</span>
+          <div>
+            <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #856404;">
+              Discount Code Not Applicable
+            </h3>
+            <p style="margin: 0 0 12px 0; font-size: 14px;">
+              Your cart total is <strong>$${cartTotal.toFixed(2)}</strong>, which exceeds our 
+              <strong>$${CART_THRESHOLD.toLocaleString()}</strong> discount eligibility threshold.
+            </p>
+            <p style="margin: 0 0 12px 0; font-size: 14px;">
+              The discount code <strong style="background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">${DISCOUNT_CODE}</strong> 
+              you received from our newsletter signup is only valid for orders under 
+              <strong>$${CART_THRESHOLD.toLocaleString()}</strong>.
+            </p>
+            <p style="margin: 0; font-size: 14px; font-style: italic;">
+              💡 <strong>Tip:</strong> Remove some items to bring your cart under $${CART_THRESHOLD.toLocaleString()} 
+              and the discount code will be applicable at checkout.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Find the best place to insert the message
+    const cartContainer = document.getElementById('foxx-cart-validation-container');
+    if (cartContainer) {
+      cartContainer.appendChild(messageDiv);
+    } else {
+      // Fallback: Insert at top of cart form
+      const cartForm = document.querySelector('form[action="/cart"]') || 
+                      document.querySelector('.cart-form') ||
+                      document.querySelector('.cart');
+      
+      if (cartForm) {
+        cartForm.insertBefore(messageDiv, cartForm.firstChild);
+      }
+    }
+  }
+  
+  /**
+   * Add checkout page restrictions (for when users go to checkout)
+   */
+  function addCheckoutRestrictions() {
+    // Monitor for navigation to checkout
+    const checkoutLinks = document.querySelectorAll('a[href*="/checkout"], button[name="add"], .btn--checkout');
+    
+    checkoutLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        const cartTotal = getCartTotal();
+        const isSubscribed = isUserSubscribed();
+        
+        if (isSubscribed && cartTotal > CART_THRESHOLD) {
+          // Store checkout restriction in session for checkout page
+          try {
+            sessionStorage.setItem(STORAGE_KEY + '_checkout_restriction', JSON.stringify({
+              cartTotal: cartTotal,
+              threshold: CART_THRESHOLD,
+              discountCode: DISCOUNT_CODE,
+              timestamp: Date.now()
+            }));
+          } catch (error) {
+            console.log('Could not set checkout restriction data');
+          }
+        }
+      });
+    });
+  }
+  
+  /**
+   * Add discount code input restrictions (if discount field exists on cart page)
+   */
+  function restrictDiscountOnCart() {
+    const discountInputs = document.querySelectorAll(
+      'input[name*="discount"], input[name*="coupon"], [data-discount-field], .discount-input'
+    );
+    
+    discountInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        const cartTotal = getCartTotal();
+        const isSubscribed = isUserSubscribed();
+        
+        if (this.value.toUpperCase() === DISCOUNT_CODE.toUpperCase() && 
+            isSubscribed && cartTotal > CART_THRESHOLD) {
+          
+          this.style.borderColor = '#dc3545';
+          this.style.backgroundColor = '#f8d7da';
+          
+          // Show inline warning
+          let warning = document.getElementById('discount-inline-warning');
+          if (!warning) {
+            warning = document.createElement('div');
+            warning.id = 'discount-inline-warning';
+            warning.style.cssText = `
+              color: #721c24;
+              font-size: 12px;
+              margin-top: 5px;
+              padding: 5px 8px;
+              background: #f8d7da;
+              border-radius: 4px;
+              border: 1px solid #f1aeb5;
+            `;
+            warning.textContent = `This discount code is not valid for orders over $${CART_THRESHOLD}. Current cart: $${cartTotal.toFixed(2)}`;
+            
+            this.parentNode.insertBefore(warning, this.nextSibling);
+          }
+          
+          setTimeout(() => {
+            if (warning && warning.parentNode) {
+              warning.remove();
+            }
+            this.style.borderColor = '';
+            this.style.backgroundColor = '';
+          }, 4000);
+        }
+      });
+    });
+    
+    // Prevent form submission with restricted discount
+    document.addEventListener('submit', function(e) {
+      const form = e.target;
+      const discountInput = form.querySelector('input[name*="discount"], input[name*="coupon"]');
+      
+      if (discountInput) {
+        const discountValue = discountInput.value.toUpperCase();
+        const cartTotal = getCartTotal();
+        const isSubscribed = isUserSubscribed();
+        
+        if (discountValue === DISCOUNT_CODE.toUpperCase() && 
+            isSubscribed && cartTotal > CART_THRESHOLD) {
+          
+          e.preventDefault();
+          alert(`Sorry, the ${DISCOUNT_CODE} discount code is only valid for orders under $${CART_THRESHOLD.toLocaleString()}.\n\nYour cart total: $${cartTotal.toFixed(2)}\nMaximum for discount: $${CART_THRESHOLD.toLocaleString()}\n\nPlease reduce your cart value to apply this discount.`);
+          return false;
+        }
+      }
+    });
+  }
+  
+  /**
+   * Main validation function
+   */
+  function performCartValidation() {
+    const isSubscribed = isUserSubscribed();
+    const cartTotal = getCartTotal();
+    
+    console.log('Foxx Cart Validation Status:', {
+      subscribed: isSubscribed,
+      cartTotal: cartTotal,
+      threshold: CART_THRESHOLD,
+      shouldShowWarning: isSubscribed && cartTotal > CART_THRESHOLD,
+      currentPage: window.location.pathname
+    });
+    
+    // Only show validation for subscribed users with cart over threshold
+    if (isSubscribed && cartTotal > CART_THRESHOLD) {
+      // Show validation message on cart page
+      if (window.location.pathname.includes('/cart') || 
+          document.querySelector('form[action="/cart"]')) {
+        showCartValidationMessage();
+      }
+      
+      // Add checkout restrictions
+      addCheckoutRestrictions();
+      
+      // Restrict discount codes on cart page
+      restrictDiscountOnCart();
+    } else {
+      // Remove any existing validation messages if conditions no longer met
+      const existingMessage = document.getElementById('foxx-cart-validation-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+    }
+  }
+  
+  /**
+   * Initialize the validation system
+   */
+  function initCartValidation() {
+    console.log('Foxx Cart Validation: Initializing...');
+    
+    // Run initial validation
+    performCartValidation();
+    
+    // Re-run validation when cart updates (AJAX cart systems)
+    if (window.Shopify && window.Shopify.onCartUpdate) {
+      window.Shopify.onCartUpdate.push(performCartValidation);
+    }
+    
+    // Listen for custom cart update events
+    document.addEventListener('cart:updated', performCartValidation);
+    document.addEventListener('cart:changed', performCartValidation);
+    document.addEventListener('cart:refresh', performCartValidation);
+    
+    // Also monitor for quantity changes
+    const quantityInputs = document.querySelectorAll('input[name*="quantity"], .quantity-input');
+    quantityInputs.forEach(input => {
+      input.addEventListener('change', function() {
+        setTimeout(performCartValidation, 500); // Delay to allow cart update
+      });
+    });
+    
+    // Monitor for item removal
+    const removeButtons = document.querySelectorAll('[href*="/cart/change"], .cart-remove, .remove-item');
+    removeButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        setTimeout(performCartValidation, 1000); // Delay to allow cart update
+      });
+    });
+  }
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCartValidation);
+  } else {
+    initCartValidation();
+  }
+  
+  // Also initialize on window load as fallback
+  window.addEventListener('load', function() {
+    setTimeout(initCartValidation, 500);
+  });
+  
+  // Make validation function available globally for manual triggers
+  window.foxxCartValidation = {
+    check: performCartValidation,
+    isSubscribed: isUserSubscribed,
+    getTotal: getCartTotal
+  };
+  
+})();
+</script>
+
+<!-- Additional CSS for better styling -->
+<style>
+  .cart-validation-notice {
+    margin-bottom: 25px;
+  }
+  
+  .cart-validation-notice .notice {
+    font-family: inherit !important;
+  }
+  
+  .cart-validation-notice h3 {
+    font-family: inherit !important;
+  }
+  
+  .cart-validation-notice p {
+    font-family: inherit !important;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .cart-validation-notice .notice {
+      padding: 15px !important;
+      margin: 15px 0 !important;
+    }
+    
+    .cart-validation-notice h3 {
+      font-size: 16px !important;
+    }
+    
+    .cart-validation-notice p {
+      font-size: 13px !important;
+    }
+  }
+</style>
   </form>
 
   <!-- Sticky Checkout Button -->
