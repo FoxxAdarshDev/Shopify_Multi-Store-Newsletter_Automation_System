@@ -295,6 +295,146 @@ export class ShopifyService {
       return null;
     }
   }
+
+  async tagNewsletterSubscriber(
+    config: ShopifyConfig,
+    email: string,
+    subscriberData: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      company?: string;
+    } = {}
+  ): Promise<{ success: boolean; customerId?: number; message?: string }> {
+    try {
+      const decryptedConfig = this.decryptConfig(config);
+      
+      // First, check if customer already exists
+      let customer = await this.getCustomerByEmail(config, email);
+      
+      if (customer) {
+        // Customer exists, update their tags
+        console.log(`Found existing customer: ${customer.email} (ID: ${customer.id})`);
+        
+        // Get current customer data to preserve existing tags
+        const customerResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}.json`);
+        const existingTags = customerResponse.customer.tags || '';
+        
+        // Add newsletter subscriber tag if not already present
+        const tagsArray = existingTags ? existingTags.split(',').map((tag: string) => tag.trim()) : [];
+        if (!tagsArray.includes('newsletter-subscriber')) {
+          tagsArray.push('newsletter-subscriber');
+        }
+        
+        // Update customer with newsletter tag
+        const updateData = {
+          customer: {
+            id: customer.id,
+            tags: tagsArray.join(', '),
+            // Update any additional data if provided
+            ...(subscriberData.firstName && { first_name: subscriberData.firstName }),
+            ...(subscriberData.lastName && { last_name: subscriberData.lastName }),
+            ...(subscriberData.phone && { phone: subscriberData.phone }),
+            ...(subscriberData.company && { 
+              note: `Company: ${subscriberData.company}${customerResponse.customer.note ? '\n' + customerResponse.customer.note : ''}` 
+            })
+          }
+        };
+
+        await this.makeRequest(decryptedConfig, `customers/${customer.id}.json`, {
+          method: 'PUT',
+          body: JSON.stringify(updateData),
+        });
+
+        console.log(`✅ Tagged existing customer ${email} as newsletter-subscriber`);
+        return { 
+          success: true, 
+          customerId: customer.id, 
+          message: 'Existing customer tagged as newsletter subscriber' 
+        };
+        
+      } else {
+        // Customer doesn't exist, create new customer with newsletter tag
+        console.log(`Creating new customer: ${email}`);
+        
+        const customerData = {
+          customer: {
+            email: email,
+            first_name: subscriberData.firstName || '',
+            last_name: subscriberData.lastName || '',
+            phone: subscriberData.phone || '',
+            tags: 'newsletter-subscriber',
+            note: subscriberData.company ? `Company: ${subscriberData.company}` : '',
+            verified_email: true,
+            send_email_welcome: false // Don't send Shopify welcome email
+          }
+        };
+
+        const response = await this.makeRequest(decryptedConfig, 'customers.json', {
+          method: 'POST',
+          body: JSON.stringify(customerData),
+        });
+
+        console.log(`✅ Created new customer ${email} with newsletter-subscriber tag`);
+        return { 
+          success: true, 
+          customerId: response.customer.id, 
+          message: 'New customer created and tagged as newsletter subscriber' 
+        };
+      }
+    } catch (error) {
+      console.error('Failed to tag newsletter subscriber:', error);
+      return { 
+        success: false, 
+        message: `Failed to tag customer: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+
+  async removeNewsletterSubscriberTag(
+    config: ShopifyConfig,
+    email: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const customer = await this.getCustomerByEmail(config, email);
+      if (!customer) {
+        return { success: false, message: 'Customer not found' };
+      }
+
+      const decryptedConfig = this.decryptConfig(config);
+      
+      // Get current customer data
+      const customerResponse = await this.makeRequest(decryptedConfig, `customers/${customer.id}.json`);
+      const existingTags = customerResponse.customer.tags || '';
+      
+      // Remove newsletter subscriber tag
+      const tagsArray = existingTags ? existingTags.split(',').map((tag: string) => tag.trim()) : [];
+      const updatedTags = tagsArray.filter((tag: string) => tag !== 'newsletter-subscriber');
+      
+      // Update customer
+      const updateData = {
+        customer: {
+          id: customer.id,
+          tags: updatedTags.join(', ')
+        }
+      };
+
+      await this.makeRequest(decryptedConfig, `customers/${customer.id}.json`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData),
+      });
+
+      console.log(`✅ Removed newsletter-subscriber tag from ${email}`);
+      return { success: true, message: 'Newsletter subscriber tag removed' };
+      
+    } catch (error) {
+      console.error('Failed to remove newsletter subscriber tag:', error);
+      return { 
+        success: false, 
+        message: `Failed to remove tag: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
 }
 
 export const shopifyService = new ShopifyService();

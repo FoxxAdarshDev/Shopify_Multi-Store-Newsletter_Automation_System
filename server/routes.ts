@@ -473,9 +473,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         discountCodeSent: discountCode
       });
       
-      // Get store info for email
+      // Get store info for email and Shopify integration
       const store = await storage.getStore(storeId);
       if (store) {
+        // Tag customer in Shopify if integration is available
+        if (store.shopifyUrl && store.shopifyAccessToken) {
+          try {
+            console.log(`🏷️ Tagging Shopify customer: ${subscriber.email}`);
+            const shopifyConfig = {
+              shopUrl: store.shopifyUrl,
+              accessToken: store.shopifyAccessToken
+            };
+            
+            const tagResult = await shopifyService.tagNewsletterSubscriber(
+              shopifyConfig,
+              subscriber.email,
+              {
+                firstName: subscriber.name?.split(' ')[0] || '',
+                lastName: subscriber.name?.split(' ').slice(1).join(' ') || '',
+                phone: subscriber.phone || '',
+                company: subscriber.company || ''
+              }
+            );
+            
+            if (tagResult.success) {
+              console.log(`✅ Successfully tagged Shopify customer ${subscriber.email} as newsletter-subscriber`);
+            } else {
+              console.error(`❌ Failed to tag Shopify customer: ${tagResult.message}`);
+            }
+          } catch (error) {
+            console.error('Error tagging Shopify customer:', error);
+            // Don't fail the subscription if Shopify tagging fails
+          }
+        }
+        
         // Send welcome email with discount code
         await emailService.sendWelcomeEmail(
           storeId,
