@@ -80,12 +80,28 @@ export default function PopupBuilder() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Local state for cart validation (to prevent auto-save)
+  const [localCartValidation, setLocalCartValidation] = useState({
+    enabled: false,
+    validationType: 'none',
+    minimumAmount: 0,
+    maximumAmount: 1000,
+    belowThreshold: 100
+  });
+
   // Sync context from URL param when it changes
   useEffect(() => {
     if (storeId && storeId !== selectedStoreId) {
       setSelectedStoreId(storeId);
     }
   }, [storeId, selectedStoreId, setSelectedStoreId]);
+
+  // Sync local cart validation with config when config loads
+  useEffect(() => {
+    if (config?.cartValidation) {
+      setLocalCartValidation(config.cartValidation);
+    }
+  }, [config]);
 
   // Use selectedStoreId as single source of truth after URL sync
   const currentStoreId = selectedStoreId;
@@ -176,21 +192,15 @@ export default function PopupBuilder() {
     handleConfigUpdate({ emailValidation: newValidation });
   };
 
-  const handleCartValidationChange = (field: keyof PopupConfig["cartValidation"], value: any) => {
+  // Local cart validation change handler (no auto-save)
+  const handleLocalCartValidationChange = (field: keyof PopupConfig["cartValidation"], value: any) => {
+    setLocalCartValidation(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Save cart validation settings
+  const handleSaveCartValidation = () => {
     if (!config) return;
-    
-    // Provide default values if cartValidation doesn't exist
-    const defaultCartValidation = {
-      enabled: false,
-      validationType: 'none',
-      minimumAmount: 0,
-      maximumAmount: 1000,
-      belowThreshold: 100
-    };
-    
-    const currentValidation = config.cartValidation || defaultCartValidation;
-    const newValidation = { ...currentValidation, [field]: value };
-    handleConfigUpdate({ cartValidation: newValidation });
+    handleConfigUpdate({ cartValidation: localCartValidation });
   };
 
   const updateStoreSocialLinksMutation = useMutation({
@@ -549,14 +559,25 @@ export default function PopupBuilder() {
           {/* Cart Validation Configuration */}
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Cart Value Validation</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-foreground">Cart Value Validation</h3>
+                <Button 
+                  onClick={handleSaveCartValidation}
+                  disabled={updateConfigMutation.isPending}
+                  size="sm"
+                  data-testid="button-save-cart-validation"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Cart Settings
+                </Button>
+              </div>
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="enableCartValidation"
-                    checked={config.cartValidation?.enabled || false}
+                    checked={localCartValidation.enabled}
                     onCheckedChange={(checked) => 
-                      handleCartValidationChange('enabled', !!checked)
+                      handleLocalCartValidationChange('enabled', !!checked)
                     }
                     data-testid="checkbox-enable-cart-validation"
                   />
@@ -565,13 +586,13 @@ export default function PopupBuilder() {
                   </Label>
                 </div>
                 
-                {config.cartValidation?.enabled && (
+                {localCartValidation.enabled && (
                   <>
                     <div>
                       <Label htmlFor="validationType">Validation Type</Label>
                       <Select 
-                        value={config.cartValidation?.validationType || 'none'} 
-                        onValueChange={(value) => handleCartValidationChange('validationType', value)}
+                        value={localCartValidation.validationType} 
+                        onValueChange={(value) => handleLocalCartValidationChange('validationType', value)}
                       >
                         <SelectTrigger data-testid="select-validation-type">
                           <SelectValue placeholder="Select validation type" />
@@ -585,7 +606,7 @@ export default function PopupBuilder() {
                       </Select>
                     </div>
 
-                    {config.cartValidation?.validationType === 'minimum' && (
+                    {localCartValidation.validationType === 'minimum' && (
                       <div>
                         <Label htmlFor="minimumAmount">Minimum Cart Amount ($)</Label>
                         <Input
@@ -593,8 +614,8 @@ export default function PopupBuilder() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={config.cartValidation?.minimumAmount || 0}
-                          onChange={(e) => handleCartValidationChange('minimumAmount', Number(e.target.value))}
+                          value={localCartValidation.minimumAmount}
+                          onChange={(e) => handleLocalCartValidationChange('minimumAmount', Number(e.target.value))}
                           data-testid="input-minimum-amount"
                           placeholder="e.g., 100.00"
                         />
@@ -604,7 +625,7 @@ export default function PopupBuilder() {
                       </div>
                     )}
 
-                    {config.cartValidation?.validationType === 'maximum' && (
+                    {localCartValidation.validationType === 'maximum' && (
                       <div>
                         <Label htmlFor="maximumAmount">Maximum Cart Amount ($)</Label>
                         <Input
@@ -612,8 +633,8 @@ export default function PopupBuilder() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={config.cartValidation?.maximumAmount || 1000}
-                          onChange={(e) => handleCartValidationChange('maximumAmount', Number(e.target.value))}
+                          value={localCartValidation.maximumAmount}
+                          onChange={(e) => handleLocalCartValidationChange('maximumAmount', Number(e.target.value))}
                           data-testid="input-maximum-amount"
                           placeholder="e.g., 1000.00"
                         />
@@ -623,7 +644,7 @@ export default function PopupBuilder() {
                       </div>
                     )}
 
-                    {config.cartValidation?.validationType === 'below_threshold' && (
+                    {localCartValidation.validationType === 'below_threshold' && (
                       <div>
                         <Label htmlFor="belowThreshold">Below Threshold Amount ($)</Label>
                         <Input
@@ -631,8 +652,8 @@ export default function PopupBuilder() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={config.cartValidation?.belowThreshold || 100}
-                          onChange={(e) => handleCartValidationChange('belowThreshold', Number(e.target.value))}
+                          value={localCartValidation.belowThreshold}
+                          onChange={(e) => handleLocalCartValidationChange('belowThreshold', Number(e.target.value))}
                           data-testid="input-below-threshold"
                           placeholder="e.g., 500.00"
                         />
