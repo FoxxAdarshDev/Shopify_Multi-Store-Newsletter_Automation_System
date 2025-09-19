@@ -1040,16 +1040,17 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 });
 </script>
+<!-- CORRECTED CART.LIQUID SCRIPT FOR $1000 THRESHOLD -->
 <script>
-// Subscribed User Cart Value Reminder for $1000 Threshold (PERSISTENT VERSION)
+// Newsletter Subscriber Cart Validation for $1000 Maximum Threshold
 (function() {
   'use strict';
   
-  console.log('🔍 Foxx Cart Reminder: Script started');
+  console.log('🔍 Foxx Cart Validation: Script started');
   
   // IMPORTANT: Use your actual Store ID from localStorage
-  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af'; // Your actual store ID
-  const SUBSCRIBER_MINIMUM_AMOUNT = 100000; // $1000 in cents (Shopify format)
+  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af';
+  const SUBSCRIBER_MAXIMUM_AMOUNT = 100000; // $1000 in cents (Shopify format)
   const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
   
   console.log('🔍 Using Storage Key:', STORAGE_KEY);
@@ -1057,15 +1058,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Function to check if user is subscribed to newsletter
   function isUserSubscribed() {
     try {
-      // Check if newsletter subscription data exists in localStorage
       const subscribedEmail = localStorage.getItem(STORAGE_KEY);
       const subscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
-      const cartValidation = localStorage.getItem(STORAGE_KEY + '_cart_validation');
       
       console.log('🔍 Subscription Check:', {
         subscribedEmail: subscribedEmail,
         subscribedTime: subscribedTime,
-        cartValidation: cartValidation,
         hasEmail: subscribedEmail && subscribedEmail.includes('@'),
         hasTime: !!subscribedTime
       });
@@ -1091,127 +1089,181 @@ document.addEventListener('DOMContentLoaded', function() {
     return '$' + (cents / 100).toFixed(2);
   }
   
-  // Function to create and show subscriber reminder message
-  function showSubscriberReminder() {
+  // Function to create and show validation message
+  function showCartValidationMessage() {
     const currentTotal = getCurrentCartTotal();
     const isSubscribed = isUserSubscribed();
-    const remaining = SUBSCRIBER_MINIMUM_AMOUNT - currentTotal;
     
-    console.log('🔍 Reminder Check:', {
+    console.log('🔍 Validation Check:', {
       currentTotal: currentTotal,
-      subscriberMinimum: SUBSCRIBER_MINIMUM_AMOUNT,
+      subscriberMaximum: SUBSCRIBER_MAXIMUM_AMOUNT,
       isSubscribed: isSubscribed,
-      shouldShow: isSubscribed && currentTotal < SUBSCRIBER_MINIMUM_AMOUNT,
-      remaining: remaining
+      isOverThreshold: currentTotal > SUBSCRIBER_MAXIMUM_AMOUNT,
+      isBelowThreshold: currentTotal <= SUBSCRIBER_MAXIMUM_AMOUNT
     });
     
-    // Only show if user is subscribed and cart is below threshold
+    // Remove existing message first
+    const existingMessage = document.getElementById('subscriber-cart-validation');
+    if (existingMessage) {
+      existingMessage.remove();
+    }
+    
+    // Only show if user is subscribed
     if (!isSubscribed) {
-      console.log('ℹ️ User not subscribed - no reminder needed');
+      console.log('ℹ️ User not subscribed - no validation message needed');
       return;
     }
     
-    if (currentTotal >= SUBSCRIBER_MINIMUM_AMOUNT) {
-      console.log('ℹ️ Cart meets subscriber threshold - no reminder needed');
-      return;
-    }
+    let messageHtml = '';
     
-    // Check if reminder is currently being displayed (prevent duplicates)
-    if (document.getElementById('subscriber-cart-reminder')) {
-      console.log('ℹ️ Reminder already displayed on page');
-      return;
-    }
-    
-    console.log('✅ Showing subscriber reminder for', formatMoney(remaining), 'remaining');
-    
-    // Create reminder message element
-    const reminderHtml = `
-      <div id="subscriber-cart-reminder" style="
-        background: linear-gradient(135deg, #0071b9 0%, #00c68c 100%);
-        color: white;
-        padding: 16px;
-        margin: 16px 0;
-        border-radius: 12px;
-        border-left: 4px solid #00c68c;
-        box-shadow: 0 4px 12px rgba(0, 113, 185, 0.15);
-        position: relative;
-        animation: slideIn 0.5s ease-out;
-        z-index: 1000;
-      ">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-          ">💰</div>
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600;">
-              Newsletter Subscriber Exclusive!
-            </h4>
-            <p style="margin: 0; font-size: 14px; opacity: 0.9;">
-              Add ${formatMoney(remaining)} more to unlock your subscriber benefits and reach $1,000 threshold!
-            </p>
-          </div>
-          <button onclick="closeSubscriberReminder()" style="
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            cursor: pointer;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">×</button>
-        </div>
-        <div style="
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.2);
-          font-size: 12px;
-          opacity: 0.8;
+    if (currentTotal > SUBSCRIBER_MAXIMUM_AMOUNT) {
+      // Cart exceeds $1000 - show warning that discount won't work
+      const excess = currentTotal - SUBSCRIBER_MAXIMUM_AMOUNT;
+      messageHtml = `
+        <div id="subscriber-cart-validation" style="
+          background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+          color: white;
+          padding: 16px;
+          margin: 16px 0;
+          border-radius: 12px;
+          border-left: 4px solid #dc2626;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+          position: relative;
+          animation: slideIn 0.5s ease-out;
+          z-index: 1000;
         ">
-          ✓ You can still checkout now • This reminder shows until you reach $1,000 or unsubscribe
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="
+              background: rgba(255, 255, 255, 0.2);
+              border-radius: 50%;
+              width: 40px;
+              height: 40px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 18px;
+            ">⚠️</div>
+            <div style="flex: 1;">
+              <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600;">
+                Cart Total Exceeds Discount Limit
+              </h4>
+              <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+                Your cart total is ${formatMoney(currentTotal)}. Newsletter subscriber discount codes (WELCOME50) are only valid for orders up to $1,000.
+              </p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                Remove ${formatMoney(excess)} worth of items to use your <strong>WELCOME50</strong> discount code.
+              </p>
+            </div>
+            <button onclick="closeCartValidation()" style="
+              background: rgba(255, 255, 255, 0.2);
+              border: none;
+              color: white;
+              border-radius: 50%;
+              width: 28px;
+              height: 28px;
+              cursor: pointer;
+              font-size: 16px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">×</button>
+          </div>
+          <div style="
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            opacity: 0.8;
+          ">
+            ❌ Discount code will not work at checkout with current total
+          </div>
         </div>
-      </div>
-    `;
-    
-    // Insert reminder after the cart validation progress bar
-    const progressBar = document.querySelector('.cart-validation-progress');
-    if (progressBar) {
-      console.log('✅ Inserting reminder after progress bar');
-      progressBar.insertAdjacentHTML('afterend', reminderHtml);
+      `;
     } else {
-      // Fallback: insert at top of cart form
-      const cartForm = document.querySelector('.cart, #enhanced-cart-form, form[action="/cart"]');
-      if (cartForm) {
-        console.log('✅ Inserting reminder at top of cart form');
-        cartForm.insertAdjacentHTML('afterbegin', reminderHtml);
-      } else {
-        console.error('❌ Could not find cart container to insert reminder');
-        return;
-      }
+      // Cart is within $1000 limit - show eligible message
+      const remaining = SUBSCRIBER_MAXIMUM_AMOUNT - currentTotal;
+      messageHtml = `
+        <div id="subscriber-cart-validation" style="
+          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          color: white;
+          padding: 16px;
+          margin: 16px 0;
+          border-radius: 12px;
+          border-left: 4px solid #059669;
+          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+          position: relative;
+          animation: slideIn 0.5s ease-out;
+          z-index: 1000;
+        ">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="
+              background: rgba(255, 255, 255, 0.2);
+              border-radius: 50%;
+              width: 40px;
+              height: 40px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 18px;
+            ">✅</div>
+            <div style="flex: 1;">
+              <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600;">
+                Discount Eligible!
+              </h4>
+              <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+                Your cart total is ${formatMoney(currentTotal)}. You can use your newsletter subscriber discount at checkout.
+              </p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                You can add up to ${formatMoney(remaining)} more and still use your discount.
+              </p>
+            </div>
+            <button onclick="closeCartValidation()" style="
+              background: rgba(255, 255, 255, 0.2);
+              border: none;
+              color: white;
+              border-radius: 50%;
+              width: 28px;
+              height: 28px;
+              cursor: pointer;
+              font-size: 16px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">×</button>
+          </div>
+          <div style="
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            opacity: 0.8;
+          ">
+            ✓ Proceed to checkout to apply your discount code
+          </div>
+        </div>
+      `;
     }
     
-    console.log('✅ Reminder shown (will persist until subscription data cleared)');
+    // Insert validation message
+    const cartForm = document.querySelector('.cart, #enhanced-cart-form, form[action="/cart"], .cart-drawer__items');
+    if (cartForm) {
+      console.log('✅ Inserting validation message');
+      cartForm.insertAdjacentHTML('afterbegin', messageHtml);
+    } else {
+      console.error('❌ Could not find cart container to insert validation message');
+    }
+    
+    console.log('✅ Cart validation message shown');
   }
   
-  // Function to close the reminder (only hides current instance, will show again on refresh)
-  window.closeSubscriberReminder = function() {
-    console.log('🔄 Closing subscriber reminder (will show again on page refresh)');
-    const reminder = document.getElementById('subscriber-cart-reminder');
-    if (reminder) {
-      reminder.style.animation = 'slideOut 0.3s ease-in forwards';
+  // Function to close the validation message
+  window.closeCartValidation = function() {
+    const message = document.getElementById('subscriber-cart-validation');
+    if (message) {
+      message.style.animation = 'slideOut 0.3s ease-in forwards';
       setTimeout(() => {
-        reminder.remove();
-        console.log('✅ Reminder removed from DOM (temporarily)');
+        message.remove();
+        console.log('✅ Validation message removed');
       }, 300);
     }
   };
@@ -1232,31 +1284,31 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize when DOM is ready
   function init() {
-    console.log('🚀 Initializing persistent cart reminder system');
+    console.log('🚀 Initializing cart validation system');
     
-    // Show initial reminder with a small delay
+    // Show initial validation message
     setTimeout(() => {
-      showSubscriberReminder();
+      showCartValidationMessage();
     }, 1000);
     
-    // Listen for cart updates (when user changes quantities)
+    // Listen for cart updates
     document.addEventListener('change', function(e) {
       if (e.target.matches('input[name="updates[]"]') || 
           e.target.matches('.js-qty-input') ||
           e.target.matches('[data-quantity-input]')) {
-        console.log('🔄 Cart quantity changed, rechecking reminder');
+        console.log('🔄 Cart quantity changed, rechecking validation');
         setTimeout(() => {
-          showSubscriberReminder();
+          showCartValidationMessage();
         }, 500);
       }
     });
     
-    // Listen for cart form submissions (updates)
+    // Listen for cart form submissions
     document.addEventListener('submit', function(e) {
       if (e.target.matches('form[action="/cart"]') || 
           e.target.matches('.cart') ||
           e.target.id === 'enhanced-cart-form') {
-        console.log('🔄 Cart form submitted, will recheck reminder after page reload');
+        console.log('🔄 Cart form submitted, will recheck validation after page reload');
       }
     });
   }
@@ -1266,15 +1318,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
-  }
-  
-  // Debug: Show all localStorage keys that start with 'foxx'
-  console.log('🔍 All Foxx-related localStorage keys:');
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('foxx')) {
-      console.log(`  ${key}: ${localStorage.getItem(key)}`);
-    }
   }
   
 })();
