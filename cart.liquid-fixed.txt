@@ -106,10 +106,10 @@
                 Cart Total Exceeds Discount Limit
               </h4>
               <p style="margin: 0; font-size: 14px; opacity: 0.9;">
-                Your cart total is ${formatMoney(currentTotal)}. Newsletter subscriber discount codes are only valid for orders up to $1,000.
+                Your cart total is ${formatMoney(currentTotal)}. Newsletter subscriber discount codes (WELCOME50) are only valid for orders up to $1,000.
               </p>
               <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
-                Remove ${formatMoney(excess)} worth of items to use your subscriber discount.
+                Remove ${formatMoney(excess)} worth of items to use your <strong>WELCOME50</strong> discount code.
               </p>
             </div>
             <button onclick="closeCartValidation()" style="
