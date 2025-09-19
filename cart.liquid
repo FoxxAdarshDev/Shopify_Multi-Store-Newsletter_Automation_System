@@ -741,7 +741,7 @@ div.af_tag span.af_coupon_text {
           </div>
         {% endif %}
       </div>
-
+      
       <div class="sticky-checkout-button">
         {% if cart.total_price < minimum_order_value %}
           <button type="button" class="sticky-btn sticky-btn-disabled" disabled>
@@ -996,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (stickyCheckoutBtn) {
     stickyCheckoutBtn.addEventListener('click', function(event) {
       event.preventDefault();
-
+      
       if (currentTotal < minimumOrderValue) {
         showValidationModal();
       } else {
@@ -1040,79 +1040,90 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 });
 </script>
-<!-- Model Logic JavaScript for the custom $100 validation end-->
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const swiper = new Swiper('.swiper-container', {
-      loop: true,
-      autoplay: {
-        delay: 5000, // 5 seconds between slides
-        disableOnInteraction: false,
-      },
-      pagination: {
-        el: '.swiper-pagination',
-        clickable: true,
-      },
-      navigation: {
-        nextEl: '.swiper-button-next',
-        prevEl: '.swiper-button-prev',
-      },
-    });
-  });
-</script>
-<script>
-// Subscribed User Cart Value Reminder for $1000 Threshold
+// Subscribed User Cart Value Reminder for $1000 Threshold (PERSISTENT VERSION)
 (function() {
   'use strict';
-
-  // Configuration - adjust these values as needed
+  
+  console.log('🔍 Foxx Cart Reminder: Script started');
+  
+  // IMPORTANT: Use your actual Store ID from localStorage
+  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af'; // Your actual store ID
   const SUBSCRIBER_MINIMUM_AMOUNT = 100000; // $1000 in cents (Shopify format)
-  const STORE_ID = 'foxx_newsletter_fa37fc5c-90ce-44d2-83d8-34835f3b45af'; // Replace with your actual store ID from newsletter system
   const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
-
+  
+  console.log('🔍 Using Storage Key:', STORAGE_KEY);
+  
   // Function to check if user is subscribed to newsletter
   function isUserSubscribed() {
     try {
       // Check if newsletter subscription data exists in localStorage
       const subscribedEmail = localStorage.getItem(STORAGE_KEY);
       const subscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
-
+      const cartValidation = localStorage.getItem(STORAGE_KEY + '_cart_validation');
+      
+      console.log('🔍 Subscription Check:', {
+        subscribedEmail: subscribedEmail,
+        subscribedTime: subscribedTime,
+        cartValidation: cartValidation,
+        hasEmail: subscribedEmail && subscribedEmail.includes('@'),
+        hasTime: !!subscribedTime
+      });
+      
       return subscribedEmail && 
              subscribedEmail.includes('@') && 
              subscribedTime;
     } catch (error) {
-      console.log('Could not check subscription status');
+      console.error('❌ Could not check subscription status:', error);
       return false;
     }
   }
-
+  
   // Function to get current cart total (Shopify global variable)
   function getCurrentCartTotal() {
-    // Using Shopify's cart object (available in cart.liquid)
-    return {{ cart.total_price }} || 0;
+    const cartTotal = {{ cart.total_price }};
+    console.log('🔍 Cart Total (cents):', cartTotal);
+    return cartTotal || 0;
   }
-
+  
   // Function to format money (Shopify style)
   function formatMoney(cents) {
     return '$' + (cents / 100).toFixed(2);
   }
-
+  
   // Function to create and show subscriber reminder message
   function showSubscriberReminder() {
     const currentTotal = getCurrentCartTotal();
+    const isSubscribed = isUserSubscribed();
     const remaining = SUBSCRIBER_MINIMUM_AMOUNT - currentTotal;
-
+    
+    console.log('🔍 Reminder Check:', {
+      currentTotal: currentTotal,
+      subscriberMinimum: SUBSCRIBER_MINIMUM_AMOUNT,
+      isSubscribed: isSubscribed,
+      shouldShow: isSubscribed && currentTotal < SUBSCRIBER_MINIMUM_AMOUNT,
+      remaining: remaining
+    });
+    
     // Only show if user is subscribed and cart is below threshold
-    if (!isUserSubscribed() || currentTotal >= SUBSCRIBER_MINIMUM_AMOUNT) {
+    if (!isSubscribed) {
+      console.log('ℹ️ User not subscribed - no reminder needed');
       return;
     }
-
-    // Check if reminder already shown in this session
-    const sessionKey = STORAGE_KEY + '_cart_reminder_shown';
-    if (sessionStorage.getItem(sessionKey)) {
+    
+    if (currentTotal >= SUBSCRIBER_MINIMUM_AMOUNT) {
+      console.log('ℹ️ Cart meets subscriber threshold - no reminder needed');
       return;
     }
-
+    
+    // Check if reminder is currently being displayed (prevent duplicates)
+    if (document.getElementById('subscriber-cart-reminder')) {
+      console.log('ℹ️ Reminder already displayed on page');
+      return;
+    }
+    
+    console.log('✅ Showing subscriber reminder for', formatMoney(remaining), 'remaining');
+    
     // Create reminder message element
     const reminderHtml = `
       <div id="subscriber-cart-reminder" style="
@@ -1125,6 +1136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         box-shadow: 0 4px 12px rgba(0, 113, 185, 0.15);
         position: relative;
         animation: slideIn 0.5s ease-out;
+        z-index: 1000;
       ">
         <div style="display: flex; align-items: center; gap: 12px;">
           <div style="
@@ -1142,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function() {
               Newsletter Subscriber Exclusive!
             </h4>
             <p style="margin: 0; font-size: 14px; opacity: 0.9;">
-              Add ${formatMoney(remaining)} more to unlock your subscriber benefits and ${POPUP_CONFIG?.discountCode || 'WELCOME50'} discount!
+              Add ${formatMoney(remaining)} more to unlock your subscriber benefits and reach $1,000 threshold!
             </p>
           </div>
           <button onclick="closeSubscriberReminder()" style="
@@ -1166,227 +1178,44 @@ document.addEventListener('DOMContentLoaded', function() {
           font-size: 12px;
           opacity: 0.8;
         ">
-          ✓ You can still checkout now • This is just a friendly reminder for subscribers
+          ✓ You can still checkout now • This reminder shows until you reach $1,000 or unsubscribe
         </div>
       </div>
     `;
-
+    
     // Insert reminder after the cart validation progress bar
     const progressBar = document.querySelector('.cart-validation-progress');
     if (progressBar) {
+      console.log('✅ Inserting reminder after progress bar');
       progressBar.insertAdjacentHTML('afterend', reminderHtml);
     } else {
       // Fallback: insert at top of cart form
-      const cartForm = document.querySelector('.cart, #enhanced-cart-form');
+      const cartForm = document.querySelector('.cart, #enhanced-cart-form, form[action="/cart"]');
       if (cartForm) {
+        console.log('✅ Inserting reminder at top of cart form');
         cartForm.insertAdjacentHTML('afterbegin', reminderHtml);
+      } else {
+        console.error('❌ Could not find cart container to insert reminder');
+        return;
       }
     }
-
-    // Mark as shown in this session
-    sessionStorage.setItem(sessionKey, 'true');
-
-    // Auto-hide after 10 seconds
-    setTimeout(() => {
-      closeSubscriberReminder();
-    }, 10000);
+    
+    console.log('✅ Reminder shown (will persist until subscription data cleared)');
   }
-
-  // Function to close the reminder
+  
+  // Function to close the reminder (only hides current instance, will show again on refresh)
   window.closeSubscriberReminder = function() {
+    console.log('🔄 Closing subscriber reminder (will show again on page refresh)');
     const reminder = document.getElementById('subscriber-cart-reminder');
     if (reminder) {
       reminder.style.animation = 'slideOut 0.3s ease-in forwards';
       setTimeout(() => {
         reminder.remove();
+        console.log('✅ Reminder removed from DOM (temporarily)');
       }, 300);
     }
   };
-
-  // Function to show popup reminder for subscribed users
-  function showSubscriberPopup() {
-    const currentTotal = getCurrentCartTotal();
-
-    // Only show popup if user is subscribed and cart is below threshold
-    if (!isUserSubscribed() || currentTotal >= SUBSCRIBER_MINIMUM_AMOUNT) {
-      return;
-    }
-
-    // Check if popup already shown in this session
-    const popupSessionKey = STORAGE_KEY + '_cart_popup_shown';
-    if (sessionStorage.getItem(popupSessionKey)) {
-      return;
-    }
-
-    const remaining = SUBSCRIBER_MINIMUM_AMOUNT - currentTotal;
-
-    // Create popup HTML
-    const popupHtml = `
-      <div id="subscriber-cart-popup-backdrop" style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        z-index: 999999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease-out;
-      ">
-        <div style="
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
-          width: min(90vw, 480px);
-          max-height: 80vh;
-          overflow-y: auto;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          position: relative;
-          animation: slideInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        ">
-          <button onclick="closeSubscriberPopup()" style="
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(156, 163, 175, 0.1);
-            border: none;
-            font-size: 18px;
-            color: #6b7280;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">×</button>
-
-          <div style="text-align: center; margin-bottom: 20px;">
-            <div style="
-              background: linear-gradient(135deg, #0071b9 0%, #00c68c 100%);
-              border-radius: 50%;
-              width: 60px;
-              height: 60px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              margin: 0 auto 16px;
-              font-size: 24px;
-            ">💰</div>
-            <h3 style="
-              font-size: 20px;
-              font-weight: bold;
-              color: #0071b9;
-              margin: 0 0 8px 0;
-            ">Subscriber Exclusive Reminder</h3>
-            <p style="
-              color: #6b7280;
-              margin: 0;
-              font-size: 14px;
-            ">You're close to unlocking additional subscriber benefits!</p>
-          </div>
-
-          <div style="
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-            border-left: 4px solid #0071b9;
-          ">
-            <div style="font-size: 14px; color: #0071b9; margin-bottom: 8px;">
-              <strong>Add ${formatMoney(remaining)} more</strong> to reach the $1,000 subscriber threshold
-            </div>
-            <div style="font-size: 12px; color: #64748b;">
-              Current cart: ${formatMoney(currentTotal)} • Target: ${formatMoney(SUBSCRIBER_MINIMUM_AMOUNT)}
-            </div>
-          </div>
-
-          <div style="
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-          ">
-            <button onclick="closeSubscriberPopup()" style="
-              flex: 1;
-              background: #f3f4f6;
-              color: #374151;
-              border: none;
-              padding: 12px;
-              border-radius: 8px;
-              font-size: 14px;
-              cursor: pointer;
-            ">Continue Shopping</button>
-            <button onclick="proceedToCheckout()" style="
-              flex: 1;
-              background: #0071b9;
-              color: white;
-              border: none;
-              padding: 12px;
-              border-radius: 8px;
-              font-size: 14px;
-              cursor: pointer;
-            ">Checkout Anyway</button>
-          </div>
-
-          <div style="
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            font-size: 11px;
-            color: #9ca3af;
-          ">
-            This is a friendly reminder • You can checkout at any amount
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Add popup to page
-    document.body.insertAdjacentHTML('beforeend', popupHtml);
-
-    // Mark as shown in this session
-    sessionStorage.setItem(popupSessionKey, 'true');
-  }
-
-  // Function to close subscriber popup
-  window.closeSubscriberPopup = function() {
-    const popup = document.getElementById('subscriber-cart-popup-backdrop');
-    if (popup) {
-      popup.style.animation = 'fadeOut 0.3s ease-in forwards';
-      setTimeout(() => {
-        popup.remove();
-      }, 300);
-    }
-  };
-
-  // Function to proceed to checkout from popup
-  window.proceedToCheckout = function() {
-    closeSubscriberPopup();
-    // Trigger checkout - adjust this based on your checkout button
-    const checkoutBtn = document.querySelector('button[type="submit"][name="add"]') || 
-                       document.querySelector('.btn--checkout') ||
-                       document.querySelector('[data-testid="button-checkout"]');
-    if (checkoutBtn) {
-      checkoutBtn.click();
-    } else {
-      // Fallback: redirect to checkout
-      window.location.href = '/checkout';
-    }
-  };
-
-  // Function to track cart updates and show reminders
-  function handleCartUpdate() {
-    // Small delay to ensure cart data is updated
-    setTimeout(() => {
-      showSubscriberReminder();
-    }, 500);
-  }
-
+  
   // CSS animations
   const style = document.createElement('style');
   style.textContent = `
@@ -1398,59 +1227,80 @@ document.addEventListener('DOMContentLoaded', function() {
       from { transform: translateY(0); opacity: 1; }
       to { transform: translateY(-10px); opacity: 0; }
     }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-    @keyframes slideInScale {
-      from { transform: scale(0.9) translateY(20px); opacity: 0; }
-      to { transform: scale(1) translateY(0); opacity: 1; }
-    }
   `;
   document.head.appendChild(style);
-
+  
   // Initialize when DOM is ready
   function init() {
-    // Show initial reminder
-    showSubscriberReminder();
-
+    console.log('🚀 Initializing persistent cart reminder system');
+    
+    // Show initial reminder with a small delay
+    setTimeout(() => {
+      showSubscriberReminder();
+    }, 1000);
+    
     // Listen for cart updates (when user changes quantities)
     document.addEventListener('change', function(e) {
       if (e.target.matches('input[name="updates[]"]') || 
           e.target.matches('.js-qty-input') ||
           e.target.matches('[data-quantity-input]')) {
-        handleCartUpdate();
+        console.log('🔄 Cart quantity changed, rechecking reminder');
+        setTimeout(() => {
+          showSubscriberReminder();
+        }, 500);
       }
     });
-
-    // Listen for add to cart events (if you want popup on product add)
-    document.addEventListener('click', function(e) {
-      if (e.target.matches('button[type="submit"][name="add"]') ||
-          e.target.matches('.btn--add-to-cart') ||
-          e.target.closest('[data-testid="button-add-to-cart"]')) {
-        // Show popup after product is added
-        setTimeout(() => {
-          if (isUserSubscribed()) {
-            showSubscriberPopup();
-          }
-        }, 1000);
+    
+    // Listen for cart form submissions (updates)
+    document.addEventListener('submit', function(e) {
+      if (e.target.matches('form[action="/cart"]') || 
+          e.target.matches('.cart') ||
+          e.target.id === 'enhanced-cart-form') {
+        console.log('🔄 Cart form submitted, will recheck reminder after page reload');
       }
     });
   }
-
+  
   // Start when page loads
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-
+  
+  // Debug: Show all localStorage keys that start with 'foxx'
+  console.log('🔍 All Foxx-related localStorage keys:');
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('foxx')) {
+      console.log(`  ${key}: ${localStorage.getItem(key)}`);
+    }
+  }
+  
 })();
 </script>
+<!-- Model Logic JavaScript for the custom $100 validation end-->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const swiper = new Swiper('.swiper-container', {
+      loop: true,
+      autoplay: {
+        delay: 5000, // 5 seconds between slides
+        disableOnInteraction: false,
+      },
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+      },
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+    });
+  });
+</script>
+
+
 <!-- Cart-specific styles that remain inline -->
 <style>
 .red-border{border:2px solid #C70209!important;background-color:#f5e7e7;position:relative;border-radius:10px;padding:10px;margin-bottom:10px;margin-top:10px}.free-gift-label{position:absolute;top:10px;right:10px;background-color:#fcc;color:#000;padding:5px 10px;border-radius:5px;font-weight:700}.cart__image{display:block;width:100%;text-align:center;margin:10px auto}.cart__image-container{width:100%;height:150px;overflow:hidden;margin:0 auto;border-radius:8px}.red-border .cart__image-container{border:2px solid #0071CE;box-shadow:0 4px 8px #0000001a}.cart-image{width:100%;height:100%;object-fit:contain;display:block}.grey-border{border:2px solid #D6D6D6;position:relative;border-radius:10px;padding:10px}.cart_product_title{color:#333}.cart_product_title:hover{color:#333}.cart__remove{display:flex;align-items:center;width:min-content;font-size:14px;color:#ff8080;border:none;border-radius:4px;cursor:pointer;text-decoration:none;transition:background-color .3s ease}.cart__remove:hover{color:#f66}.cart__remove svg{fill:#ff8080}.cart__remove svg:hover{fill:#f66}.af_tag{font-size:14px;color:#000;background-color:#DEDEDE;border:solid 1px #D6D6D6;padding:5px;margin:3px 0;border-radius:5px}div.af_tag{background:#EFF4F7!important;border-radius:20px!important;color:#222;display:flex;-webkit-align-items:center;align-items:center;padding:5px 10px;background:#e5e5e5;border:solid thin #d5d5d5;border-radius:3px!important;margin-right:5px!important;position:relative;transition:all ease-in-out .2s}div.af_tag .af_coupon_wrapper{margin-right:5px}div.af_tag span.af_coupon_wrapper svg{width:15px;height:15px}div.af_tag > *{display:flex;-webkit-align-items:center;align-items:center}#af_kd_tagged_discounts .af_coupon_text_amount{line-height:23px!important}.af_coupon_text_amount{display:grid;max-height:23px;text-align:center}div.af_tag span.af_coupon_text{color:#222}.af_coupon_text.af_coupon_code{visibility:visible!important;position:unset!important}.af_tagged_discounts .af_tag .af_coupon_text{display:inline-block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden!important}.banner-container{max-width:800px;margin:0 auto;overflow:hidden}.promotional-banner{width:100%;overflow:hidden}
@@ -1514,41 +1364,41 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 10px;
     padding: 10px 8px;
   }
-
+  
   .cart__row .grid--full {
     display: block;
   }
-
+  
   .cart__row .grid__item {
     width: 100% !important;
     margin-bottom: 10px;
   }
-
+  
   .cart__image-container {
     height: 100px;
     width: 100px;
     margin: 0 auto 10px auto;
   }
-
+  
   .cart_product_title {
     font-size: 14px;
     text-align: center;
     margin-bottom: 8px;
     line-height: 1.2;
   }
-
+  
   .cart__row--table-large .grid--full {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     gap: 5px;
   }
-
+  
   .cart__row--table-large .grid__item {
     text-align: center;
     flex: 1;
   }
-
+  
   .cart__mini-labels {
     font-weight: 600;
     color: #666;
@@ -1556,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 5px;
     font-size: 12px;
   }
-
+  
   .quantity-input {
     width: 50px !important;
     text-align: center;
@@ -1564,26 +1414,26 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 5px;
     font-size: 12px;
   }
-
+  
   .price-display,
   .total-price-display {
     gap: 2px;
   }
-
+  
   .original-price,
   .original-total {
     font-size: 12px;
   }
-
+  
   .current-price,
   .current-total {
     font-size: 14px;
   }
-
+  
   .cart-summary-desktop {
     display: none;
   }
-
+  
   /* Reduce spacing between cart items */
   .red-border,
   .grey-border {
@@ -1591,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-top: 8px;
     padding: 8px;
   }
-
+  
   /* Add margin bottom for sticky button */
   .main-content {
     margin-bottom: 120px;
@@ -1690,28 +1540,28 @@ document.addEventListener('DOMContentLoaded', function() {
     flex-direction: column;
     gap: 15px;
   }
-
+  
   .sticky-cart-summary {
     width: 100%;
     text-align: center;
   }
-
+  
   .sticky-total {
     justify-content: center;
   }
-
+  
   .sticky-checkout-button {
     width: 100%;
     margin-left: 0;
   }
-
+  
   .sticky-btn {
     width: 100%;
     min-width: auto;
     padding: 12px 20px;
     font-size: 14px;
   }
-
+  
   .sticky-checkout-bar {
     padding: 12px 15px;
   }
@@ -1722,12 +1572,12 @@ document.addEventListener('DOMContentLoaded', function() {
   .cart-summary-desktop {
     display: block;
   }
-
+  
   .sticky-checkout-bar {
     transform: translateY(0);
     transition: transform 0.3s ease;
   }
-
+  
   /* Add margin to main content to prevent overlap */
   .main-content {
     margin-bottom: 120px;
