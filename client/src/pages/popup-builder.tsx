@@ -155,7 +155,11 @@ export default function PopupBuilder() {
     
     const newConfig = { ...config, ...updates };
     setConfig(newConfig);
-    updateConfigMutation.mutate(updates);
+    
+    // Add a small delay to prevent race conditions with rapid checkbox clicks
+    setTimeout(() => {
+      updateConfigMutation.mutate(updates);
+    }, 100);
   };
 
   const handleFieldChange = (field: keyof PopupConfig["fields"], checked: boolean) => {
