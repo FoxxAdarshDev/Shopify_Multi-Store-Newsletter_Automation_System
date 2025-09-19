@@ -144,7 +144,7 @@ export class PopupGeneratorService {
   async function loadConfig() {
     try {
       // CRITICAL: Check session suppression FIRST before any other logic or API calls
-      const sessionKey = STORAGE_KEY + '_session';
+      const sessionKey = STORAGE_KEY + '_session_regular';
       const sessionSuppressed = sessionStorage.getItem(sessionKey);
       
       if (sessionSuppressed) {
@@ -194,7 +194,7 @@ export class PopupGeneratorService {
 
   // Background cleanup: Check if sessionStorage should be cleared (independent of popup showing)
   async function backgroundCleanupCheck() {
-    const sessionKey = STORAGE_KEY + '_session';
+    const sessionKey = STORAGE_KEY + '_session_regular';
     const sessionSuppression = sessionStorage.getItem(sessionKey);
     
     // If sessionStorage exists, check if user is still subscribed
@@ -254,7 +254,6 @@ export class PopupGeneratorService {
               localStorage.removeItem(STORAGE_KEY + '_dismissed');
               
               // Clear ALL sessionStorage keys that could exist
-              sessionStorage.removeItem(STORAGE_KEY + '_session');
               sessionStorage.removeItem(STORAGE_KEY + '_session_regular');
               sessionStorage.removeItem(STORAGE_KEY + '_cart_validation_session');
               
@@ -1007,7 +1006,7 @@ export class PopupGeneratorService {
         localStorage.removeItem(STORAGE_KEY + '_exit_intent_shown');
         
         // Also set session flag to prevent showing again this session
-        sessionStorage.setItem(STORAGE_KEY + '_session', 'true');
+        sessionStorage.setItem(STORAGE_KEY + '_session_regular', 'true');
         
         // Fire confetti animation
         fireConfetti();
@@ -1352,7 +1351,7 @@ export class PopupGeneratorService {
   
   // Check if regular popup should be shown (respects session suppression)
   function canShowRegularPopup() {
-    const sessionSuppressed = sessionStorage.getItem(STORAGE_KEY + '_session');
+    const sessionSuppressed = sessionStorage.getItem(STORAGE_KEY + '_session_regular');
     const canShow = canShowPopup() && !sessionSuppressed;
     if (sessionSuppressed) {
       console.log('Foxx Newsletter: canShowRegularPopup() - Session suppressed, popup blocked');
