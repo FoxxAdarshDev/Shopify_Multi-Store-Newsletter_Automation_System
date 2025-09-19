@@ -6,9 +6,7 @@
   <meta name="robots" content="noindex">
 {% endif %} {% endcomment %}
 
-<!-- Global Cart Validation Styles and Scripts -->
-<link rel="stylesheet" href="{{ 'cart-validation.css' | asset_url }}" type="text/css">
-<script src="{{ 'cart-validation.js' | asset_url }}" defer></script>
+<!-- Consolidated Cart Validation - All validation logic is now inline -->
 
 {% comment %}
 
@@ -67,6 +65,9 @@
         </div>
       </div>
     </div>
+
+    <!-- WELCOME50 Newsletter Discount Validation Message -->
+    <div id="welcome50-validation-message" style="display: none;"></div>
 
     <!-- Security Token (Hidden) -->
     <input type="hidden" id="cart-validation-token" value="{{ 'now' | date: '%s' }}-{{ cart.total_price }}-{{ cart.item_count }}">
@@ -457,10 +458,13 @@
               <div class="grid__item one-third">
                 <span class="cart__mini-labels">{{ 'cart.label.price' | t }}</span>
                 <div class="price-display">
-                  {% if item.variant.compare_at_price and item.variant.compare_at_price > item.variant.price %}
-                    <span class="original-price">{{ item.variant.compare_at_price | money }}</span>
-                  {% endif %}
-                  <span class="current-price">{{ item.variant.price | money }}</span>
+                  {% comment %} Only show discounted pricing if user is NOT subscribed to WELCOME50 newsletter {% endcomment %}
+                  <div id="price-display-{{ item.id }}" data-original-price="{{ item.variant.price }}" data-compare-price="{{ item.variant.compare_at_price }}">
+                    {% if item.variant.compare_at_price and item.variant.compare_at_price > item.variant.price %}
+                      <span class="original-price">{{ item.variant.compare_at_price | money }}</span>
+                    {% endif %}
+                    <span class="current-price">{{ item.variant.price | money }}</span>
+                  </div>
                 </div>
               </div>
 
@@ -474,10 +478,13 @@
               <div class="grid__item one-third text-right">
                 <span class="cart__mini-labels">{{ 'cart.label.total' | t }}</span>
                 <div class="total-price-display">
-                  {% if item.original_line_price != item.line_price %}
-                    <span class="original-total">{{ item.original_line_price | money }}</span>
-                  {% endif %}
-                  <span class="current-total">{{ item.line_price | money }}</span>
+                  {% comment %} Only show discounted line pricing if user is NOT subscribed to WELCOME50 newsletter {% endcomment %}
+                  <div id="total-display-{{ item.id }}" data-original-total="{{ item.original_line_price }}" data-line-price="{{ item.line_price }}">
+                    {% if item.original_line_price != item.line_price %}
+                      <span class="original-total">{{ item.original_line_price | money }}</span>
+                    {% endif %}
+                    <span class="current-total">{{ item.line_price | money }}</span>
+                  </div>
                 </div>
                 {% if item.original_line_price != item.line_price %}
                   {% for discount in item.discounts %}
@@ -559,7 +566,7 @@ div.af_tag span.af_coupon_text {
 
  </style>
 
-<div id="af_kd_tagged_discounts" class="af_tagged_discounts"><div class="af_tag "><span class="af_coupon_wrapper"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18"><path d="M17.78 3.09C17.45 2.443 16.778 2 16 2h-5.165c-.535 0-1.046.214-1.422.593l-6.82 6.89c0 .002 0 .003-.002.003-.245.253-.413.554-.5.874L.738 8.055c-.56-.953-.24-2.178.712-2.737L9.823.425C10.284.155 10.834.08 11.35.22l4.99 1.337c.755.203 1.293.814 1.44 1.533z" fill-opacity=".55"></path><path fill-opacity=".25" d="M10.835 2H16c1.105 0 2 .895 2 2v5.172c0 .53-.21 1.04-.586 1.414l-6.818 6.818c-.777.778-2.036.782-2.82.01l-5.166-5.1c-.786-.775-.794-2.04-.02-2.828.002 0 .003 0 .003-.002l6.82-6.89C9.79 2.214 10.3 2 10.835 2zM13.5 8c.828 0 1.5-.672 1.5-1.5S14.328 5 13.5 5 12 5.672 12 6.5 12.672 8 13.5 8z"></path></svg></span>
+<div id="af_kd_tagged_discounts" class="af_tagged_discounts"><div class="af_tag" id="discount-tag-{{ item.id }}-{{ forloop.index }}"><span class="af_coupon_wrapper"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18"><path d="M17.78 3.09C17.45 2.443 16.778 2 16 2h-5.165c-.535 0-1.046.214-1.422.593l-6.82 6.89c0 .002 0 .003-.002.003-.245.253-.413.554-.5.874L.738 8.055c-.56-.953-.24-2.178.712-2.737L9.823.425C10.284.155 10.834.08 11.35.22l4.99 1.337c.755.203 1.293.814 1.44 1.533z" fill-opacity=".55"></path><path fill-opacity=".25" d="M10.835 2H16c1.105 0 2 .895 2 2v5.172c0 .53-.21 1.04-.586 1.414l-6.818 6.818c-.777.778-2.036.782-2.82.01l-5.166-5.1c-.786-.775-.794-2.04-.02-2.828.002 0 .003 0 .003-.002l6.82-6.89C9.79 2.214 10.3 2 10.835 2zM13.5 8c.828 0 1.5-.672 1.5-1.5S14.328 5 13.5 5 12 5.672 12 6.5 12.672 8 13.5 8z"></path></svg></span>
 <div class="af_coupon_text_wrapper">
   <div class="af_coupon_text_amount">
     <span class="af_coupon_text af_coupon_code"><small class="cart-item__discount">{{ discount.title }}</small></span>
@@ -651,8 +658,17 @@ div.af_tag span.af_coupon_text {
             {% assign totalDiscountAmount = cartTotal | minus: toPay %}
 
             {% if totalDiscountAmount > 0 %}
-              <span style="color: #2f5b96;font-weight:600">Cart Discount: {{ totalDiscountAmount | money }}</span>
+              <span style="color: #2f5b96;font-weight:600" id="cart-discount-display">Cart Discount: {{ totalDiscountAmount | money }}</span>
             {% endif %}
+            
+            {% comment %} Hidden cart discount for subscribed users with cart > $1000 {% endcomment %}
+            <div id="cart-discount-hidden" style="display: none;">
+              <span style="color: #dc3545; font-weight: 600;">Cart Discount: </span>
+              <span id="cart-discount-amount" style="color: #dc3545; font-weight: 600;"></span>
+              <br>
+              <span style="color: #6c757d; font-size: 14px;">To Pay: </span>
+              <span id="final-cart-total" style="color: #333; font-weight: 600;"></span>
+            </div>
              <br>
               {% assign totalSubtotalPrice = 0 %}
 {% for item in cart.items %}
@@ -660,7 +676,7 @@ div.af_tag span.af_coupon_text {
   {% assign totalSubtotalPrice = totalSubtotalPrice | plus: linePrice %}
 {% endfor %}
 
-            <span>To Pay: <span class="h5">{{ totalSubtotalPrice | money }}</span> </span>
+            <span id="to-pay-display">To Pay: <span class="h5">{{ totalSubtotalPrice | money }}</span> </span>
             <br>
 
             <p><em>{{ 'cart.general.shipping_at_checkout' | t }}</em></p>
@@ -1426,8 +1442,31 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 </script>
 
-<!-- Cart-specific styles that remain inline -->
+<!-- Consolidated Cart Validation Styles -->
 <style>
+/* WELCOME50 validation message styles */
+#welcome50-validation-message {
+  margin: 20px 0;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.welcome50-warning {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  color: #856404;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.welcome50-error {
+  background: #f8d7da;
+  border: 1px solid #f1aeb5;
+  color: #721c24;
+}
+
+/* Cart-specific styles */
 .red-border{border:2px solid #C70209!important;background-color:#f5e7e7;position:relative;border-radius:10px;padding:10px;margin-bottom:10px;margin-top:10px}.free-gift-label{position:absolute;top:10px;right:10px;background-color:#fcc;color:#000;padding:5px 10px;border-radius:5px;font-weight:700}.cart__image{display:block;width:100%;text-align:center;margin:10px auto}.cart__image-container{width:100%;height:150px;overflow:hidden;margin:0 auto;border-radius:8px}.red-border .cart__image-container{border:2px solid #0071CE;box-shadow:0 4px 8px #0000001a}.cart-image{width:100%;height:100%;object-fit:contain;display:block}.grey-border{border:2px solid #D6D6D6;position:relative;border-radius:10px;padding:10px}.cart_product_title{color:#333}.cart_product_title:hover{color:#333}.cart__remove{display:flex;align-items:center;width:min-content;font-size:14px;color:#ff8080;border:none;border-radius:4px;cursor:pointer;text-decoration:none;transition:background-color .3s ease}.cart__remove:hover{color:#f66}.cart__remove svg{fill:#ff8080}.cart__remove svg:hover{fill:#f66}.af_tag{font-size:14px;color:#000;background-color:#DEDEDE;border:solid 1px #D6D6D6;padding:5px;margin:3px 0;border-radius:5px}div.af_tag{background:#EFF4F7!important;border-radius:20px!important;color:#222;display:flex;-webkit-align-items:center;align-items:center;padding:5px 10px;background:#e5e5e5;border:solid thin #d5d5d5;border-radius:3px!important;margin-right:5px!important;position:relative;transition:all ease-in-out .2s}div.af_tag .af_coupon_wrapper{margin-right:5px}div.af_tag span.af_coupon_wrapper svg{width:15px;height:15px}div.af_tag > *{display:flex;-webkit-align-items:center;align-items:center}#af_kd_tagged_discounts .af_coupon_text_amount{line-height:23px!important}.af_coupon_text_amount{display:grid;max-height:23px;text-align:center}div.af_tag span.af_coupon_text{color:#222}.af_coupon_text.af_coupon_code{visibility:visible!important;position:unset!important}.af_tagged_discounts .af_tag .af_coupon_text{display:inline-block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden!important}.banner-container{max-width:800px;margin:0 auto;overflow:hidden}.promotional-banner{width:100%;overflow:hidden}
 
 /* Enhanced Cart Item Styling */
