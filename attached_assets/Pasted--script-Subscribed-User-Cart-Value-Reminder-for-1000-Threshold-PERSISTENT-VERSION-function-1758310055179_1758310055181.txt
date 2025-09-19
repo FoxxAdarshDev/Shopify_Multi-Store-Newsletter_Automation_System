@@ -1,0 +1,239 @@
+<script>
+// Subscribed User Cart Value Reminder for $1000 Threshold (PERSISTENT VERSION)
+(function() {
+  'use strict';
+  
+  console.log('🔍 Foxx Cart Reminder: Script started');
+  
+  // IMPORTANT: Use your actual Store ID from localStorage
+  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af'; // Your actual store ID
+  const SUBSCRIBER_MINIMUM_AMOUNT = 100000; // $1000 in cents (Shopify format)
+  const STORAGE_KEY = 'foxx_newsletter_' + STORE_ID;
+  
+  console.log('🔍 Using Storage Key:', STORAGE_KEY);
+  
+  // Function to check if user is subscribed to newsletter
+  function isUserSubscribed() {
+    try {
+      // Check if newsletter subscription data exists in localStorage
+      const subscribedEmail = localStorage.getItem(STORAGE_KEY);
+      const subscribedTime = localStorage.getItem(STORAGE_KEY + '_time');
+      const cartValidation = localStorage.getItem(STORAGE_KEY + '_cart_validation');
+      
+      console.log('🔍 Subscription Check:', {
+        subscribedEmail: subscribedEmail,
+        subscribedTime: subscribedTime,
+        cartValidation: cartValidation,
+        hasEmail: subscribedEmail && subscribedEmail.includes('@'),
+        hasTime: !!subscribedTime
+      });
+      
+      return subscribedEmail && 
+             subscribedEmail.includes('@') && 
+             subscribedTime;
+    } catch (error) {
+      console.error('❌ Could not check subscription status:', error);
+      return false;
+    }
+  }
+  
+  // Function to get current cart total (Shopify global variable)
+  function getCurrentCartTotal() {
+    const cartTotal = {{ cart.total_price }};
+    console.log('🔍 Cart Total (cents):', cartTotal);
+    return cartTotal || 0;
+  }
+  
+  // Function to format money (Shopify style)
+  function formatMoney(cents) {
+    return '$' + (cents / 100).toFixed(2);
+  }
+  
+  // Function to create and show subscriber reminder message
+  function showSubscriberReminder() {
+    const currentTotal = getCurrentCartTotal();
+    const isSubscribed = isUserSubscribed();
+    const remaining = SUBSCRIBER_MINIMUM_AMOUNT - currentTotal;
+    
+    console.log('🔍 Reminder Check:', {
+      currentTotal: currentTotal,
+      subscriberMinimum: SUBSCRIBER_MINIMUM_AMOUNT,
+      isSubscribed: isSubscribed,
+      shouldShow: isSubscribed && currentTotal < SUBSCRIBER_MINIMUM_AMOUNT,
+      remaining: remaining
+    });
+    
+    // Only show if user is subscribed and cart is below threshold
+    if (!isSubscribed) {
+      console.log('ℹ️ User not subscribed - no reminder needed');
+      return;
+    }
+    
+    if (currentTotal >= SUBSCRIBER_MINIMUM_AMOUNT) {
+      console.log('ℹ️ Cart meets subscriber threshold - no reminder needed');
+      return;
+    }
+    
+    // Check if reminder is currently being displayed (prevent duplicates)
+    if (document.getElementById('subscriber-cart-reminder')) {
+      console.log('ℹ️ Reminder already displayed on page');
+      return;
+    }
+    
+    console.log('✅ Showing subscriber reminder for', formatMoney(remaining), 'remaining');
+    
+    // Create reminder message element
+    const reminderHtml = `
+      <div id="subscriber-cart-reminder" style="
+        background: linear-gradient(135deg, #0071b9 0%, #00c68c 100%);
+        color: white;
+        padding: 16px;
+        margin: 16px 0;
+        border-radius: 12px;
+        border-left: 4px solid #00c68c;
+        box-shadow: 0 4px 12px rgba(0, 113, 185, 0.15);
+        position: relative;
+        animation: slideIn 0.5s ease-out;
+        z-index: 1000;
+      ">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+          ">💰</div>
+          <div style="flex: 1;">
+            <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600;">
+              Newsletter Subscriber Exclusive!
+            </h4>
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+              Add ${formatMoney(remaining)} more to unlock your subscriber benefits and reach $1,000 threshold!
+            </p>
+          </div>
+          <button onclick="closeSubscriberReminder()" style="
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">×</button>
+        </div>
+        <div style="
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
+          font-size: 12px;
+          opacity: 0.8;
+        ">
+          ✓ You can still checkout now • This reminder shows until you reach $1,000 or unsubscribe
+        </div>
+      </div>
+    `;
+    
+    // Insert reminder after the cart validation progress bar
+    const progressBar = document.querySelector('.cart-validation-progress');
+    if (progressBar) {
+      console.log('✅ Inserting reminder after progress bar');
+      progressBar.insertAdjacentHTML('afterend', reminderHtml);
+    } else {
+      // Fallback: insert at top of cart form
+      const cartForm = document.querySelector('.cart, #enhanced-cart-form, form[action="/cart"]');
+      if (cartForm) {
+        console.log('✅ Inserting reminder at top of cart form');
+        cartForm.insertAdjacentHTML('afterbegin', reminderHtml);
+      } else {
+        console.error('❌ Could not find cart container to insert reminder');
+        return;
+      }
+    }
+    
+    console.log('✅ Reminder shown (will persist until subscription data cleared)');
+  }
+  
+  // Function to close the reminder (only hides current instance, will show again on refresh)
+  window.closeSubscriberReminder = function() {
+    console.log('🔄 Closing subscriber reminder (will show again on page refresh)');
+    const reminder = document.getElementById('subscriber-cart-reminder');
+    if (reminder) {
+      reminder.style.animation = 'slideOut 0.3s ease-in forwards';
+      setTimeout(() => {
+        reminder.remove();
+        console.log('✅ Reminder removed from DOM (temporarily)');
+      }, 300);
+    }
+  };
+  
+  // CSS animations
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(-10px); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Initialize when DOM is ready
+  function init() {
+    console.log('🚀 Initializing persistent cart reminder system');
+    
+    // Show initial reminder with a small delay
+    setTimeout(() => {
+      showSubscriberReminder();
+    }, 1000);
+    
+    // Listen for cart updates (when user changes quantities)
+    document.addEventListener('change', function(e) {
+      if (e.target.matches('input[name="updates[]"]') || 
+          e.target.matches('.js-qty-input') ||
+          e.target.matches('[data-quantity-input]')) {
+        console.log('🔄 Cart quantity changed, rechecking reminder');
+        setTimeout(() => {
+          showSubscriberReminder();
+        }, 500);
+      }
+    });
+    
+    // Listen for cart form submissions (updates)
+    document.addEventListener('submit', function(e) {
+      if (e.target.matches('form[action="/cart"]') || 
+          e.target.matches('.cart') ||
+          e.target.id === 'enhanced-cart-form') {
+        console.log('🔄 Cart form submitted, will recheck reminder after page reload');
+      }
+    });
+  }
+  
+  // Start when page loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  
+  // Debug: Show all localStorage keys that start with 'foxx'
+  console.log('🔍 All Foxx-related localStorage keys:');
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('foxx')) {
+      console.log(`  ${key}: ${localStorage.getItem(key)}`);
+    }
+  }
+  
+})();
+</script>
