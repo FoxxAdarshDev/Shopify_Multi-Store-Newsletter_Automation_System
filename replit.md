@@ -4,7 +4,7 @@
 
 A full-stack newsletter management dashboard specifically designed for Shopify stores. The application enables businesses to create and deploy customizable newsletter popup campaigns, manage subscribers, and integrate with Shopify for discount code distribution. Built with a modern tech stack featuring React frontend, Express backend, PostgreSQL database, and comprehensive email automation.
 
-**Status**: Successfully configured and running in Replit environment. Application serving on port 5000 with proper CORS and Vite HMR configured.
+**Status**: GitHub import - setting up to run in Replit environment. Application needs configuration for port 5000 with proper CORS and Vite HMR.
 
 ## User Preferences
 
