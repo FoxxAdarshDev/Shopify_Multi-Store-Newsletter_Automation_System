@@ -740,7 +740,7 @@ div.af_tag span.af_coupon_text {
           </div>
         {% endif %}
       </div>
-
+      
       <div class="sticky-checkout-button">
         {% if cart.total_price < minimum_order_value %}
           <button type="button" class="sticky-btn sticky-btn-disabled" disabled>
@@ -756,64 +756,7 @@ div.af_tag span.af_coupon_text {
   </div>
 
 <!-- Model Logic for the custom $100 validation start -->
-  <div id="validation-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3 class="modal-title">
-          <span class="modal-icon">🛒</span>
-          Minimum Order Required
-        </h3>
-        <button class="modal-close" onclick="closeValidationModal()">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="validation-info">
-          <div class="validation-item">
-            <span class="label">Current Total:</span>
-            <span class="value current-total">{{ cart.total_price | money }}</span>
-          </div>
-          <div class="validation-item">
-            <span class="label">Required Minimum:</span>
-            <span class="value minimum-required">{{ minimum_order_value | money }}</span>
-          </div>
-          <div class="validation-item highlight">
-            <span class="label">Amount Needed:</span>
-            <span class="value amount-needed">{{ minimum_order_value | minus: cart.total_price | money }}</span>
-          </div>
-        </div>
-
-        <div class="security-info">
-          <div class="security-badge">
-            <span class="security-icon">🔐</span>
-            <div class="security-text">
-              <p><strong>Security Notice</strong></p>
-              <p>This validation is enforced server-side and cannot be bypassed. Your cart must meet the minimum order requirement to proceed.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-primary" onclick="continueShoppingFromModal()">
-          <span class="btn-icon">🛍️</span>
-          Continue Shopping
-        </button>
-        <button class="btn btn-secondary" onclick="closeValidationModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Loading Modal -->
-  <div id="loading-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-container loading-container">
-      <div class="loading-spinner"></div>
-      <p class="loading-text">Validating your cart...</p>
-      <p class="loading-subtext">Please wait while we verify your order meets our requirements.</p>
-    </div>
-  </div>
-  </div>
-
-
+   {% render 'cart-validating-model' %}
 <!-- Model Logic for the custom $100 validation start End -->
 {% else %}
   {% comment %}
@@ -1052,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (stickyCheckoutBtn) {
     stickyCheckoutBtn.addEventListener('click', function(event) {
       event.preventDefault();
-
+      
       if (currentTotal < minimumOrderValue) {
         showValidationModal();
       } else {
@@ -1180,41 +1123,41 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 10px;
     padding: 10px 8px;
   }
-
+  
   .cart__row .grid--full {
     display: block;
   }
-
+  
   .cart__row .grid__item {
     width: 100% !important;
     margin-bottom: 10px;
   }
-
+  
   .cart__image-container {
     height: 100px;
     width: 100px;
     margin: 0 auto 10px auto;
   }
-
+  
   .cart_product_title {
     font-size: 14px;
     text-align: center;
     margin-bottom: 8px;
     line-height: 1.2;
   }
-
+  
   .cart__row--table-large .grid--full {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     gap: 5px;
   }
-
+  
   .cart__row--table-large .grid__item {
     text-align: center;
     flex: 1;
   }
-
+  
   .cart__mini-labels {
     font-weight: 600;
     color: #666;
@@ -1222,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 5px;
     font-size: 12px;
   }
-
+  
   .quantity-input {
     width: 50px !important;
     text-align: center;
@@ -1230,26 +1173,26 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 5px;
     font-size: 12px;
   }
-
+  
   .price-display,
   .total-price-display {
     gap: 2px;
   }
-
+  
   .original-price,
   .original-total {
     font-size: 12px;
   }
-
+  
   .current-price,
   .current-total {
     font-size: 14px;
   }
-
+  
   .cart-summary-desktop {
     display: none;
   }
-
+  
   /* Reduce spacing between cart items */
   .red-border,
   .grey-border {
@@ -1257,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-top: 8px;
     padding: 8px;
   }
-
+  
   /* Add margin bottom for sticky button */
   .main-content {
     margin-bottom: 120px;
@@ -1356,28 +1299,28 @@ document.addEventListener('DOMContentLoaded', function() {
     flex-direction: column;
     gap: 15px;
   }
-
+  
   .sticky-cart-summary {
     width: 100%;
     text-align: center;
   }
-
+  
   .sticky-total {
     justify-content: center;
   }
-
+  
   .sticky-checkout-button {
     width: 100%;
     margin-left: 0;
   }
-
+  
   .sticky-btn {
     width: 100%;
     min-width: auto;
     padding: 12px 20px;
     font-size: 14px;
   }
-
+  
   .sticky-checkout-bar {
     padding: 12px 15px;
   }
@@ -1388,12 +1331,12 @@ document.addEventListener('DOMContentLoaded', function() {
   .cart-summary-desktop {
     display: block;
   }
-
+  
   .sticky-checkout-bar {
     transform: translateY(0);
     transition: transform 0.3s ease;
   }
-
+  
   /* Add margin to main content to prevent overlap */
   .main-content {
     margin-bottom: 120px;

@@ -1,0 +1,219 @@
+{% comment %}
+  Add this code to your checkout.liquid file in your Shopify theme
+  Place it in the discount code section or after the order summary
+{% endcomment %}
+
+<!-- Foxx Newsletter Checkout Validation -->
+<script>
+/**
+ * Foxx Newsletter Checkout Validation
+ * Add this to your checkout.liquid file to restrict discount usage
+ */
+(function() {
+  'use strict';
+  
+  // Configuration - Use your actual store ID from the popup builder
+  const STORE_ID = 'fa37fc5c-90ce-44d2-83d8-34835f3b45af'; // Replace with your actual store ID
+  const CART_THRESHOLD = 1000; // $1000 threshold
+  const DISCOUNT_CODE = 'WELCOME15'; // Your discount code
+  
+  // Session storage keys (matching your popup system)
+  const STORAGE_KEY = `foxx_newsletter_${STORE_ID}`;
+  
+  function isUserSubscribed() {
+    try {
+      const hasSession = sessionStorage.getItem(STORAGE_KEY + '_session') === 'true';
+      const hasCartValidation = sessionStorage.getItem(STORAGE_KEY + '_cart_validation_session') === 'true';
+      const hasLocalStorage = localStorage.getItem(STORAGE_KEY) !== null;
+      return hasSession || hasCartValidation || hasLocalStorage;
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  function getCheckoutTotal() {
+    try {
+      // Get total from Shopify checkout object
+      if (window.Shopify && window.Shopify.Checkout) {
+        return window.Shopify.Checkout.total_price / 100; // Convert from cents
+      }
+      
+      // Fallback: parse from checkout summary
+      const totalElement = document.querySelector('[data-checkout-total-price]') ||
+                          document.querySelector('.total-line .payment-due-label') ||
+                          document.querySelector('.payment-due .payment-due-label');
+      
+      if (totalElement) {
+        const totalText = totalElement.textContent || totalElement.innerText;
+        const match = totalText.match(/[\d,]+\.?\d*/);
+        if (match) {
+          return parseFloat(match[0].replace(',', ''));
+        }
+      }
+      
+      // Another fallback using checkout data
+      return {{ checkout.total_price | money_without_currency | remove: ',' }};
+    } catch (error) {
+      console.log('Could not get checkout total:', error);
+      return {{ checkout.total_price | money_without_currency | remove: ',' }};
+    }
+  }
+  
+  function showCheckoutNotice() {
+    const existingNotice = document.getElementById('foxx-checkout-notice');
+    if (existingNotice) existingNotice.remove();
+    
+    const checkoutTotal = getCheckoutTotal();
+    
+    const notice = document.createElement('div');
+    notice.id = 'foxx-checkout-notice';
+    notice.style.cssText = `
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+      padding: 12px 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.4;
+    `;
+    
+    notice.innerHTML = `
+      <div style="display: flex; align-items: flex-start; gap: 8px;">
+        <span style="font-size: 16px;">ℹ️</span>
+        <div>
+          <strong>Discount Code Notice:</strong><br>
+          Your order total is <strong>$${checkoutTotal.toFixed(2)}</strong>. 
+          The newsletter discount code <strong>${DISCOUNT_CODE}</strong> is only valid for orders under $${CART_THRESHOLD.toLocaleString()}.
+          <br><em>This discount code will not be applied to your order.</em>
+        </div>
+      </div>
+    `;
+    
+    // Find discount code section to insert the notice
+    const discountSection = document.querySelector('[data-discount-form]') ||
+                           document.querySelector('.discount-form') ||
+                           document.querySelector('#discount-form') ||
+                           document.querySelector('.reduction-code');
+    
+    if (discountSection) {
+      discountSection.parentNode.insertBefore(notice, discountSection.nextSibling);
+    } else {
+      // Fallback: insert in order summary
+      const orderSummary = document.querySelector('.order-summary') ||
+                          document.querySelector('.sidebar') ||
+                          document.querySelector('.main');
+      if (orderSummary) {
+        orderSummary.insertBefore(notice, orderSummary.firstChild);
+      }
+    }
+  }
+  
+  function restrictDiscountCode() {
+    const discountInputs = document.querySelectorAll('input[name="discount"], input[name="reduction_code"], [data-discount-field]');
+    const discountButtons = document.querySelectorAll('[data-discount-apply], button[type="submit"]:has-text("Apply")');
+    
+    // Monitor discount input changes
+    discountInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        if (this.value.toUpperCase() === DISCOUNT_CODE.toUpperCase()) {
+          const checkoutTotal = getCheckoutTotal();
+          const isSubscribed = isUserSubscribed();
+          
+          if (isSubscribed && checkoutTotal > CART_THRESHOLD) {
+            this.style.borderColor = '#f5c6cb';
+            this.style.backgroundColor = '#f8d7da';
+            
+            // Show tooltip or message
+            let tooltip = document.getElementById('discount-tooltip');
+            if (!tooltip) {
+              tooltip = document.createElement('div');
+              tooltip.id = 'discount-tooltip';
+              tooltip.style.cssText = `
+                position: absolute;
+                background: #721c24;
+                color: white;
+                padding: 8px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                top: -35px;
+                left: 0;
+                white-space: nowrap;
+                z-index: 1000;
+              `;
+              tooltip.textContent = `This code is not valid for orders over $${CART_THRESHOLD}`;
+              
+              this.style.position = 'relative';
+              this.parentNode.appendChild(tooltip);
+              
+              setTimeout(() => {
+                if (tooltip) tooltip.remove();
+              }, 3000);
+            }
+          }
+        } else {
+          this.style.borderColor = '';
+          this.style.backgroundColor = '';
+        }
+      });
+    });
+    
+    // Intercept discount form submissions
+    document.addEventListener('submit', function(e) {
+      const form = e.target;
+      if (form.querySelector('input[name="discount"], input[name="reduction_code"]')) {
+        const discountInput = form.querySelector('input[name="discount"], input[name="reduction_code"]');
+        const discountValue = discountInput ? discountInput.value.toUpperCase() : '';
+        
+        if (discountValue === DISCOUNT_CODE.toUpperCase()) {
+          const checkoutTotal = getCheckoutTotal();
+          const isSubscribed = isUserSubscribed();
+          
+          if (isSubscribed && checkoutTotal > CART_THRESHOLD) {
+            e.preventDefault();
+            alert(`Sorry, the ${DISCOUNT_CODE} discount code is only valid for orders under $${CART_THRESHOLD.toLocaleString()}. Your order total is $${checkoutTotal.toFixed(2)}.`);
+            return false;
+          }
+        }
+      }
+    });
+  }
+  
+  function initCheckoutValidation() {
+    const isSubscribed = isUserSubscribed();
+    const checkoutTotal = getCheckoutTotal();
+    
+    console.log('Foxx Checkout Validation:', {
+      subscribed: isSubscribed,
+      total: checkoutTotal,
+      threshold: CART_THRESHOLD
+    });
+    
+    if (isSubscribed && checkoutTotal > CART_THRESHOLD) {
+      showCheckoutNotice();
+      restrictDiscountCode();
+    }
+  }
+  
+  // Initialize when checkout loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCheckoutValidation);
+  } else {
+    initCheckoutValidation();
+  }
+  
+  // Re-run when checkout updates
+  setTimeout(initCheckoutValidation, 1000);
+  setTimeout(initCheckoutValidation, 3000);
+  
+})();
+</script>
+
+<!-- Make checkout data available -->
+<script>
+  window.checkoutData = {
+    total_price: {{ checkout.total_price | money_without_currency | remove: ',' }},
+    currency: '{{ shop.currency }}',
+    discount_applications: {{ checkout.discount_applications | json }}
+  };
+</script>
