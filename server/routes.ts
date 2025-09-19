@@ -1295,7 +1295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           const html = await response.text();
-          const hasNewsletterScript = html.includes('newsletter-popup.js');
+          const hasNewsletterScript = html.includes('newsletter-script.js');
           
           // Get current script values to compare with installed version
           const baseUrl = req.get('Host') ? `${req.get('X-Forwarded-Proto') || 'https'}://${req.get('Host')}` : 'http://localhost:5000';
@@ -1344,8 +1344,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                    html.includes(`script.setAttribute("data-generated-at"`);
           
           // Check if the script URL matches the current domain
-          const hasCorrectScriptUrl = html.includes(`script.src = '${baseUrl}/js/newsletter-popup.js`) ||
-                                     html.includes(`script.src='${baseUrl}/js/newsletter-popup.js`);
+          const hasCorrectScriptUrl = html.includes(`script.src = '${baseUrl}/api/newsletter-script.js`) ||
+                                     html.includes(`script.src='${baseUrl}/api/newsletter-script.js`);
           
           // STRICT VALIDATION: All attributes must exist AND BOTH script version AND timestamp must match exactly
           const hasBasicAttributes = hasStoreDomain && hasPopupConfig && hasIntegrationType;

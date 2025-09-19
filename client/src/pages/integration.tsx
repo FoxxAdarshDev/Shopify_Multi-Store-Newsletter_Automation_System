@@ -18,6 +18,7 @@ export default function Integration() {
   const { storeId } = useParams<{ storeId: string }>();
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [copiedScript, setCopiedScript] = useState(false);
+  const [regenerateRequested, setRegenerateRequested] = useState(false);
   const { toast } = useToast();
 
   // Auto-select current store from URL
@@ -35,8 +36,14 @@ export default function Integration() {
   const currentStore = stores.find(store => store.id === selectedStoreId);
 
   const { data: integrationScript } = useQuery<string>({
-    queryKey: [`integration-script-${selectedStoreId}`],
-    queryFn: () => selectedStoreId ? apiRequest(`/api/stores/${selectedStoreId}/integration-script`) : Promise.reject('No store selected'),
+    queryKey: [`integration-script-${selectedStoreId}`, regenerateRequested],
+    queryFn: () => {
+      if (!selectedStoreId) return Promise.reject('No store selected');
+      const url = regenerateRequested 
+        ? `/api/stores/${selectedStoreId}/integration-script?regenerate=true`
+        : `/api/stores/${selectedStoreId}/integration-script`;
+      return apiRequest(url);
+    },
     enabled: !!selectedStoreId,
   });
 
@@ -138,10 +145,14 @@ export default function Integration() {
     if (!selectedStoreId) return;
     
     try {
-      // Force refetch by invalidating the query
+      // Set regenerate flag and invalidate query to fetch with regenerate=true
+      setRegenerateRequested(true);
       queryClient.invalidateQueries({ 
-        queryKey: [`integration-script-${selectedStoreId}`] 
+        queryKey: [`integration-script-${selectedStoreId}`, true] 
       });
+      
+      // Reset flag after a brief delay
+      setTimeout(() => setRegenerateRequested(false), 1000);
       
       toast({
         title: "Success",
